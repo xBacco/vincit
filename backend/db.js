@@ -1,64 +1,97 @@
-const Database = require('better-sqlite3');
-const path = require('path');
-require('dotenv').config();
+'use strict';
+const { Pool } = require('pg');
 
-const db = new Database(path.resolve(process.env.DB_PATH || './betcouple.db'));
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+});
 
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
+(async () => {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS profiles (
+      "user"    TEXT PRIMARY KEY,
+      name      TEXT NOT NULL,
+      avatar    TEXT NOT NULL DEFAULT '🃏',
+      color_key TEXT NOT NULL DEFAULT 'blue'
+    );
 
-db.exec(`
-  CREATE TABLE IF NOT EXISTS profiles (
-    user      TEXT PRIMARY KEY,
-    name      TEXT NOT NULL,
-    avatar    TEXT NOT NULL DEFAULT '🃏',
-    color_key TEXT NOT NULL DEFAULT 'blue'
-  );
+    CREATE TABLE IF NOT EXISTS credits (
+      "user"  TEXT PRIMARY KEY,
+      amount  REAL NOT NULL DEFAULT 100
+    );
 
-  CREATE TABLE IF NOT EXISTS credits (
-    user   TEXT PRIMARY KEY,
-    amount REAL NOT NULL DEFAULT 100
-  );
+    CREATE TABLE IF NOT EXISTS bets (
+      id             TEXT PRIMARY KEY,
+      creator        TEXT NOT NULL,
+      title          TEXT NOT NULL,
+      quota          REAL NOT NULL,
+      stake          INTEGER NOT NULL,
+      potential_win  INTEGER NOT NULL,
+      category       TEXT NOT NULL DEFAULT 'altro',
+      is_secret      INTEGER NOT NULL DEFAULT 0,
+      is_counterable INTEGER NOT NULL DEFAULT 0,
+      pegno          TEXT,
+      expires_at     INTEGER,
+      created_at     INTEGER NOT NULL,
+      status         TEXT NOT NULL DEFAULT 'active',
+      flamed         INTEGER NOT NULL DEFAULT 0
+    );
 
-  CREATE TABLE IF NOT EXISTS bets (
-    id             TEXT PRIMARY KEY,
-    creator        TEXT NOT NULL,
-    title          TEXT NOT NULL,
-    quota          REAL NOT NULL,
-    stake          INTEGER NOT NULL,
-    potential_win  INTEGER NOT NULL,
-    category       TEXT NOT NULL DEFAULT 'altro',
-    is_secret      INTEGER NOT NULL DEFAULT 0,
-    is_counterable INTEGER NOT NULL DEFAULT 0,
-    pegno          TEXT,
-    expires_at     INTEGER,
-    created_at     INTEGER NOT NULL,
-    status         TEXT NOT NULL DEFAULT 'active',
-    flamed         INTEGER NOT NULL DEFAULT 0
-  );
+    CREATE TABLE IF NOT EXISTS counter_bets (
+      id            TEXT PRIMARY KEY,
+      bet_id        TEXT NOT NULL REFERENCES bets(id) ON DELETE CASCADE,
+      bettor        TEXT NOT NULL,
+      side          TEXT NOT NULL CHECK(side IN ('yes','no')),
+      quota_used    REAL NOT NULL,
+      stake         INTEGER NOT NULL,
+      potential_win INTEGER NOT NULL,
+      status        TEXT NOT NULL DEFAULT 'active'
+    );
 
-  CREATE TABLE IF NOT EXISTS counter_bets (
-    id            TEXT PRIMARY KEY,
-    bet_id        TEXT NOT NULL REFERENCES bets(id) ON DELETE CASCADE,
-    bettor        TEXT NOT NULL,
-    side          TEXT NOT NULL CHECK(side IN ('yes','no')),
-    quota_used    REAL NOT NULL,
-    stake         INTEGER NOT NULL,
-    potential_win INTEGER NOT NULL,
-    status        TEXT NOT NULL DEFAULT 'active'
-  );
+    CREATE TABLE IF NOT EXISTS categories (
+      id    TEXT PRIMARY KEY,
+      emoji TEXT NOT NULL,
+      label TEXT NOT NULL,
+      color TEXT NOT NULL
+    );
+  `);
 
-  CREATE TABLE IF NOT EXISTS categories (
-    id    TEXT PRIMARY KEY,
-    emoji TEXT NOT NULL,
-    label TEXT NOT NULL,
-    color TEXT NOT NULL
-  );
+  await pool.query(`
+    INSERT INTO profiles ("user", name, avatar, color_key)
+      VALUES ('tomas',  'Tomas',  '🃏', 'blue'),
+             ('giulia', 'Giulia', '♥️', 'purple')
+    ON CONFLICT DO NOTHING
+  `);
 
-  INSERT OR IGNORE INTO profiles VALUES ('tomas',  'Tomas',  '🃏', 'blue');
-  INSERT OR IGNORE INTO profiles VALUES ('giulia', 'Giulia', '♥️', 'purple');
-  INSERT OR IGNORE INTO credits  VALUES ('tomas',  100);
-  INSERT OR IGNORE INTO credits  VALUES ('giulia', 100);
-`);
+  await pool.query(`
+    INSERT INTO credits ("user", amount)
+      VALUES ('tomas',  100),
+             ('giulia', 100)
+    ON CONFLICT DO NOTHING
+  `);
 
-module.exports = db;
+  console.log('DB schema ready');
+})().catch(err => {
+  console.error('DB init failed:', err);
+  process.exit(1);
+});
+
+async function query(text, params) {
+  return pool.query(text, params);
+}
+
+async function transaction(fn) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await fn(client);
+    await client.query('COMMIT');
+  } catch (e) {
+    await client.query('ROLLBACK');
+    throw e;
+  } finally {
+    client.release();
+  }
+}
+
+module.exports = { query, transaction };

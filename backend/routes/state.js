@@ -1,19 +1,22 @@
+'use strict';
 const express = require('express');
 const router = express.Router();
 const db = require('../db.js');
 
-function buildState() {
+async function buildState() {
   const profiles = {};
-  db.prepare('SELECT * FROM profiles').all().forEach(r => {
+  const { rows: profileRows } = await db.query('SELECT * FROM profiles');
+  profileRows.forEach(r => {
     profiles[r.user] = { name: r.name, avatar: r.avatar, colorKey: r.color_key };
   });
 
   const credits = {};
-  db.prepare('SELECT * FROM credits').all().forEach(r => {
+  const { rows: creditRows } = await db.query('SELECT * FROM credits');
+  creditRows.forEach(r => {
     credits[r.user] = r.amount;
   });
 
-  const allCounters = db.prepare('SELECT * FROM counter_bets').all();
+  const { rows: allCounters } = await db.query('SELECT * FROM counter_bets');
   const countersByBetId = {};
   allCounters.forEach(r => {
     if (!countersByBetId[r.bet_id]) countersByBetId[r.bet_id] = [];
@@ -29,7 +32,8 @@ function buildState() {
     });
   });
 
-  const bets = db.prepare('SELECT * FROM bets ORDER BY created_at DESC').all().map(r => ({
+  const { rows: betRows } = await db.query('SELECT * FROM bets ORDER BY created_at DESC');
+  const bets = betRows.map(r => ({
     id:            r.id,
     creator:       r.creator,
     title:         r.title,
@@ -47,7 +51,8 @@ function buildState() {
     counterBets:   countersByBetId[r.id] || [],
   }));
 
-  const categories = db.prepare('SELECT * FROM categories').all().map(r => ({
+  const { rows: catRows } = await db.query('SELECT * FROM categories');
+  const categories = catRows.map(r => ({
     id:    r.id,
     e:     r.emoji,
     label: r.label,
@@ -57,8 +62,13 @@ function buildState() {
   return { profiles, credits, bets, categories };
 }
 
-router.get('/', (req, res) => {
-  res.json(buildState());
+router.get('/', async (req, res) => {
+  try {
+    res.json(await buildState());
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 module.exports = router;

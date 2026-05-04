@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const { router: eventsRouter, broadcastUpdate } = require('./routes/events.js');
 
 const app = express();
@@ -16,6 +17,11 @@ app.use('/api/profiles',   require('./routes/profiles.js')(broadcastUpdate));
 app.use('/api/credits',    require('./routes/credits.js')(broadcastUpdate));
 app.use('/api/categories', require('./routes/categories.js')(broadcastUpdate));
 
+app.use(express.static(path.join(__dirname, '../frontend/dist')));
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
+});
+
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`BetCouple backend running on http://0.0.0.0:${PORT}`);
+  console.log(`BetCouple running on http://0.0.0.0:${PORT}`);
 });

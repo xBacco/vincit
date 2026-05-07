@@ -11,8 +11,11 @@ const S = {
 
 const qNo = qY=>parseFloat((parseFloat(qY)/(parseFloat(qY)-1)).toFixed(2));
 
+const DEF_IDS=['intimo','serata','casa','cibo','gaming','altro'];
+
 export default function CreateModal({user,profiles,maxC,cats,onCreate,onClose}){
   const { t } = useLang();
+  const catLabel = c => DEF_IDS.includes(c.id) ? t('cats.'+c.id) : c.label;
   const [title,setTitle]=useState("");
   const [quota,setQuota]=useState(1.50);
   const [stakeStr,setStakeStr]=useState("10");
@@ -108,7 +111,7 @@ export default function CreateModal({user,profiles,maxC,cats,onCreate,onClose}){
           <label style={S.lbl}>{t('create.category_label')}</label>
           <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
             {cats.map(c=>(
-              <button key={c.id} onClick={()=>setCat(c.id)} style={{...S.btn,padding:"7px 12px",fontSize:12,background:"transparent",border:`1px solid ${cat===c.id?c.color:"var(--brd)"}`,color:cat===c.id?c.color:"var(--dim)"}}>{c.e} {c.label}</button>
+              <button key={c.id} onClick={()=>setCat(c.id)} style={{...S.btn,padding:"7px 12px",fontSize:12,background:"transparent",border:`1px solid ${cat===c.id?c.color:"var(--brd)"}`,color:cat===c.id?c.color:"var(--dim)"}}>{c.e} {catLabel(c)}</button>
             ))}
           </div>
         </div>

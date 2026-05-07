@@ -11,8 +11,11 @@ const S = {
 const getC = (profiles,user)=>COLORS[profiles[user].colorKey]||"#5b8af0";
 const qToP = q=>Math.round(100/parseFloat(q));
 
+const DEF_IDS=['intimo','serata','casa','cibo','gaming','altro'];
+
 export default function BetCard({bet,user,profiles,cats,onResolve,onReveal,onCounter,onFlame,onReaction,reactions,isDesktop}){
   const { t, lang } = useLang();
+  const catLabel = c => DEF_IDS.includes(c.id) ? t('cats.'+c.id) : c.label;
   const other=user==="tomas"?"giulia":"tomas";
   const isOwner=bet.creator===user;
   const cat=cats.find(c=>c.id===bet.category)||cats[cats.length-1];
@@ -49,7 +52,7 @@ export default function BetCard({bet,user,profiles,cats,onResolve,onReveal,onCou
                 :<div style={{fontWeight:600,fontSize:14,lineHeight:1.35}}>{bet.title}</div>
               }
               <div style={{fontSize:11,color:"var(--dim)",marginTop:3}}>
-                {cat.e} {cat.label} · {fmtD(bet.createdAt,lang)}
+                {cat.e} {catLabel(cat)} · {fmtD(bet.createdAt,lang)}
                 {!isOwner&&<span style={{color:getC(profiles,bet.creator)}}> · {profiles[bet.creator].name}</span>}
               </div>
             </div>

@@ -9,8 +9,11 @@ const S = {
 
 const Bdg=({c,bg,children})=><span style={{...S.bdg,background:bg,color:c}}>{children}</span>;
 
+const DEF_IDS=['intimo','serata','casa','cibo','gaming','altro'];
+
 export default function StatsView({user,profiles,credits,bets,cats,isDesktop}){
   const { t } = useLang();
+  const catLabel = c => DEF_IDS.includes(c.id) ? t('cats.'+c.id) : c.label;
   const won=bets.filter(b=>b.creator===user&&b.status==="won");
   const lost=bets.filter(b=>b.creator===user&&b.status==="lost");
   const all=[...won,...lost];
@@ -52,7 +55,7 @@ export default function StatsView({user,profiles,credits,bets,cats,isDesktop}){
             <div key={c.id} style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
               <span style={{fontSize:14}}>{c.e}</span>
               <div style={{flex:1}}>
-                <div style={{fontSize:12}}>{c.label}</div>
+                <div style={{fontSize:12}}>{catLabel(c)}</div>
                 <div style={{height:4,borderRadius:2,background:"var(--mut)",marginTop:4,overflow:"hidden"}}>
                   <div style={{height:"100%",borderRadius:2,background:c.color,width:`${(c.w+c.l)?c.w/(c.w+c.l)*100:0}%`,transition:"width .5s"}}/>
                 </div>

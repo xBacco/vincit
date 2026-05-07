@@ -11,9 +11,11 @@ const S = {
 
 const Bdg=({c,bg,children})=><span style={{...S.bdg,background:bg,color:c}}>{children}</span>;
 const qToP = q=>Math.round(100/parseFloat(q));
+const DEF_IDS=['intimo','serata','casa','cibo','gaming','altro'];
 
 export default function VaultView({user,profiles,bets,cats,onReveal,onFlame,unlocked,onPinRequest,vaultPin,isDesktop}){
   const { t, lang } = useLang();
+  const catLabel = c => DEF_IDS.includes(c.id) ? t('cats.'+c.id) : c.label;
   const active=bets.filter(b=>b.creator===user&&b.isSecret&&b.status==="active");
   const resolved=bets.filter(b=>b.creator===user&&b.isSecret&&["won","lost"].includes(b.status));
   const hasPIN=!!vaultPin;
@@ -61,7 +63,7 @@ export default function VaultView({user,profiles,bets,cats,onReveal,onFlame,unlo
                 </div>
               </div>
               <div style={{display:"flex",flexWrap:"wrap",gap:5,marginBottom:10}}>
-                <Bdg bg="var(--mut)44" c="var(--dim)">{cat.e} {cat.label}</Bdg>
+                <Bdg bg="var(--mut)44" c="var(--dim)">{cat.e} {catLabel(cat)}</Bdg>
                 <Bdg bg="var(--mut)44" c="var(--dim)">{t('vault_view.stake')} {b.stake} ₡</Bdg>
                 <Bdg bg="var(--grn)22" c="var(--grn)">{t('vault_view.win')} {b.potentialWin} ₡</Bdg>
                 {b.pegno&&<Bdg bg="var(--gold)22" c="var(--gold)">🎁 {b.pegno}</Bdg>}

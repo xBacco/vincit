@@ -31,8 +31,8 @@ const pool = new Pool({
       is_secret      INTEGER NOT NULL DEFAULT 0,
       is_counterable INTEGER NOT NULL DEFAULT 0,
       pegno          TEXT,
-      expires_at     INTEGER,
-      created_at     INTEGER NOT NULL,
+      expires_at     BIGINT,
+      created_at     BIGINT NOT NULL,
       status         TEXT NOT NULL DEFAULT 'active',
       flamed         INTEGER NOT NULL DEFAULT 0
     );
@@ -65,6 +65,11 @@ const pool = new Pool({
       emoji  TEXT NOT NULL,
       PRIMARY KEY (bet_id, bettor)
     );
+  `);
+
+  await pool.query(`
+    ALTER TABLE bets ALTER COLUMN created_at TYPE BIGINT;
+    ALTER TABLE bets ALTER COLUMN expires_at TYPE BIGINT;
   `);
 
   await pool.query(`

@@ -13,13 +13,16 @@ const qToP = q=>Math.round(100/parseFloat(q));
 
 const DEF_IDS=['intimo','serata','casa','cibo','gaming','altro'];
 
-export default function BetCard({bet,user,profiles,cats,onResolve,onReveal,onCounter,onFlame,onReaction,reactions,isDesktop}){
+export default function BetCard({bet,user,profiles,cats,onResolve,onReveal,onCounter,onFlame,onReaction,reactions,onDelete,isDesktop}){
   const { t, lang } = useLang();
   const catLabel = c => DEF_IDS.includes(c.id) ? t('cats.'+c.id) : c.label;
   const other=user==="tomas"?"giulia":"tomas";
   const isOwner=bet.creator===user;
   const cat=cats.find(c=>c.id===bet.category)||cats[cats.length-1];
   const done=["won","lost"].includes(bet.status);
+  const CANCEL_MS=5*60*1000;
+  const canCancel=isOwner&&!done&&!!onDelete&&(Date.now()-bet.createdAt<CANCEL_MS);
+  const minsLeft=Math.ceil((bet.createdAt+CANCEL_MS-Date.now())/60000);
   const tl=tLeft(bet.expiresAt,lang);
   const myCounter=(bet.counterBets||[]).find(cb=>cb.bettor===user);
   const theirCounter=(bet.counterBets||[]).find(cb=>cb.bettor!==user);
@@ -35,6 +38,9 @@ export default function BetCard({bet,user,profiles,cats,onResolve,onReveal,onCou
         :<Btn variant="grn" sm style={isDesktop?{}:{flex:1}} onClick={()=>onResolve(bet)}>{t('bet_card.declare')}</Btn>
       }
       <button onClick={()=>onFlame(bet.id)} style={{...S.btn,padding:"7px 10px",background:"transparent",border:"1px solid var(--brd)",color:bet.flamed?"#f97316":"var(--dim)",fontSize:12}}>{bet.flamed?"🔥":"🤍"}</button>
+      {canCancel&&(
+        <button onClick={()=>{if(window.confirm(t('bet_card.cancel_confirm')))onDelete(bet);}} style={{...S.btn,padding:"7px 10px",background:"transparent",border:"1px solid var(--red)44",color:"var(--red)",fontSize:11}}>✕ {t('bet_card.cancel_btn')} ({t('bet_card.cancel_window',{m:minsLeft})})</button>
+      )}
     </div>
   );
 

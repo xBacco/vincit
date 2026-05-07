@@ -13,12 +13,13 @@ const Bdg=({c,bg,children})=><span style={{...S.bdg,background:bg,color:c}}>{chi
 const qToP = q=>Math.round(100/parseFloat(q));
 const DEF_IDS=['intimo','serata','casa','cibo','gaming','altro'];
 
-export default function VaultView({user,profiles,bets,cats,onReveal,onFlame,unlocked,onPinRequest,vaultPin,isDesktop}){
+export default function VaultView({user,profiles,bets,cats,onReveal,onFlame,unlocked,onPinRequest,vaultPin,isDesktop,onDelete}){
   const { t, lang } = useLang();
   const catLabel = c => DEF_IDS.includes(c.id) ? t('cats.'+c.id) : c.label;
   const active=bets.filter(b=>b.creator===user&&b.isSecret&&b.status==="active");
   const resolved=bets.filter(b=>b.creator===user&&b.isSecret&&["won","lost"].includes(b.status));
   const hasPIN=!!vaultPin;
+  const CANCEL_MS=5*60*1000;
 
   if(hasPIN&&!unlocked){
     return(
@@ -72,11 +73,14 @@ export default function VaultView({user,profiles,bets,cats,onReveal,onFlame,unlo
                 <Btn variant="gold" sm style={{flex:1}} onClick={()=>onReveal(b)}>{t('vault_view.reveal_btn')}</Btn>
                 <button onClick={()=>onFlame(b.id)} style={{...S.btn,padding:"7px 10px",background:"transparent",border:"1px solid var(--brd)",color:b.flamed?"#f97316":"var(--dim)",fontSize:12}}>{b.flamed?"🔥":"🤍"}</button>
               </div>
+              {Date.now()-b.createdAt<CANCEL_MS&&onDelete&&(
+                <button onClick={()=>{if(window.confirm(t('bet_card.cancel_confirm')))onDelete(b);}} style={{...S.btn,marginTop:8,width:"100%",padding:"7px 10px",background:"transparent",border:"1px solid var(--red)44",color:"var(--red)",fontSize:11}}>✕ {t('bet_card.cancel_btn')} ({t('bet_card.cancel_window',{m:Math.ceil((b.createdAt+CANCEL_MS-Date.now())/60000)})})</button>
+              )}
             </div>
           </div>
         );
       })}
-      {resolved.length>0&&<><SecLabel mt={16}>{t('vault_view.resolved')}</SecLabel>{resolved.map(b=><BetCard key={b.id} bet={b} user={user} profiles={profiles} cats={cats} onFlame={onFlame} onCounter={()=>{}} isDesktop={isDesktop}/>)}</>}
+      {resolved.length>0&&<><SecLabel mt={16}>{t('vault_view.resolved')}</SecLabel>{resolved.map(b=><BetCard key={b.id} bet={b} user={user} profiles={profiles} cats={cats} onFlame={onFlame} onCounter={()=>{}} isDesktop={isDesktop} onDelete={onDelete}/>)}</>}
     </div>
   );
 }

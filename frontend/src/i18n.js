@@ -9,7 +9,7 @@ const TRANSLATIONS = {
     cats:    { intimo:'Intimo', serata:'Serata', casa:'Casa', cibo:'Cibo', gaming:'Gaming', altro:'Altro' },
     qpre:    { q110:'👑 Quasi certo', q130:'🔥 Molto prob.', q150:'⚡ Probabile', q200:'🎲 Fifty-fifty', q350:'💀 Outsider', q600:'🌙 Miracolo' },
     welcome: { private:'Privato · Solo per voi', subtitle:'Il vostro gioco privato di scommesse', iam:'Sono io', footer:'Quote decimali europee · Dati salvati sul server' },
-    app:     { welcome_back:'Bentornato', credits:'Crediti', switch:'Switch', new_bet:'+ Nuova Bet', new_bet_label:'Nuova', error_create:'Errore nella creazione della bet. Riprova.' },
+    app:     { welcome_back:'Bentornato', credits:'Crediti', switch:'Switch', new_bet:'+ Nuova Bet', new_bet_label:'Nuova', error_create:'Errore nella creazione della bet. Riprova.', error_cancel:"Errore durante l'annullamento. Riprova." },
     nav:     { dashboard:'Home', bets:'Bets', vault:'Vault', stats:'Stats', settings:'Config' },
     create: {
       title:'Nuova Bet 🎲', secret_on_label:'🔒 Bet Segreta (Vault)', secret_off_label:'👁 Bet Condivisa',
@@ -65,6 +65,7 @@ const TRANSLATIONS = {
       reveal:'🔓 Rivela', declare:'Dichiara esito', secret_label:'Bet Segreta', challenge:'Sfida diretta',
       stake:'Stake', win:'Win', yes:'SÌ', no:'NO', counter_cta:'⚡ Scommetti SÌ {qy}× o NO {qn}×',
       my_pos:'La tua posizione:', side_yes:'✅ SÌ', side_no:'❌ NO',
+      cancel_btn:'Annulla Bet', cancel_confirm:'Annullare questa bet? Lo stake ti verrà rimborsato.', cancel_window:'{m}m rimasti',
     },
     reveal:   { title:'Rivelazione 🔓', created:'Creata:', tap:'Tocca per rivelare', happened:'È successa?', yes_btn:'✅ Sì! Ho vinto', no_btn:'❌ No, persa', cancel:'Annulla' },
     resolve:  { title:'Dichiara Esito', positions:'Posizioni in gioco', yes_btn:'✅ SÌ — È successa! (+{net} ₡)', no_btn:'❌ NO — Non è successa (−{stake} ₡)', overtime:'🎲 OVERTIME — Testa o Croce', cancel:'Annulla', quota:'Quota', stake:'Stake', win:'Win', yes:'SÌ', no:'NO' },
@@ -80,7 +81,7 @@ const TRANSLATIONS = {
     cats:    { intimo:'Intimate', serata:'Night Out', casa:'Home', cibo:'Food', gaming:'Gaming', altro:'Other' },
     qpre:    { q110:'👑 Almost certain', q130:'🔥 Very likely', q150:'⚡ Probable', q200:'🎲 Fifty-fifty', q350:'💀 Outsider', q600:'🌙 Miracle' },
     welcome: { private:'Private · Just the two of you', subtitle:'Your personal couples betting game', iam:"That's me", footer:'European decimal odds · Data stored on server' },
-    app:     { welcome_back:'Welcome back', credits:'Credits', switch:'Switch', new_bet:'+ New Bet', new_bet_label:'New', error_create:'Failed to create the bet. Please try again.' },
+    app:     { welcome_back:'Welcome back', credits:'Credits', switch:'Switch', new_bet:'+ New Bet', new_bet_label:'New', error_create:'Failed to create the bet. Please try again.', error_cancel:'Failed to cancel the bet. Please try again.' },
     nav:     { dashboard:'Home', bets:'Bets', vault:'Vault', stats:'Stats', settings:'Settings' },
     create: {
       title:'New Bet 🎲', secret_on_label:'🔒 Secret Bet (Vault)', secret_off_label:'👁 Shared Bet',
@@ -136,6 +137,7 @@ const TRANSLATIONS = {
       reveal:'🔓 Reveal', declare:'Declare result', secret_label:'Secret Bet', challenge:'Direct challenge',
       stake:'Stake', win:'Win', yes:'YES', no:'NO', counter_cta:'⚡ Bet YES {qy}× or NO {qn}×',
       my_pos:'Your position:', side_yes:'✅ YES', side_no:'❌ NO',
+      cancel_btn:'Cancel Bet', cancel_confirm:'Cancel this bet? Your stake will be refunded.', cancel_window:'{m}m left',
     },
     reveal:   { title:'Reveal 🔓', created:'Created:', tap:'Tap to reveal', happened:'Did it happen?', yes_btn:'✅ Yes! I won', no_btn:'❌ No, lost', cancel:'Cancel' },
     resolve:  { title:'Declare Result', positions:'Positions at stake', yes_btn:'✅ YES — It happened! (+{net} ₡)', no_btn:"❌ NO — Didn't happen (−{stake} ₡)", overtime:'🎲 OVERTIME — Flip a Coin', cancel:'Cancel', quota:'Odds', stake:'Stake', win:'Win', yes:'YES', no:'NO' },

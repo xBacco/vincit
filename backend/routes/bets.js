@@ -119,6 +119,42 @@ module.exports = function(broadcastUpdate) {
     }
   });
 
+  router.delete('/:id', async (req, res) => {
+    try {
+      const { creator } = req.body;
+      if (!creator) return res.status(400).json({ error: 'creator required' });
+
+      const { rows } = await db.query('SELECT * FROM bets WHERE id = $1', [req.params.id]);
+      const bet = rows[0];
+      if (!bet) return res.status(404).json({ error: 'Not found' });
+      if (bet.creator !== creator) return res.status(403).json({ error: 'Forbidden' });
+      if (bet.status !== 'active') return res.status(403).json({ error: 'Already resolved' });
+      if (Date.now() - bet.created_at > 5 * 60 * 1000) return res.status(403).json({ error: 'Window expired' });
+
+      const { rows: counters } = await db.query('SELECT * FROM counter_bets WHERE bet_id = $1', [bet.id]);
+
+      await db.transaction(async (client) => {
+        await client.query(
+          'UPDATE credits SET amount = amount + $1 WHERE "user" = $2',
+          [bet.stake, bet.creator]
+        );
+        for (const cb of counters) {
+          await client.query(
+            'UPDATE credits SET amount = amount + $1 WHERE "user" = $2',
+            [cb.stake, cb.bettor]
+          );
+        }
+        await client.query('DELETE FROM bets WHERE id = $1', [bet.id]);
+      });
+
+      broadcastUpdate();
+      res.json({ ok: true });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
   router.patch('/:id/flame', async (req, res) => {
     try {
       await db.query(

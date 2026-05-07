@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import * as api from '../../api.js';
+import { useLang } from '../../i18n.js';
 
 export default function PinLoginModal({ user, profile, onSuccess, onClose }) {
+  const { t } = useLang();
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
   const [shake, setShake] = useState(false);
@@ -22,12 +24,12 @@ export default function PinLoginModal({ user, profile, onSuccess, onClose }) {
           onSuccess();
         } else {
           setShake(true);
-          setError('PIN errato');
+          setError(t('pin_login.err_wrong'));
           setPin('');
           setTimeout(() => { setShake(false); inputRef.current?.focus(); }, 500);
         }
       } catch {
-        setError('Errore di rete');
+        setError(t('pin_login.err_network'));
       } finally {
         setLoading(false);
       }
@@ -39,7 +41,7 @@ export default function PinLoginModal({ user, profile, onSuccess, onClose }) {
       <div style={{background:"var(--card)",border:"1px solid var(--brd)",borderRadius:20,padding:32,width:"100%",maxWidth:340,textAlign:"center"}}>
         <div style={{fontSize:44,marginBottom:12}}>{profile.avatar}</div>
         <div style={{fontFamily:"'Playfair Display',serif",fontSize:22,fontWeight:700,marginBottom:4}}>{profile.name}</div>
-        <div style={{fontSize:13,color:"var(--dim)",marginBottom:24}}>Inserisci il PIN account</div>
+        <div style={{fontSize:13,color:"var(--dim)",marginBottom:24}}>{t('pin_login.subtitle')}</div>
         <input
           ref={inputRef}
           type="text"
@@ -64,18 +66,18 @@ export default function PinLoginModal({ user, profile, onSuccess, onClose }) {
             marginBottom:8,
             animation: shake ? "pinShake 0.4s ease" : "none",
           }}
-          placeholder="●●●●"
+          placeholder={t('pin_login.placeholder')}
         />
         {error && <div style={{fontSize:13,color:"var(--red)",marginBottom:8}}>{error}</div>}
         <div
           style={{fontSize:12,color:"var(--mut)",marginTop:8,cursor:"pointer"}}
-          onClick={() => setError('Chiedi al tuo partner 💬')}>
-          Hai dimenticato il PIN?
+          onClick={() => setError(t('pin_login.forgot_hint'))}>
+          {t('pin_login.forgot')}
         </div>
         <button
           onClick={onClose}
           style={{marginTop:16,background:"transparent",border:"none",color:"var(--dim)",fontSize:12,cursor:"pointer",textDecoration:"underline"}}>
-          Indietro
+          {t('pin_login.back')}
         </button>
       </div>
       <style>{`@keyframes pinShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}`}</style>

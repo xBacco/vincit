@@ -1,3 +1,4 @@
+import { TRANSLATIONS } from '../i18n.js';
 import React from 'react';
 
 export const DARK  = {bg:"#07060f",surf:"#0f0d1f",card:"#131128",brd:"#1e1b36",gold:"#c8973f",goldL:"#e8b84b",glow:"rgba(200,151,63,0.18)",grn:"#2ecc7f",red:"#e05555",blu:"#5b8af0",pur:"#a07ef5",txt:"#ede8fd",dim:"#8480a0",mut:"#3d3a58",inp:"#0f0d1f"};
@@ -23,19 +24,26 @@ export const DEF_CATS=[
   {id:"gaming",e:"🎮",label:"Gaming",color:"#2ecc7f"},
   {id:"altro", e:"🎲",label:"Altro", color:"#8480a0"},
 ];
-export const Q_PRE=[
-  {l:"👑 Quasi certo",q:1.10},{l:"🔥 Molto prob.",q:1.30},
-  {l:"⚡ Probabile",  q:1.50},{l:"🎲 Fifty-fifty",q:2.00},
-  {l:"💀 Outsider",   q:3.50},{l:"🌙 Miracolo",   q:6.00},
+export const Q_PRE = [
+  {key:'q110',q:1.10},{key:'q130',q:1.30},{key:'q150',q:1.50},
+  {key:'q200',q:2.00},{key:'q350',q:3.50},{key:'q600',q:6.00},
 ];
 
 export const qToP  = q=>Math.round(100/parseFloat(q));
 export const pToQ  = p=>parseFloat((100/Math.max(1,Math.min(99,p))).toFixed(2));
 export const fmtQ  = q=>parseFloat(q).toFixed(2);
 export const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
-export const fmtD  = ts=>new Date(ts).toLocaleDateString("it-IT",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"});
+export const fmtD = (ts, lang='it') =>
+  new Date(ts).toLocaleDateString(TRANSLATIONS[lang]?.date?.locale ?? 'it-IT', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
 export const qNo   = qY=>parseFloat((parseFloat(qY)/(parseFloat(qY)-1)).toFixed(2));
-export const tLeft = ts=>{if(!ts)return null;const d=ts-Date.now();if(d<=0)return"SCADUTA";const h=Math.floor(d/3600000),m=Math.floor((d%3600000)/60000);return h>=48?`${Math.floor(h/24)}g`:h>0?`${h}h${m}m`:`${m}m`;};
+export const tLeft = (ts, lang='it') => {
+  if(!ts) return null;
+  const d = ts - Date.now();
+  const dt = TRANSLATIONS[lang]?.date ?? TRANSLATIONS.it.date;
+  if(d<=0) return dt.expired;
+  const h=Math.floor(d/3600000), m=Math.floor((d%3600000)/60000);
+  return h>=48?`${Math.floor(h/24)}${dt.days}`:h>0?`${h}${dt.hours}${m}${dt.minutes}`:`${m}${dt.minutes}`;
+};
 export const isSoon= ts=>ts&&ts>Date.now()&&(ts-Date.now())<86400000;
 export const getC  = (profiles,user)=>COLORS[profiles[user].colorKey]||"#5b8af0";
 

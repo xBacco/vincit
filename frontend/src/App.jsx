@@ -3,6 +3,7 @@ import { useSync } from './useSync.js';
 import * as api from './api.js';
 
 import { DARK, LIGHT, rootVars, DEF_CATS, COLORS } from './components/Atoms.jsx';
+import { useLang } from './i18n.js';
 import WinOverlay from './components/WinOverlay.jsx';
 import WelcomeScreen from './components/views/WelcomeScreen.jsx';
 import DashboardView from './components/views/DashboardView.jsx';
@@ -71,6 +72,7 @@ export default function App() {
   const [isDark, setIsDark] = useState(true);
   const C = isDark ? DARK : LIGHT;
   const isDesktop = useBreakpoint(768);
+  const { t } = useLang();
 
   // Server state: profiles, credits, bets, categories (custom only)
   const [profiles, setProfiles] = useState({
@@ -133,7 +135,8 @@ export default function App() {
     try {
       await api.createBet({ ...data, id: `b${Date.now()}`, creator: user, createdAt: Date.now() });
       setShowCreate(false);
-    } catch (e) { console.error(e); }
+      refresh();
+    } catch (e) { console.error(e); alert(t('app.error_create')); }
   };
 
   const handleResolve = async (bet, outcome) => {
@@ -227,11 +230,11 @@ export default function App() {
   }
 
   const NAV = [
-    { id: 'dashboard', e: '🏠', l: 'Home' },
-    { id: 'bets', e: '🎯', l: 'Bets' },
-    { id: 'vault', e: '🔒', l: 'Vault' },
-    { id: 'stats', e: '📊', l: 'Stats' },
-    { id: 'settings', e: '⚙️', l: 'Config' },
+    { id: 'dashboard', e: '🏠', l: t('nav.dashboard') },
+    { id: 'bets', e: '🎯', l: t('nav.bets') },
+    { id: 'vault', e: '🔒', l: t('nav.vault') },
+    { id: 'stats', e: '📊', l: t('nav.stats') },
+    { id: 'settings', e: '⚙️', l: t('nav.settings') },
   ];
 
   return (
@@ -243,11 +246,11 @@ export default function App() {
         <div style={{ position: 'fixed', top: 0, left: 0, width: 220, height: '100vh', background: 'var(--surf)', borderRight: '1px solid var(--brd)', display: 'flex', flexDirection: 'column', zIndex: 50, padding: '24px 0' }}>
           <div style={{ padding: '0 20px 16px', borderBottom: '1px solid var(--brd)', marginBottom: 8 }}>
             <div style={{ width: 44, height: 44, borderRadius: '50%', background: `${COLORS[profiles[user].colorKey] || '#5b8af0'}33`, border: `2px solid ${COLORS[profiles[user].colorKey] || '#5b8af0'}66`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, marginBottom: 10 }}>{profiles[user].avatar}</div>
-            <div style={{ fontSize: 10, color: 'var(--dim)', letterSpacing: 2, textTransform: 'uppercase' }}>Bentornato</div>
+            <div style={{ fontSize: 10, color: 'var(--dim)', letterSpacing: 2, textTransform: 'uppercase' }}>{t('app.welcome_back')}</div>
             <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 16, fontWeight: 700, marginBottom: 2 }}>{profiles[user].name}</div>
-            <div style={{ fontSize: 10, color: 'var(--dim)' }}>Crediti</div>
+            <div style={{ fontSize: 10, color: 'var(--dim)' }}>{t('app.credits')}</div>
             <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--gold)', marginBottom: 10 }}>{Math.round(credits[user])} ₡</div>
-            <button style={{ width: '100%', padding: '6px 0', borderRadius: 8, border: '1px solid var(--brd)', cursor: 'pointer', fontFamily: "'Syne',sans-serif", fontSize: 11, fontWeight: 600, background: 'transparent', color: 'var(--dim)' }} onClick={() => { lsDel('bc_user'); setUser(null); setVaultUnlocked(false); }}>Switch</button>
+            <button style={{ width: '100%', padding: '6px 0', borderRadius: 8, border: '1px solid var(--brd)', cursor: 'pointer', fontFamily: "'Syne',sans-serif", fontSize: 11, fontWeight: 600, background: 'transparent', color: 'var(--dim)' }} onClick={() => { lsDel('bc_user'); setUser(null); setVaultUnlocked(false); }}>{t('app.switch')}</button>
           </div>
           <div style={{ flex: 1, padding: '4px 12px' }}>
             {NAV.map(n => (
@@ -261,7 +264,7 @@ export default function App() {
             ))}
           </div>
           <div style={{ padding: '12px 16px 0' }}>
-            <button onClick={() => setShowCreate(true)} style={{ width: '100%', padding: '11px 0', borderRadius: 12, border: 'none', background: 'var(--gold)', color: '#07060f', fontFamily: "'Syne',sans-serif", fontSize: 14, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 16px var(--glow)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>+ Nuova Bet</button>
+            <button onClick={() => setShowCreate(true)} style={{ width: '100%', padding: '11px 0', borderRadius: 12, border: 'none', background: 'var(--gold)', color: '#07060f', fontFamily: "'Syne',sans-serif", fontSize: 14, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 16px var(--glow)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>{t('app.new_bet')}</button>
           </div>
         </div>
       )}
@@ -272,16 +275,16 @@ export default function App() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ width: 38, height: 38, borderRadius: '50%', background: `${COLORS[profiles[user].colorKey] || '#5b8af0'}33`, border: `2px solid ${COLORS[profiles[user].colorKey] || '#5b8af0'}66`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 38 * 0.42, flexShrink: 0 }}>{profiles[user].avatar}</div>
             <div>
-              <div style={{ fontSize: 10, color: 'var(--dim)', letterSpacing: 2, textTransform: 'uppercase' }}>Bentornato</div>
+              <div style={{ fontSize: 10, color: 'var(--dim)', letterSpacing: 2, textTransform: 'uppercase' }}>{t('app.welcome_back')}</div>
               <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, fontWeight: 700 }}>{profiles[user].name}</div>
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: 10, color: 'var(--dim)' }}>Crediti</div>
+              <div style={{ fontSize: 10, color: 'var(--dim)' }}>{t('app.credits')}</div>
               <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--gold)' }}>{Math.round(credits[user])} ₡</div>
             </div>
-            <button style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '7px 13px', borderRadius: 10, border: '1px solid var(--brd)', cursor: 'pointer', fontFamily: "'Syne',sans-serif", fontSize: 11, fontWeight: 600, background: 'transparent', color: 'var(--dim)' }} onClick={() => { lsDel('bc_user'); setUser(null); setVaultUnlocked(false); }}>Switch</button>
+            <button style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '7px 13px', borderRadius: 10, border: '1px solid var(--brd)', cursor: 'pointer', fontFamily: "'Syne',sans-serif", fontSize: 11, fontWeight: 600, background: 'transparent', color: 'var(--dim)' }} onClick={() => { lsDel('bc_user'); setUser(null); setVaultUnlocked(false); }}>{t('app.switch')}</button>
           </div>
         </div>
       )}
@@ -309,7 +312,7 @@ export default function App() {
           ))}
           <div onClick={() => setShowCreate(true)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, cursor: 'pointer', userSelect: 'none' }}>
             <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'var(--gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, boxShadow: `0 4px 16px var(--glow)`, transition: 'all .18s' }}>+</div>
-            <span style={{ fontSize: 10, color: 'var(--gold)' }}>Nuova</span>
+            <span style={{ fontSize: 10, color: 'var(--gold)' }}>{t('app.new_bet_label')}</span>
           </div>
         </div>
       )}

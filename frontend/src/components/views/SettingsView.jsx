@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Btn, Inp, Toggle, SecLabel, Avatar, AVATARS, COLORS, CAT_COLS, getC } from '../Atoms.jsx';
+import { useLang } from '../../i18n.js';
 import * as api from '../../api.js';
 
 const S = {
@@ -8,17 +9,18 @@ const S = {
 };
 
 export default function SettingsView({user,profiles,isDark,setIsDark,customCats,credits,onUpdateProfile,onResetCredits,onCreateCategory,onDeleteCategory,vaultPin,onSetVaultPin,pinProtected,isDesktop}){
+  const { t, lang, setLang } = useLang();
   const [newE,setNewE]=useState("🎯");
   const [newLabel,setNewLabel]=useState("");
   const [newColor,setNewColor]=useState(CAT_COLS[0]);
-  const [pinPhase,setPinPhase]=useState(null); // null|"set"|"remove-confirm"
+  const [pinPhase,setPinPhase]=useState(null);
   const [pin1,setPin1]=useState("");
   const [pin2,setPin2]=useState("");
   const [pinErr,setPinErr]=useState("");
   const [creditAmounts, setCreditAmounts] = useState({tomas:'', giulia:''});
-  const [creditConfirm, setCreditConfirm] = useState(null); // null | { user, delta, amount }
+  const [creditConfirm, setCreditConfirm] = useState(null);
   const [creditErr, setCreditErr] = useState({tomas:'', giulia:''});
-  const [acctPinPhase,setAcctPinPhase]=useState(null); // null|"set"|"change"|"remove"
+  const [acctPinPhase,setAcctPinPhase]=useState(null);
   const [acctPin0,setAcctPin0]=useState('');
   const [acctPin1,setAcctPin1]=useState('');
   const [acctPin2,setAcctPin2]=useState('');
@@ -32,7 +34,7 @@ export default function SettingsView({user,profiles,isDark,setIsDark,customCats,
       setCreditConfirm(null);
       setCreditErr(e => ({...e, [targetUser]: ''}));
     } catch (err) {
-      const msg = err.message?.includes('400') ? 'Crediti insufficienti' : 'Errore';
+      const msg = err.message?.includes('400') ? t('settings.credits_err') : t('settings.acct_err_generic');
       setCreditErr(e => ({...e, [targetUser]: msg}));
       setCreditConfirm(null);
     }
@@ -44,42 +46,55 @@ export default function SettingsView({user,profiles,isDark,setIsDark,customCats,
     setNewLabel("");
   };
   const savePin=()=>{
-    if(pin1.length<4){setPinErr("Il PIN deve essere 4 cifre");return;}
-    if(pin1!==pin2){setPinErr("I PIN non coincidono");return;}
+    if(pin1.length<4){setPinErr(t('settings.pin_err_len'));return;}
+    if(pin1!==pin2){setPinErr(t('settings.pin_err_match'));return;}
     onSetVaultPin(pin1);
     setPinPhase(null);setPin1("");setPin2("");setPinErr("");
   };
   const saveAcctPin=async()=>{
-    if(!/^\d{4}$/.test(acctPin1)){setAcctPinErr('Il PIN deve essere 4 cifre');return;}
-    if(acctPin1!==acctPin2){setAcctPinErr('I PIN non coincidono');return;}
-    if(acctPinPhase==='change'&&!acctPin0){setAcctPinErr('Inserisci il PIN attuale');return;}
+    if(!/^\d{4}$/.test(acctPin1)){setAcctPinErr(t('settings.pin_err_len'));return;}
+    if(acctPin1!==acctPin2){setAcctPinErr(t('settings.pin_err_match'));return;}
+    if(acctPinPhase==='change'&&!acctPin0){setAcctPinErr(t('settings.acct_err_current'));return;}
     setAcctPinLoading(true);
     try{
       if(acctPinPhase==='change'){
         const v=await api.verifyAccountPin(user,acctPin0);
-        if(!v.valid){setAcctPinErr('PIN attuale errato');setAcctPinLoading(false);return;}
+        if(!v.valid){setAcctPinErr(t('settings.acct_err_wrong'));setAcctPinLoading(false);return;}
       }
       await api.setAccountPin(user,acctPin1);
       setAcctPinPhase(null);setAcctPin0('');setAcctPin1('');setAcctPin2('');setAcctPinErr('');
-    }catch{setAcctPinErr('Errore. Riprova.');}
+    }catch{setAcctPinErr(t('settings.acct_err_generic'));}
     setAcctPinLoading(false);
   };
   const removeAcctPin=async()=>{
-    if(!acctPin0){setAcctPinErr('Inserisci il PIN attuale');return;}
+    if(!acctPin0){setAcctPinErr(t('settings.acct_err_current'));return;}
     setAcctPinLoading(true);
     try{
       await api.removeAccountPin(user,acctPin0);
       setAcctPinPhase(null);setAcctPin0('');setAcctPinErr('');
-    }catch{setAcctPinErr('PIN errato');}
+    }catch{setAcctPinErr(t('settings.acct_err_wrong'));}
     setAcctPinLoading(false);
   };
 
   return(
     <div className="sUp">
-      <div style={{fontFamily:"'Playfair Display',serif",fontSize:24,fontWeight:700,marginBottom:20}}>⚙️ Impostazioni</div>
+      <div style={{fontFamily:"'Playfair Display',serif",fontSize:24,fontWeight:700,marginBottom:20}}>{t('settings.title')}</div>
+
+      {/* LANGUAGE */}
+      <SecLabel>{t('settings.lang_label')}</SecLabel>
+      <div style={{...S.card,marginBottom:12,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <div>
+          <div style={{fontSize:14,fontWeight:600}}>{t('settings.lang_label')}</div>
+          <div style={{fontSize:12,color:"var(--dim)"}}>{t('settings.lang_desc')}</div>
+        </div>
+        <div style={{display:"flex",gap:6}}>
+          <Btn variant={lang==='it'?'gold':'ghost'} sm onClick={()=>setLang('it')}>🇮🇹 IT</Btn>
+          <Btn variant={lang==='en'?'gold':'ghost'} sm onClick={()=>setLang('en')}>🇬🇧 EN</Btn>
+        </div>
+      </div>
 
       {/* PROFILES */}
-      <SecLabel>Profili</SecLabel>
+      <SecLabel>{t('settings.profiles')}</SecLabel>
       {["tomas","giulia"].map(k=>{
         const p=profiles[k]; const isMe=k===user;
         return(
@@ -87,18 +102,18 @@ export default function SettingsView({user,profiles,isDark,setIsDark,customCats,
             <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12}}>
               <div style={{fontSize:32}}>{p.avatar}</div>
               <div style={{flex:1}}>
-                <div style={{fontSize:11,color:"var(--dim)",marginBottom:4}}>{isMe?"Il tuo profilo":"Partner"}</div>
+                <div style={{fontSize:11,color:"var(--dim)",marginBottom:4}}>{isMe?t('settings.my_profile'):t('settings.partner')}</div>
                 <Inp value={p.name} disabled={!isMe} onChange={e=>onUpdateProfile(k,{...profiles[k],name:e.target.value.slice(0,16)})} style={{fontWeight:600}}/>
               </div>
             </div>
             {isMe&&<>
-              <div style={{fontSize:11,color:"var(--dim)",marginBottom:8}}>Avatar</div>
+              <div style={{fontSize:11,color:"var(--dim)",marginBottom:8}}>{t('settings.avatar_label')}</div>
               <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:12}}>
                 {AVATARS.map(a=>(
                   <div key={a} onClick={()=>onUpdateProfile(k,{...profiles[k],avatar:a})} style={{width:36,height:36,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,cursor:"pointer",background:p.avatar===a?"var(--gold)22":"var(--surf)",border:`1px solid ${p.avatar===a?"var(--gold)":"var(--brd)"}`}}>{a}</div>
                 ))}
               </div>
-              <div style={{fontSize:11,color:"var(--dim)",marginBottom:8}}>Colore tema</div>
+              <div style={{fontSize:11,color:"var(--dim)",marginBottom:8}}>{t('settings.color_label')}</div>
               <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                 {Object.entries(COLORS).map(([k2,hex])=>(
                   <div key={k2} onClick={()=>onUpdateProfile(k,{...profiles[k],colorKey:k2})} style={{width:26,height:26,borderRadius:"50%",background:hex,cursor:"pointer",border:`3px solid ${p.colorKey===k2?"#fff":"transparent"}`,boxShadow:p.colorKey===k2?`0 0 8px ${hex}`:"none"}}/>
@@ -110,98 +125,98 @@ export default function SettingsView({user,profiles,isDark,setIsDark,customCats,
       })}
 
       {/* VAULT PIN */}
-      <SecLabel mt={16}>Vault PIN (mio)</SecLabel>
+      <SecLabel mt={16}>{t('settings.vault_pin')}</SecLabel>
       <div style={{...S.card,marginBottom:12}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
           <div>
-            <div style={{fontSize:14,fontWeight:600}}>{vaultPin?"🔒 PIN attivo":"🔓 Nessun PIN"}</div>
-            <div style={{fontSize:12,color:"var(--dim)",marginTop:2}}>Il vault è {vaultPin?"protetto":"accessibile"}</div>
-            <div style={{fontSize:10,color:"var(--mut)",marginTop:4}}>⚠ Il PIN si resetta al ricaricamento della pagina</div>
+            <div style={{fontSize:14,fontWeight:600}}>{vaultPin?t('settings.vault_active'):t('settings.vault_none')}</div>
+            <div style={{fontSize:12,color:"var(--dim)",marginTop:2}}>{vaultPin?t('settings.vault_protected'):t('settings.vault_accessible')}</div>
+            <div style={{fontSize:10,color:"var(--mut)",marginTop:4}}>{t('settings.vault_warning')}</div>
           </div>
         </div>
         {pinErr&&<div style={{fontSize:12,color:"var(--red)",marginBottom:8}}>{pinErr}</div>}
         {pinPhase==="set"&&(
           <div style={{marginBottom:12}}>
-            <div style={{fontSize:12,color:"var(--dim)",marginBottom:6}}>Nuovo PIN (4 cifre):</div>
+            <div style={{fontSize:12,color:"var(--dim)",marginBottom:6}}>{t('settings.pin_new')}</div>
             <Inp type="text" value={pin1} onChange={e=>setPin1(e.target.value.replace(/\D/g,"").slice(0,4))} placeholder="●●●●" style={{letterSpacing:8,fontSize:20,marginBottom:8}}/>
-            <div style={{fontSize:12,color:"var(--dim)",marginBottom:6}}>Conferma PIN:</div>
+            <div style={{fontSize:12,color:"var(--dim)",marginBottom:6}}>{t('settings.pin_confirm')}</div>
             <Inp type="text" value={pin2} onChange={e=>setPin2(e.target.value.replace(/\D/g,"").slice(0,4))} placeholder="●●●●" style={{letterSpacing:8,fontSize:20,marginBottom:12}}/>
             <div style={{display:"flex",gap:8}}>
-              <Btn variant="gold" sm onClick={savePin}>Salva</Btn>
-              <Btn variant="ghost" sm onClick={()=>{setPinPhase(null);setPin1("");setPin2("");setPinErr("");}}>Annulla</Btn>
+              <Btn variant="gold" sm onClick={savePin}>{t('settings.pin_save')}</Btn>
+              <Btn variant="ghost" sm onClick={()=>{setPinPhase(null);setPin1("");setPin2("");setPinErr("");}}>{t('settings.pin_cancel')}</Btn>
             </div>
           </div>
         )}
         {!pinPhase&&(
           <div style={{display:"flex",gap:8}}>
-            <Btn variant="ghost" sm onClick={()=>setPinPhase("set")}>{vaultPin?"Cambia PIN":"Imposta PIN"}</Btn>
-            {vaultPin&&<Btn variant="ghost" sm style={{color:"var(--red)",borderColor:"var(--red)22"}} onClick={()=>onSetVaultPin(null)}>Rimuovi</Btn>}
+            <Btn variant="ghost" sm onClick={()=>setPinPhase("set")}>{vaultPin?t('settings.pin_change'):t('settings.pin_set')}</Btn>
+            {vaultPin&&<Btn variant="ghost" sm style={{color:"var(--red)",borderColor:"var(--red)22"}} onClick={()=>onSetVaultPin(null)}>{t('settings.pin_remove')}</Btn>}
           </div>
         )}
       </div>
 
       {/* PIN ACCOUNT */}
-      <SecLabel mt={16}>PIN Account (mio)</SecLabel>
+      <SecLabel mt={16}>{t('settings.acct_pin')}</SecLabel>
       <div style={{...S.card,marginBottom:12}}>
-        <div style={{fontSize:14,fontWeight:600,marginBottom:4}}>{pinProtected?.[user]?'🔒 PIN attivo':'🔓 Nessun PIN'}</div>
-        <div style={{fontSize:12,color:"var(--dim)",marginBottom:10}}>Protegge l'accesso al profilo su qualsiasi dispositivo</div>
+        <div style={{fontSize:14,fontWeight:600,marginBottom:4}}>{pinProtected?.[user]?t('settings.vault_active'):t('settings.vault_none')}</div>
+        <div style={{fontSize:12,color:"var(--dim)",marginBottom:10}}>{t('settings.acct_pin_desc')}</div>
         {acctPinErr&&<div style={{fontSize:12,color:"var(--red)",marginBottom:8}}>{acctPinErr}</div>}
         {acctPinPhase==='set'&&(
           <div>
-            <div style={{fontSize:12,color:"var(--dim)",marginBottom:6}}>Nuovo PIN (4 cifre):</div>
+            <div style={{fontSize:12,color:"var(--dim)",marginBottom:6}}>{t('settings.pin_new')}</div>
             <Inp type="text" value={acctPin1} onChange={e=>setAcctPin1(e.target.value.replace(/\D/g,'').slice(0,4))} placeholder="●●●●" style={{letterSpacing:8,fontSize:20,marginBottom:8}}/>
-            <div style={{fontSize:12,color:"var(--dim)",marginBottom:6}}>Conferma PIN:</div>
+            <div style={{fontSize:12,color:"var(--dim)",marginBottom:6}}>{t('settings.pin_confirm')}</div>
             <Inp type="text" value={acctPin2} onChange={e=>setAcctPin2(e.target.value.replace(/\D/g,'').slice(0,4))} placeholder="●●●●" style={{letterSpacing:8,fontSize:20,marginBottom:12}}/>
             <div style={{display:"flex",gap:8}}>
-              <Btn variant="gold" sm onClick={saveAcctPin} disabled={acctPinLoading}>Salva</Btn>
-              <Btn variant="ghost" sm onClick={()=>{setAcctPinPhase(null);setAcctPin1('');setAcctPin2('');setAcctPinErr('');}}>Annulla</Btn>
+              <Btn variant="gold" sm onClick={saveAcctPin} disabled={acctPinLoading}>{t('settings.pin_save')}</Btn>
+              <Btn variant="ghost" sm onClick={()=>{setAcctPinPhase(null);setAcctPin1('');setAcctPin2('');setAcctPinErr('');}}>{t('settings.pin_cancel')}</Btn>
             </div>
           </div>
         )}
         {acctPinPhase==='change'&&(
           <div>
-            <div style={{fontSize:12,color:"var(--dim)",marginBottom:6}}>PIN attuale:</div>
+            <div style={{fontSize:12,color:"var(--dim)",marginBottom:6}}>{t('settings.acct_current')}</div>
             <Inp type="text" value={acctPin0} onChange={e=>setAcctPin0(e.target.value.replace(/\D/g,'').slice(0,4))} placeholder="●●●●" style={{letterSpacing:8,fontSize:20,marginBottom:8}}/>
-            <div style={{fontSize:12,color:"var(--dim)",marginBottom:6}}>Nuovo PIN:</div>
+            <div style={{fontSize:12,color:"var(--dim)",marginBottom:6}}>{t('settings.acct_new')}</div>
             <Inp type="text" value={acctPin1} onChange={e=>setAcctPin1(e.target.value.replace(/\D/g,'').slice(0,4))} placeholder="●●●●" style={{letterSpacing:8,fontSize:20,marginBottom:8}}/>
-            <div style={{fontSize:12,color:"var(--dim)",marginBottom:6}}>Conferma nuovo PIN:</div>
+            <div style={{fontSize:12,color:"var(--dim)",marginBottom:6}}>{t('settings.acct_confirm')}</div>
             <Inp type="text" value={acctPin2} onChange={e=>setAcctPin2(e.target.value.replace(/\D/g,'').slice(0,4))} placeholder="●●●●" style={{letterSpacing:8,fontSize:20,marginBottom:12}}/>
             <div style={{display:"flex",gap:8}}>
-              <Btn variant="gold" sm onClick={saveAcctPin} disabled={acctPinLoading}>Salva</Btn>
-              <Btn variant="ghost" sm onClick={()=>{setAcctPinPhase(null);setAcctPin0('');setAcctPin1('');setAcctPin2('');setAcctPinErr('');}}>Annulla</Btn>
+              <Btn variant="gold" sm onClick={saveAcctPin} disabled={acctPinLoading}>{t('settings.pin_save')}</Btn>
+              <Btn variant="ghost" sm onClick={()=>{setAcctPinPhase(null);setAcctPin0('');setAcctPin1('');setAcctPin2('');setAcctPinErr('');}}>{t('settings.pin_cancel')}</Btn>
             </div>
           </div>
         )}
         {acctPinPhase==='remove'&&(
           <div>
-            <div style={{fontSize:12,color:"var(--dim)",marginBottom:6}}>Conferma PIN attuale per rimuoverlo:</div>
+            <div style={{fontSize:12,color:"var(--dim)",marginBottom:6}}>{t('settings.acct_confirm_remove')}</div>
             <Inp type="text" value={acctPin0} onChange={e=>setAcctPin0(e.target.value.replace(/\D/g,'').slice(0,4))} placeholder="●●●●" style={{letterSpacing:8,fontSize:20,marginBottom:12}}/>
             <div style={{display:"flex",gap:8}}>
-              <Btn variant="red" sm onClick={removeAcctPin} disabled={acctPinLoading}>Rimuovi</Btn>
-              <Btn variant="ghost" sm onClick={()=>{setAcctPinPhase(null);setAcctPin0('');setAcctPinErr('');}}>Annulla</Btn>
+              <Btn variant="red" sm onClick={removeAcctPin} disabled={acctPinLoading}>{t('settings.acct_remove_action')}</Btn>
+              <Btn variant="ghost" sm onClick={()=>{setAcctPinPhase(null);setAcctPin0('');setAcctPinErr('');}}>{t('settings.pin_cancel')}</Btn>
             </div>
           </div>
         )}
         {!acctPinPhase&&(
           <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-            {!pinProtected?.[user]&&<Btn variant="ghost" sm onClick={()=>setAcctPinPhase('set')}>Imposta PIN</Btn>}
+            {!pinProtected?.[user]&&<Btn variant="ghost" sm onClick={()=>setAcctPinPhase('set')}>{t('settings.acct_set')}</Btn>}
             {pinProtected?.[user]&&<>
-              <Btn variant="ghost" sm onClick={()=>setAcctPinPhase('change')}>Cambia PIN</Btn>
-              <Btn variant="ghost" sm style={{color:"var(--red)",borderColor:"var(--red)22"}} onClick={()=>setAcctPinPhase('remove')}>Rimuovi PIN</Btn>
+              <Btn variant="ghost" sm onClick={()=>setAcctPinPhase('change')}>{t('settings.acct_change')}</Btn>
+              <Btn variant="ghost" sm style={{color:"var(--red)",borderColor:"var(--red)22"}} onClick={()=>setAcctPinPhase('remove')}>{t('settings.acct_remove_btn')}</Btn>
             </>}
           </div>
         )}
       </div>
 
       {/* THEME */}
-      <SecLabel>Tema</SecLabel>
+      <SecLabel>{t('settings.theme')}</SecLabel>
       <div style={{...S.card,marginBottom:12,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-        <div><div style={{fontSize:14,fontWeight:600}}>{isDark?"🌙 Modalità Scura":"☀️ Modalità Chiara"}</div><div style={{fontSize:12,color:"var(--dim)"}}>Cambia aspetto dell'app</div></div>
+        <div><div style={{fontSize:14,fontWeight:600}}>{isDark?t('settings.theme_dark'):t('settings.theme_light')}</div><div style={{fontSize:12,color:"var(--dim)"}}>{t('settings.theme_desc')}</div></div>
         <Toggle on={isDark} onToggle={()=>setIsDark(!isDark)}/>
       </div>
 
       {/* CUSTOM CATS */}
-      <SecLabel>Categorie Personalizzate</SecLabel>
+      <SecLabel>{t('settings.custom_cats')}</SecLabel>
       <div style={{...S.card,marginBottom:12}}>
         {customCats.map(c=>(
           <div key={c.id} style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,paddingBottom:8,borderBottom:"1px solid var(--brd)"}}>
@@ -213,16 +228,16 @@ export default function SettingsView({user,profiles,isDark,setIsDark,customCats,
         ))}
         <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginTop:4}}>
           <Inp value={newE} onChange={e=>setNewE(e.target.value)} style={{width:56,textAlign:"center",fontSize:20,padding:"6px 8px"}} placeholder="🎯"/>
-          <Inp value={newLabel} onChange={e=>setNewLabel(e.target.value)} style={{flex:1,minWidth:100}} placeholder="Nome categoria"/>
+          <Inp value={newLabel} onChange={e=>setNewLabel(e.target.value)} style={{flex:1,minWidth:100}} placeholder={t('settings.cat_name_ph')}/>
           <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
             {CAT_COLS.map(col=><div key={col} onClick={()=>setNewColor(col)} style={{width:20,height:20,borderRadius:"50%",background:col,cursor:"pointer",border:`2px solid ${newColor===col?"#fff":"transparent"}`}}/>)}
           </div>
-          <Btn variant="gold" sm onClick={addCat}>+ Aggiungi</Btn>
+          <Btn variant="gold" sm onClick={addCat}>{t('settings.cat_add')}</Btn>
         </div>
       </div>
 
       {/* CREDITI */}
-      <SecLabel mt={16}>Crediti</SecLabel>
+      <SecLabel mt={16}>{t('settings.credits_section')}</SecLabel>
       <div style={{...S.card}}>
         {["tomas","giulia"].map(k=>{
           const p=profiles[k]; const amt=parseFloat(creditAmounts[k])||0;
@@ -232,17 +247,17 @@ export default function SettingsView({user,profiles,isDark,setIsDark,customCats,
                 <div style={{fontSize:24}}>{p.avatar}</div>
                 <div style={{flex:1}}>
                   <div style={{fontSize:13,fontWeight:600}}>{p.name}</div>
-                  <div style={{fontSize:12,color:"var(--gold)",fontWeight:700}}>Saldo: {Math.round(credits[k])} ₡</div>
+                  <div style={{fontSize:12,color:"var(--gold)",fontWeight:700}}>{t('settings.balance')} {Math.round(credits[k])} ₡</div>
                 </div>
               </div>
               {creditErr[k]&&<div style={{fontSize:12,color:"var(--red)",marginBottom:6}}>{creditErr[k]}</div>}
               {creditConfirm?.user===k?(
                 <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
                   <div style={{fontSize:13,color:"var(--dim)",flex:1}}>
-                    Sottrarre {creditConfirm.amount} ₡ da {p.name}?
+                    {t('settings.credits_confirm_q',{amount:creditConfirm.amount,name:p.name})}
                   </div>
-                  <Btn variant="red" sm onClick={()=>handleDeltaCredits(k,-creditConfirm.amount)}>Conferma</Btn>
-                  <Btn variant="ghost" sm onClick={()=>setCreditConfirm(null)}>Annulla</Btn>
+                  <Btn variant="red" sm onClick={()=>handleDeltaCredits(k,-creditConfirm.amount)}>{t('settings.credits_confirm')}</Btn>
+                  <Btn variant="ghost" sm onClick={()=>setCreditConfirm(null)}>{t('settings.credits_cancel')}</Btn>
                 </div>
               ):(
                 <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
@@ -252,18 +267,18 @@ export default function SettingsView({user,profiles,isDark,setIsDark,customCats,
                     max={9999}
                     value={creditAmounts[k]}
                     onChange={e=>setCreditAmounts(a=>({...a,[k]:e.target.value}))}
-                    placeholder="Importo"
+                    placeholder={t('settings.amount_ph')}
                     style={{width:90,padding:"6px 10px",fontSize:13}}
                   />
                   <Btn variant="grn" sm onClick={()=>{
                     if(!amt||amt<1)return;
                     handleDeltaCredits(k, Math.floor(amt));
-                  }}>+ Aggiungi</Btn>
+                  }}>{t('settings.credits_add')}</Btn>
                   <Btn variant="ghost" sm style={{color:"var(--red)",borderColor:"var(--red)22"}} onClick={()=>{
                     if(!amt||amt<1)return;
                     setCreditConfirm({user:k, amount:Math.floor(amt)});
                     setCreditErr(e=>({...e,[k]:''}));
-                  }}>− Sottrai</Btn>
+                  }}>{t('settings.credits_sub')}</Btn>
                 </div>
               )}
             </div>

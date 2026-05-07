@@ -1,5 +1,6 @@
 import React from 'react';
 import { SecLabel, Avatar, fmtQ, qToP, COLORS, getC } from '../Atoms.jsx';
+import { useLang } from '../../i18n.js';
 
 const S = {
   card: {background:"var(--card)",border:"1px solid var(--brd)",borderRadius:16,padding:16},
@@ -9,6 +10,7 @@ const S = {
 const Bdg=({c,bg,children})=><span style={{...S.bdg,background:bg,color:c}}>{children}</span>;
 
 export default function StatsView({user,profiles,credits,bets,cats,isDesktop}){
+  const { t } = useLang();
   const won=bets.filter(b=>b.creator===user&&b.status==="won");
   const lost=bets.filter(b=>b.creator===user&&b.status==="lost");
   const all=[...won,...lost];
@@ -21,14 +23,14 @@ export default function StatsView({user,profiles,credits,bets,cats,isDesktop}){
   const catS=cats.map(c=>({...c,w:won.filter(b=>b.category===c.id).length,l:lost.filter(b=>b.category===c.id).length})).filter(c=>c.w+c.l>0);
   return(
     <div className="sUp">
-      <div style={{fontFamily:"'Playfair Display',serif",fontSize:24,fontWeight:700,marginBottom:20}}>📊 Statistiche</div>
+      <div style={{fontFamily:"'Playfair Display',serif",fontSize:24,fontWeight:700,marginBottom:20}}>{t('stats_view.title')}</div>
       <div className="pGold" style={{...S.card,marginBottom:12,textAlign:"center",background:"linear-gradient(135deg,var(--card),var(--surf))"}}>
-        <SecLabel>Saldo Attuale</SecLabel>
+        <SecLabel>{t('stats_view.balance')}</SecLabel>
         <div className="shim" style={{fontFamily:"'Playfair Display',serif",fontSize:44,fontWeight:900}}>{Math.round(credits[user])} ₡</div>
-        <div style={{fontSize:13,color:net>=0?"var(--grn)":"var(--red)",marginTop:6,fontWeight:600}}>{net>=0?"▲":"▼"} {Math.abs(net)} ₡ netti</div>
+        <div style={{fontSize:13,color:net>=0?"var(--grn)":"var(--red)",marginTop:6,fontWeight:600}}>{net>=0?t('stats_view.net_pos',{n:Math.abs(net)}):t('stats_view.net_neg',{n:Math.abs(net)})}</div>
       </div>
       <div style={{display:"grid",gridTemplateColumns:isDesktop?"1fr 1fr 1fr 1fr":"1fr 1fr",gap:10,marginBottom:12}}>
-        {[{e:"✅",l:"Vinte",v:won.length,c:"var(--grn)"},{e:"❌",l:"Perse",v:lost.length,c:"var(--red)"},{e:"📈",l:"Win Rate",v:`${wr}%`,c:wr>=50?"var(--grn)":"var(--red)"},{e:"🔥",l:"Streak max",v:streak,c:"#f97316"}].map(s=>(
+        {[{e:"✅",l:t('stats_view.won'),v:won.length,c:"var(--grn)"},{e:"❌",l:t('stats_view.lost'),v:lost.length,c:"var(--red)"},{e:"📈",l:t('stats_view.win_rate'),v:`${wr}%`,c:wr>=50?"var(--grn)":"var(--red)"},{e:"🔥",l:t('stats_view.streak'),v:streak,c:"#f97316"}].map(s=>(
           <div key={s.l} style={{...S.card,textAlign:"center"}}>
             <div style={{fontSize:20,marginBottom:4}}>{s.e}</div>
             <div style={{fontFamily:"'Playfair Display',serif",fontSize:26,fontWeight:700,color:s.c}}>{s.v}</div>
@@ -38,14 +40,14 @@ export default function StatsView({user,profiles,credits,bets,cats,isDesktop}){
       </div>
       {best&&(
         <div style={{...S.card,marginBottom:10,border:"1px solid var(--grn)33"}}>
-          <SecLabel>🏆 Migliore Vittoria</SecLabel>
+          <SecLabel>{t('stats_view.best')}</SecLabel>
           <div style={{fontSize:13,fontWeight:600,marginBottom:6}}>{best.title}</div>
           <div style={{display:"flex",gap:8}}><Bdg bg="var(--grn)22" c="var(--grn)">+{best.potentialWin-best.stake} ₡</Bdg><Bdg bg="var(--gold)22" c="var(--gold)">{fmtQ(best.quota)}×</Bdg></div>
         </div>
       )}
       {catS.length>0&&(
         <div style={{...S.card,marginBottom:10}}>
-          <SecLabel>Per Categoria</SecLabel>
+          <SecLabel>{t('stats_view.by_cat')}</SecLabel>
           {catS.map(c=>(
             <div key={c.id} style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
               <span style={{fontSize:14}}>{c.e}</span>
@@ -62,7 +64,7 @@ export default function StatsView({user,profiles,credits,bets,cats,isDesktop}){
       )}
       {flamed.length>0&&(
         <div style={{...S.card,border:"1px solid #f9731644"}}>
-          <SecLabel>🔥 Hall of Fame</SecLabel>
+          <SecLabel>{t('stats_view.hof')}</SecLabel>
           {flamed.map(b=>(
             <div key={b.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8,paddingBottom:8,borderBottom:"1px solid var(--brd)"}}>
               <div style={{fontSize:13,flex:1,marginRight:8}}>{b.title}</div>
@@ -71,7 +73,7 @@ export default function StatsView({user,profiles,credits,bets,cats,isDesktop}){
           ))}
         </div>
       )}
-      {all.length===0&&<div style={{textAlign:"center",padding:"32px 0",color:"var(--dim)",fontSize:13}}>Nessuna bet risolta — inizia a giocare!</div>}
+      {all.length===0&&<div style={{textAlign:"center",padding:"32px 0",color:"var(--dim)",fontSize:13}}>{t('stats_view.no_bets')}</div>}
     </div>
   );
 }

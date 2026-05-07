@@ -1,5 +1,6 @@
 import React from 'react';
 import { Btn, SecLabel, fmtD, isSoon, tLeft, COLORS, getC } from '../Atoms.jsx';
+import { useLang, TRANSLATIONS } from '../../i18n.js';
 import BetCard from '../BetCard.jsx';
 
 const S = {
@@ -8,6 +9,7 @@ const S = {
 };
 
 export default function DashboardView({user,profiles,credits,bets,cats,onCreate,onResolve,onReveal,onCounter,onFlame,notifSince,isDesktop,reactions,onReaction}){
+  const { t, lang } = useLang();
   const other=user==="tomas"?"giulia":"tomas";
   const myWon=bets.filter(b=>b.creator===user&&b.status==="won");
   const myLost=bets.filter(b=>b.creator===user&&b.status==="lost");
@@ -33,23 +35,23 @@ export default function DashboardView({user,profiles,credits,bets,cats,onCreate,
   const otPrevWins=prevMonthBets.filter(b=>b.creator===other&&b.status==='won');
   const bestBet=myPrevWins.reduce((best,b)=>(!best||b.quota>best.quota)?b:best,null);
   const netProfit=myPrevWins.reduce((s,b)=>s+(b.potentialWin-b.stake),0)-myPrevLoss.reduce((s,b)=>s+b.stake,0);
-  const MONTHS=['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+  const months=TRANSLATIONS[lang]?.dashboard?.months??TRANSLATIONS.it.dashboard.months;
 
   const scoreCard=(
     <div className="card pGold" style={{...S.card,marginBottom:14,background:"linear-gradient(135deg,var(--card),var(--surf))"}}>
-      <SecLabel>Classifica</SecLabel>
+      <SecLabel>{t('dashboard.ranking')}</SecLabel>
       <div style={{display:"flex",alignItems:"center",gap:8}}>
         {[{k:user,p:profiles[user],c:meC,w:myWon.length},{k:other,p:profiles[other],c:otC,w:thWon.length}].map((s,i)=>(
           <div key={s.k} style={{flex:1,textAlign:"center"}}>
             <div style={{width:44,height:44,borderRadius:"50%",background:`${s.c}33`,border:`2px solid ${s.c}66`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:26,margin:"0 auto"}}>{s.p.avatar}</div>
             <div style={{fontFamily:"'Playfair Display',serif",fontSize:15,fontWeight:700,marginTop:6}}>{s.p.name}</div>
             <div style={{fontFamily:"'Playfair Display',serif",fontSize:28,fontWeight:900,color:i===0?"var(--gold)":s.c,lineHeight:1.1}}>{s.w}</div>
-            <div style={{fontSize:10,color:"var(--dim)"}}>vittorie</div>
+            <div style={{fontSize:10,color:"var(--dim)"}}>{t('dashboard.wins')}</div>
           </div>
         ))}
       </div>
       <div style={{display:"flex",justifyContent:"center",gap:20,marginTop:12,paddingTop:12,borderTop:"1px solid var(--brd)"}}>
-        {[{l:"Win Rate",v:`${wr}%`,c:wr>=50?"var(--grn)":"var(--red)"},{l:"Crediti",v:`${Math.round(credits[user])} ₡`,c:"var(--gold)"},{l:"Bet tot.",v:myWon.length+myLost.length+myAct.length+mySec.length,c:"var(--txt)"}].map(s=>(
+        {[{l:t('dashboard.win_rate'),v:`${wr}%`,c:wr>=50?"var(--grn)":"var(--red)"},{l:t('dashboard.credits'),v:`${Math.round(credits[user])} ₡`,c:"var(--gold)"},{l:t('dashboard.total_bets'),v:myWon.length+myLost.length+myAct.length+mySec.length,c:"var(--txt)"}].map(s=>(
           <div key={s.l} style={{textAlign:"center"}}>
             <div style={{fontSize:16,fontWeight:700,color:s.c}}>{s.v}</div>
             <div style={{fontSize:10,color:"var(--dim)"}}>{s.l}</div>
@@ -63,22 +65,22 @@ export default function DashboardView({user,profiles,credits,bets,cats,onCreate,
     <div style={{...S.card,marginBottom:14,border:"1px solid var(--gold)44",display:"flex",alignItems:"center",gap:10}}>
       <div style={{width:36,height:36,borderRadius:"50%",background:"var(--gold)22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>🔒</div>
       <div>
-        <div style={{fontWeight:600,fontSize:14,color:"var(--gold)"}}>Vault Segreto</div>
-        <div style={{fontSize:12,color:"var(--dim)"}}>{mySec.length} bet privat{mySec.length===1?"a":"e"} — vai nel Vault per rivelare</div>
+        <div style={{fontWeight:600,fontSize:14,color:"var(--gold)"}}>{t('dashboard.vault_teaser')}</div>
+        <div style={{fontSize:12,color:"var(--dim)"}}>{mySec.length===1?t('dashboard.vault_teaser_one',{n:mySec.length}):t('dashboard.vault_teaser_many',{n:mySec.length})}</div>
       </div>
     </div>
   );
 
   const expiryAlert=expiring.length>0&&(
     <div style={{...S.card,marginBottom:12,background:"var(--red)18",border:"1px solid var(--red)44"}}>
-      <div style={{fontWeight:600,fontSize:13,color:"var(--red)",marginBottom:4}}>⏱ {expiring.length} bet in scadenza entro 24h!</div>
-      {expiring.map(b=><div key={b.id} style={{fontSize:12,color:"var(--dim)",marginTop:2}}>· {b.title} — {tLeft(b.expiresAt)}</div>)}
+      <div style={{fontWeight:600,fontSize:13,color:"var(--red)",marginBottom:4}}>{t('dashboard.expiry',{n:expiring.length})}</div>
+      {expiring.map(b=><div key={b.id} style={{fontSize:12,color:"var(--dim)",marginTop:2}}>· {b.title} — {tLeft(b.expiresAt,lang)}</div>)}
     </div>
   );
 
   const activeBets=(myAct.length+thAct.length)>0&&(
     <>
-      <SecLabel>Bets attive</SecLabel>
+      <SecLabel>{t('dashboard.active')}</SecLabel>
       {myAct.map(b=><BetCard key={b.id} bet={b} user={user} profiles={profiles} cats={cats} onResolve={onResolve} onFlame={onFlame} onCounter={onCounter} isDesktop={isDesktop} reactions={reactions} onReaction={onReaction}/>)}
       {thAct.map(b=><BetCard key={b.id} bet={b} user={user} profiles={profiles} cats={cats} onFlame={onFlame} onCounter={onCounter} isDesktop={isDesktop} reactions={reactions} onReaction={onReaction}/>)}
     </>
@@ -87,15 +89,15 @@ export default function DashboardView({user,profiles,credits,bets,cats,onCreate,
   const emptyState=myAct.length+thAct.length+mySec.length===0&&(
     <div style={{textAlign:"center",padding:"52px 20px"}}>
       <div style={{fontSize:52,marginBottom:14}}>🎲</div>
-      <div style={{fontFamily:"'Playfair Display',serif",fontSize:20,marginBottom:8}}>Nessuna bet attiva</div>
-      <div style={{fontSize:13,color:"var(--dim)",marginBottom:24}}>Inizia a scommettere!</div>
-      <Btn variant="gold" onClick={onCreate} style={{padding:"12px 28px",fontSize:15}}>+ Nuova Bet</Btn>
+      <div style={{fontFamily:"'Playfair Display',serif",fontSize:20,marginBottom:8}}>{t('dashboard.no_active')}</div>
+      <div style={{fontSize:13,color:"var(--dim)",marginBottom:24}}>{t('dashboard.no_active_sub')}</div>
+      <Btn variant="gold" onClick={onCreate} style={{padding:"12px 28px",fontSize:15}}>{t('dashboard.cta')}</Btn>
     </div>
   );
 
   const recentResolved=bets.filter(b=>b.creator===user&&["won","lost"].includes(b.status)).length>0&&(
     <>
-      <SecLabel mt={16}>Ultime risolte</SecLabel>
+      <SecLabel mt={16}>{t('dashboard.recent')}</SecLabel>
       {bets.filter(b=>b.creator===user&&["won","lost"].includes(b.status)).slice(-3).reverse().map(b=>(
         <BetCard key={b.id} bet={b} user={user} profiles={profiles} cats={cats} onFlame={onFlame} onCounter={onCounter} isDesktop={isDesktop} reactions={reactions} onReaction={onReaction}/>
       ))}
@@ -107,21 +109,21 @@ export default function DashboardView({user,profiles,credits,bets,cats,onCreate,
       {/* Monthly summary banner */}
       {showSummary&&(
         <div style={{...S.card,marginBottom:12,background:"var(--gold)11",border:"1px solid var(--gold)44",position:"relative"}}>
-          <div style={{fontWeight:700,fontSize:14,color:"var(--gold)",marginBottom:6}}>📊 {MONTHS[prevMonth]} {prevYear}</div>
+          <div style={{fontWeight:700,fontSize:14,color:"var(--gold)",marginBottom:6}}>📊 {months[prevMonth]} {prevYear}</div>
           <div style={{fontSize:13,color:"var(--txt)",marginBottom:4}}>{profiles[user].name} {myPrevWins.length}V / {profiles[other].name} {otPrevWins.length}V</div>
-          {bestBet&&<div style={{fontSize:12,color:"var(--dim)",marginBottom:2}}>Bet più epica: <span style={{color:"var(--gold)"}}>{bestBet.title} @ {parseFloat(bestBet.quota).toFixed(2)}×</span></div>}
-          <div style={{fontSize:12,color:netProfit>=0?"var(--grn)":"var(--red)"}}>Profitto netto {profiles[user].name}: {netProfit>=0?'+':''}{netProfit} ₡</div>
+          {bestBet&&<div style={{fontSize:12,color:"var(--dim)",marginBottom:2}}>{t('dashboard.best_bet')} <span style={{color:"var(--gold)"}}>{bestBet.title} @ {parseFloat(bestBet.quota).toFixed(2)}×</span></div>}
+          <div style={{fontSize:12,color:netProfit>=0?"var(--grn)":"var(--red)"}}>{t('dashboard.net_profit',{name:profiles[user].name})} {netProfit>=0?'+':''}{netProfit} ₡</div>
           <button onClick={()=>{localStorage.setItem(prevMonthKey,'1');setSummaryDismissed(true);}} style={{position:"absolute",top:10,right:10,background:"transparent",border:"none",cursor:"pointer",fontSize:16,color:"var(--dim)"}}>✕</button>
         </div>
       )}
 
-      {/* Partner notification: full width in both layouts */}
+      {/* Partner notification */}
       {newPart>0&&(
         <div style={{...S.card,marginBottom:12,background:`var(--gold)14`,border:"1px solid var(--gold)44",display:"flex",alignItems:"center",gap:10}}>
           <span style={{fontSize:22}}>{profiles[other].avatar}</span>
           <div>
-            <div style={{fontWeight:600,fontSize:13,color:"var(--gold)"}}>{profiles[other].name} ha creato {newPart} nuova{newPart>1?"e":""} bet!</div>
-            <div style={{fontSize:11,color:"var(--dim)"}}>Guarda le Bets Condivise</div>
+            <div style={{fontWeight:600,fontSize:13,color:"var(--gold)"}}>{profiles[other].name} {newPart===1?t('dashboard.notif_one'):t('dashboard.notif_many',{n:newPart})}</div>
+            <div style={{fontSize:11,color:"var(--dim)"}}>{t('dashboard.notif_sub')}</div>
           </div>
         </div>
       )}

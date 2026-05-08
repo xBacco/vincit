@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Btn, Inp, Toggle, SecLabel, Avatar, AVATARS, COLORS, CAT_COLS, getC } from '../Atoms.jsx';
+import { Btn, Inp, Toggle, SecLabel, AVATARS, COLORS, CAT_COLS } from '../Atoms.jsx';
 import { useLang } from '../../i18n.js';
 import * as api from '../../api.js';
 
@@ -9,7 +9,7 @@ const S = {
   btn: {display:"inline-flex",alignItems:"center",justifyContent:"center",gap:6,padding:"10px 18px",borderRadius:10,border:"none",cursor:"pointer",fontFamily:"'Syne',sans-serif",fontSize:13,fontWeight:600,transition:"all .18s",userSelect:"none",whiteSpace:"nowrap"},
 };
 
-export default function SettingsView({user,profiles,isDark,setIsDark,customCats,credits,bets,onUpdateProfile,onResetCredits,onCreateCategory,onDeleteCategory,vaultPin,onSetVaultPin,pinProtected,isDesktop,onReset}){
+export default function SettingsView({user,profiles,isDark,setIsDark,customCats,credits,bets,onUpdateProfile,onResetCredits,onCreateCategory,onDeleteCategory,vaultPin,onSetVaultPin,isDesktop,onReset,onLogout,onProfileUpdate}){
   const { t, lang, setLang } = useLang();
   const [newE,setNewE]=useState("🎯");
   const [newLabel,setNewLabel]=useState("");
@@ -18,21 +18,35 @@ export default function SettingsView({user,profiles,isDark,setIsDark,customCats,
   const [pin1,setPin1]=useState("");
   const [pin2,setPin2]=useState("");
   const [pinErr,setPinErr]=useState("");
-  const [creditAmounts, setCreditAmounts] = useState({tomas:'', giulia:''});
+  const [creditAmounts, setCreditAmounts] = useState({});
   const [creditConfirm, setCreditConfirm] = useState(null);
-  const [creditErr, setCreditErr] = useState({tomas:'', giulia:''});
-  const [acctPinPhase,setAcctPinPhase]=useState(null);
-  const [acctPin0,setAcctPin0]=useState('');
-  const [acctPin1,setAcctPin1]=useState('');
-  const [acctPin2,setAcctPin2]=useState('');
-  const [acctPinErr,setAcctPinErr]=useState('');
-  const [acctPinLoading,setAcctPinLoading]=useState(false);
+  const [creditErr, setCreditErr] = useState({});
   const [showResetConfirm,setShowResetConfirm]=useState(false);
   const [notifPrefs,setNotifPrefs]=useState({on_new_bet:true,on_resolved:true,on_expiry:true});
+  const [profileName, setProfileName] = useState('');
+  const [profileAvatar, setProfileAvatar] = useState('');
+  const [profileColor, setProfileColor] = useState('');
+
+  const myProfile = profiles[user];
+
+  useEffect(()=>{
+    if (myProfile) {
+      setProfileName(myProfile.name || '');
+      setProfileAvatar(myProfile.avatar || '😊');
+      setProfileColor(myProfile.colorKey || 'blue');
+    }
+  },[user]);
 
   useEffect(()=>{
     api.getNotifPrefs(user).then(setNotifPrefs).catch(console.error);
   },[user]);
+
+  const saveProfile = async () => {
+    try {
+      await api.updateProfile({ name: profileName, avatar: profileAvatar, color_key: profileColor });
+      onProfileUpdate?.({ name: profileName, avatar: profileAvatar, colorKey: profileColor });
+    } catch (e) { console.error(e); }
+  };
 
   const handleDeltaCredits = async (targetUser, delta) => {
     try {
@@ -58,34 +72,19 @@ export default function SettingsView({user,profiles,isDark,setIsDark,customCats,
     onSetVaultPin(pin1);
     setPinPhase(null);setPin1("");setPin2("");setPinErr("");
   };
-  const saveAcctPin=async()=>{
-    if(!/^\d{4}$/.test(acctPin1)){setAcctPinErr(t('settings.pin_err_len'));return;}
-    if(acctPin1!==acctPin2){setAcctPinErr(t('settings.pin_err_match'));return;}
-    if(acctPinPhase==='change'&&!acctPin0){setAcctPinErr(t('settings.acct_err_current'));return;}
-    setAcctPinLoading(true);
-    try{
-      if(acctPinPhase==='change'){
-        const v=await api.verifyAccountPin(user,acctPin0);
-        if(!v.valid){setAcctPinErr(t('settings.acct_err_wrong'));setAcctPinLoading(false);return;}
-      }
-      await api.setAccountPin(user,acctPin1);
-      setAcctPinPhase(null);setAcctPin0('');setAcctPin1('');setAcctPin2('');setAcctPinErr('');
-    }catch{setAcctPinErr(t('settings.acct_err_generic'));}
-    setAcctPinLoading(false);
-  };
-  const removeAcctPin=async()=>{
-    if(!acctPin0){setAcctPinErr(t('settings.acct_err_current'));return;}
-    setAcctPinLoading(true);
-    try{
-      await api.removeAccountPin(user,acctPin0);
-      setAcctPinPhase(null);setAcctPin0('');setAcctPinErr('');
-    }catch{setAcctPinErr(t('settings.acct_err_wrong'));}
-    setAcctPinLoading(false);
-  };
+
+  const partnerIds = Object.keys(profiles).filter(k => k !== user);
 
   return(
     <div className="sUp">
-      <div style={{fontFamily:"'Playfair Display',serif",fontSize:24,fontWeight:700,marginBottom:20}}>{t('settings.title')}</div>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
+        <div style={{fontFamily:"'Playfair Display',serif",fontSize:24,fontWeight:700}}>{t('settings.title')}</div>
+        {onLogout && (
+          <button onClick={onLogout} style={{...S.btn,padding:'7px 14px',background:'transparent',border:'1px solid var(--brd)',color:'var(--dim)',fontSize:12}}>
+            {t('settings.logout')}
+          </button>
+        )}
+      </div>
 
       {/* LANGUAGE */}
       <SecLabel>{t('settings.lang_label')}</SecLabel>
@@ -100,39 +99,56 @@ export default function SettingsView({user,profiles,isDark,setIsDark,customCats,
         </div>
       </div>
 
-      {/* PROFILES */}
-      <SecLabel>{t('settings.profiles')}</SecLabel>
-      {["tomas","giulia"].map(k=>{
-        const p=profiles[k]; const isMe=k===user;
-        return(
-          <div key={k} style={{...S.card,marginBottom:10,opacity:isMe?1:.65}}>
-            <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12}}>
-              <div style={{fontSize:32}}>{p.avatar}</div>
-              <div style={{flex:1}}>
-                <div style={{fontSize:11,color:"var(--dim)",marginBottom:4}}>{isMe?t('settings.my_profile'):t('settings.partner')}</div>
-                <Inp value={p.name} disabled={!isMe} onChange={e=>onUpdateProfile(k,{...profiles[k],name:e.target.value.slice(0,16)})} style={{fontWeight:600}}/>
-              </div>
+      {/* MY PROFILE */}
+      <SecLabel>{t('settings.my_profile')}</SecLabel>
+      {myProfile && (
+        <div style={{...S.card,marginBottom:10}}>
+          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12}}>
+            <div style={{fontSize:32}}>{profileAvatar}</div>
+            <div style={{flex:1}}>
+              <Inp value={profileName} onChange={e=>setProfileName(e.target.value.slice(0,16))} style={{fontWeight:600}}/>
             </div>
-            {isMe&&<>
-              <div style={{fontSize:11,color:"var(--dim)",marginBottom:8}}>{t('settings.avatar_label')}</div>
-              <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:12}}>
-                {AVATARS.map(a=>(
-                  <div key={a} onClick={()=>onUpdateProfile(k,{...profiles[k],avatar:a})} style={{width:36,height:36,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,cursor:"pointer",background:p.avatar===a?"var(--gold)22":"var(--surf)",border:`1px solid ${p.avatar===a?"var(--gold)":"var(--brd)"}`}}>{a}</div>
-                ))}
-              </div>
-              <div style={{fontSize:11,color:"var(--dim)",marginBottom:8}}>{t('settings.color_label')}</div>
-              <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:12}}>
-                {Object.entries(COLORS).map(([k2,hex])=>(
-                  <div key={k2} onClick={()=>onUpdateProfile(k,{...profiles[k],colorKey:k2})} style={{width:26,height:26,borderRadius:"50%",background:hex,cursor:"pointer",border:`3px solid ${p.colorKey===k2?"#fff":"transparent"}`,boxShadow:p.colorKey===k2?`0 0 8px ${hex}`:"none"}}/>
-                ))}
-              </div>
-              <button onClick={()=>window.open(`/api/bets/export/${user}`,'_blank')} style={{...S.btn,width:'100%',background:'transparent',border:'1px solid var(--brd)',color:'var(--dim)',fontSize:12}}>
-                ⬇ {t('settings.export_btn')}
-              </button>
-            </>}
           </div>
-        );
-      })}
+          <div style={{fontSize:11,color:"var(--dim)",marginBottom:8}}>{t('settings.avatar_label')}</div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:12}}>
+            {AVATARS.map(a=>(
+              <div key={a} onClick={()=>setProfileAvatar(a)} style={{width:36,height:36,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,cursor:"pointer",background:profileAvatar===a?"var(--gold)22":"var(--surf)",border:`1px solid ${profileAvatar===a?"var(--gold)":"var(--brd)"}`}}>{a}</div>
+            ))}
+          </div>
+          <div style={{fontSize:11,color:"var(--dim)",marginBottom:8}}>{t('settings.color_label')}</div>
+          <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}>
+            {Object.entries(COLORS).map(([k2,hex])=>(
+              <div key={k2} onClick={()=>setProfileColor(k2)} style={{width:26,height:26,borderRadius:"50%",background:hex,cursor:"pointer",border:`3px solid ${profileColor===k2?"#fff":"transparent"}`,boxShadow:profileColor===k2?`0 0 8px ${hex}`:"none"}}/>
+            ))}
+          </div>
+          <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+            <Btn variant="gold" sm onClick={saveProfile}>{t('settings.pin_save')}</Btn>
+            <button onClick={()=>window.open(`/api/bets/export/${user}`,'_blank')} style={{...S.btn,padding:'7px 13px',fontSize:12,background:'transparent',border:'1px solid var(--brd)',color:'var(--dim)'}}>
+              ⬇ {t('settings.export_btn')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* PARTNER PROFILES (read-only) */}
+      {partnerIds.length > 0 && (
+        <>
+          <SecLabel mt={16}>{t('settings.partner')}</SecLabel>
+          {partnerIds.map(k => {
+            const p = profiles[k];
+            return (
+              <div key={k} style={{...S.card,marginBottom:10,opacity:.65}}>
+                <div style={{display:"flex",alignItems:"center",gap:12}}>
+                  <div style={{fontSize:32}}>{p.avatar}</div>
+                  <div style={{flex:1}}>
+                    <div style={{fontWeight:600,fontSize:14}}>{p.name}</div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </>
+      )}
 
       {/* VAULT PIN */}
       <SecLabel mt={16}>{t('settings.vault_pin')}</SecLabel>
@@ -161,59 +177,6 @@ export default function SettingsView({user,profiles,isDark,setIsDark,customCats,
           <div style={{display:"flex",gap:8}}>
             <Btn variant="ghost" sm onClick={()=>setPinPhase("set")}>{vaultPin?t('settings.pin_change'):t('settings.pin_set')}</Btn>
             {vaultPin&&<Btn variant="ghost" sm style={{color:"var(--red)",borderColor:"var(--red)22"}} onClick={()=>onSetVaultPin(null)}>{t('settings.pin_remove')}</Btn>}
-          </div>
-        )}
-      </div>
-
-      {/* PIN ACCOUNT */}
-      <SecLabel mt={16}>{t('settings.acct_pin')}</SecLabel>
-      <div style={{...S.card,marginBottom:12}}>
-        <div style={{fontSize:14,fontWeight:600,marginBottom:4}}>{pinProtected?.[user]?t('settings.vault_active'):t('settings.vault_none')}</div>
-        <div style={{fontSize:12,color:"var(--dim)",marginBottom:10}}>{t('settings.acct_pin_desc')}</div>
-        {acctPinErr&&<div style={{fontSize:12,color:"var(--red)",marginBottom:8}}>{acctPinErr}</div>}
-        {acctPinPhase==='set'&&(
-          <div>
-            <div style={{fontSize:12,color:"var(--dim)",marginBottom:6}}>{t('settings.pin_new')}</div>
-            <Inp type="text" value={acctPin1} onChange={e=>setAcctPin1(e.target.value.replace(/\D/g,'').slice(0,4))} placeholder="●●●●" style={{letterSpacing:8,fontSize:20,marginBottom:8}}/>
-            <div style={{fontSize:12,color:"var(--dim)",marginBottom:6}}>{t('settings.pin_confirm')}</div>
-            <Inp type="text" value={acctPin2} onChange={e=>setAcctPin2(e.target.value.replace(/\D/g,'').slice(0,4))} placeholder="●●●●" style={{letterSpacing:8,fontSize:20,marginBottom:12}}/>
-            <div style={{display:"flex",gap:8}}>
-              <Btn variant="gold" sm onClick={saveAcctPin} disabled={acctPinLoading}>{t('settings.pin_save')}</Btn>
-              <Btn variant="ghost" sm onClick={()=>{setAcctPinPhase(null);setAcctPin1('');setAcctPin2('');setAcctPinErr('');}}>{t('settings.pin_cancel')}</Btn>
-            </div>
-          </div>
-        )}
-        {acctPinPhase==='change'&&(
-          <div>
-            <div style={{fontSize:12,color:"var(--dim)",marginBottom:6}}>{t('settings.acct_current')}</div>
-            <Inp type="text" value={acctPin0} onChange={e=>setAcctPin0(e.target.value.replace(/\D/g,'').slice(0,4))} placeholder="●●●●" style={{letterSpacing:8,fontSize:20,marginBottom:8}}/>
-            <div style={{fontSize:12,color:"var(--dim)",marginBottom:6}}>{t('settings.acct_new')}</div>
-            <Inp type="text" value={acctPin1} onChange={e=>setAcctPin1(e.target.value.replace(/\D/g,'').slice(0,4))} placeholder="●●●●" style={{letterSpacing:8,fontSize:20,marginBottom:8}}/>
-            <div style={{fontSize:12,color:"var(--dim)",marginBottom:6}}>{t('settings.acct_confirm')}</div>
-            <Inp type="text" value={acctPin2} onChange={e=>setAcctPin2(e.target.value.replace(/\D/g,'').slice(0,4))} placeholder="●●●●" style={{letterSpacing:8,fontSize:20,marginBottom:12}}/>
-            <div style={{display:"flex",gap:8}}>
-              <Btn variant="gold" sm onClick={saveAcctPin} disabled={acctPinLoading}>{t('settings.pin_save')}</Btn>
-              <Btn variant="ghost" sm onClick={()=>{setAcctPinPhase(null);setAcctPin0('');setAcctPin1('');setAcctPin2('');setAcctPinErr('');}}>{t('settings.pin_cancel')}</Btn>
-            </div>
-          </div>
-        )}
-        {acctPinPhase==='remove'&&(
-          <div>
-            <div style={{fontSize:12,color:"var(--dim)",marginBottom:6}}>{t('settings.acct_confirm_remove')}</div>
-            <Inp type="text" value={acctPin0} onChange={e=>setAcctPin0(e.target.value.replace(/\D/g,'').slice(0,4))} placeholder="●●●●" style={{letterSpacing:8,fontSize:20,marginBottom:12}}/>
-            <div style={{display:"flex",gap:8}}>
-              <Btn variant="red" sm onClick={removeAcctPin} disabled={acctPinLoading}>{t('settings.acct_remove_action')}</Btn>
-              <Btn variant="ghost" sm onClick={()=>{setAcctPinPhase(null);setAcctPin0('');setAcctPinErr('');}}>{t('settings.pin_cancel')}</Btn>
-            </div>
-          </div>
-        )}
-        {!acctPinPhase&&(
-          <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-            {!pinProtected?.[user]&&<Btn variant="ghost" sm onClick={()=>setAcctPinPhase('set')}>{t('settings.acct_set')}</Btn>}
-            {pinProtected?.[user]&&<>
-              <Btn variant="ghost" sm onClick={()=>setAcctPinPhase('change')}>{t('settings.acct_change')}</Btn>
-              <Btn variant="ghost" sm style={{color:"var(--red)",borderColor:"var(--red)22"}} onClick={()=>setAcctPinPhase('remove')}>{t('settings.acct_remove_btn')}</Btn>
-            </>}
           </div>
         )}
       </div>
@@ -267,18 +230,18 @@ export default function SettingsView({user,profiles,isDark,setIsDark,customCats,
         ))}
       </div>
 
-      {/* CREDITI */}
+      {/* CREDITS */}
       <SecLabel mt={16}>{t('settings.credits_section')}</SecLabel>
       <div style={{...S.card}}>
-        {["tomas","giulia"].map(k=>{
+        {Object.keys(profiles).map((k, i) => {
           const p=profiles[k]; const amt=parseFloat(creditAmounts[k])||0;
           return(
-            <div key={k} style={{marginBottom:k==="tomas"?14:0}}>
+            <div key={k} style={{marginBottom:i<Object.keys(profiles).length-1?14:0}}>
               <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
                 <div style={{fontSize:24}}>{p.avatar}</div>
                 <div style={{flex:1}}>
                   <div style={{fontSize:13,fontWeight:600}}>{p.name}</div>
-                  <div style={{fontSize:12,color:"var(--gold)",fontWeight:700}}>{t('settings.balance')} {Math.round(credits[k])} ₡</div>
+                  <div style={{fontSize:12,color:"var(--gold)",fontWeight:700}}>{t('settings.balance')} {Math.round(credits[k]||0)} ₡</div>
                 </div>
               </div>
               {creditErr[k]&&<div style={{fontSize:12,color:"var(--red)",marginBottom:6}}>{creditErr[k]}</div>}
@@ -296,7 +259,7 @@ export default function SettingsView({user,profiles,isDark,setIsDark,customCats,
                     type="number"
                     min={1}
                     max={9999}
-                    value={creditAmounts[k]}
+                    value={creditAmounts[k]||''}
                     onChange={e=>setCreditAmounts(a=>({...a,[k]:e.target.value}))}
                     placeholder={t('settings.amount_ph')}
                     style={{width:90,padding:"6px 10px",fontSize:13}}

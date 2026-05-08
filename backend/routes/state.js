@@ -3,25 +3,24 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db.js');
 
-async function buildState() {
+async function buildState(roomId) {
   const profiles = {};
-  const { rows: profileRows } = await db.query('SELECT * FROM profiles');
-  profileRows.forEach(r => {
-    profiles[r.user] = { name: r.name, avatar: r.avatar, colorKey: r.color_key };
-  });
-
-  const pinProtected = {};
-  profileRows.forEach(r => {
-    pinProtected[r.user] = r.pin_hash !== null;
-  });
+  const { rows: users } = await db.query(
+    'SELECT id, name, avatar, color_key FROM users WHERE room_id=$1', [roomId]
+  );
+  for (const u of users) profiles[u.id] = { name:u.name, avatar:u.avatar, colorKey:u.color_key };
 
   const credits = {};
-  const { rows: creditRows } = await db.query('SELECT * FROM credits');
-  creditRows.forEach(r => {
-    credits[r.user] = r.amount;
-  });
+  const { rows: creditRows } = await db.query(
+    'SELECT c.user, c.amount FROM credits c JOIN users u ON u.id=c.user WHERE u.room_id=$1', [roomId]
+  );
+  creditRows.forEach(r => { credits[r.user] = r.amount; });
 
-  const { rows: allCounters } = await db.query('SELECT * FROM counter_bets');
+  const { rows: allCounters } = await db.query(
+    `SELECT cb.* FROM counter_bets cb
+     JOIN bets b ON b.id = cb.bet_id
+     WHERE b.room_id=$1`, [roomId]
+  );
   const countersByBetId = {};
   allCounters.forEach(r => {
     if (!countersByBetId[r.bet_id]) countersByBetId[r.bet_id] = [];
@@ -37,7 +36,9 @@ async function buildState() {
     });
   });
 
-  const { rows: betRows } = await db.query('SELECT * FROM bets ORDER BY created_at DESC');
+  const { rows: betRows } = await db.query(
+    'SELECT * FROM bets WHERE room_id=$1 ORDER BY created_at DESC', [roomId]
+  );
   const bets = betRows.map(r => ({
     id:            r.id,
     creator:       r.creator,
@@ -57,7 +58,9 @@ async function buildState() {
     counterBets:   countersByBetId[r.id] || [],
   }));
 
-  const { rows: catRows } = await db.query('SELECT * FROM categories');
+  const { rows: catRows } = await db.query(
+    'SELECT * FROM categories WHERE room_id=$1 OR room_id IS NULL', [roomId]
+  );
   const categories = catRows.map(r => ({
     id:    r.id,
     e:     r.emoji,
@@ -65,19 +68,23 @@ async function buildState() {
     color: r.color,
   }));
 
-  const { rows: reactionRows } = await db.query('SELECT * FROM reactions');
+  const { rows: reactionRows } = await db.query(
+    `SELECT r.* FROM reactions r
+     JOIN bets b ON b.id = r.bet_id
+     WHERE b.room_id=$1`, [roomId]
+  );
   const reactions = reactionRows.map(r => ({
     bet_id: r.bet_id,
     bettor: r.bettor,
     emoji:  r.emoji,
   }));
 
-  return { profiles, credits, bets, categories, pinProtected, reactions };
+  return { profiles, credits, bets, categories, reactions };
 }
 
 router.get('/', async (req, res) => {
   try {
-    res.json(await buildState());
+    res.json(await buildState(req.roomId));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Internal server error' });

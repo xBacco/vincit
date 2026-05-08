@@ -20,6 +20,25 @@ const pool = new Pool({
       amount  REAL NOT NULL DEFAULT 100
     );
 
+    CREATE TABLE IF NOT EXISTS rooms (
+      id          TEXT PRIMARY KEY,
+      invite_code TEXT UNIQUE NOT NULL,
+      created_at  BIGINT NOT NULL,
+      paired_at   BIGINT
+    );
+
+    CREATE TABLE IF NOT EXISTS users (
+      id            TEXT PRIMARY KEY,
+      email         TEXT UNIQUE NOT NULL,
+      name          TEXT NOT NULL,
+      avatar        TEXT DEFAULT '😊',
+      color_key     TEXT DEFAULT 'blue',
+      password_hash TEXT NOT NULL,
+      vault_pin     TEXT,
+      room_id       TEXT REFERENCES rooms(id),
+      created_at    BIGINT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS bets (
       id             TEXT PRIMARY KEY,
       creator        TEXT NOT NULL,
@@ -83,6 +102,11 @@ const pool = new Pool({
   await pool.query(`
     ALTER TABLE bets ALTER COLUMN created_at TYPE BIGINT;
     ALTER TABLE bets ALTER COLUMN expires_at TYPE BIGINT;
+  `);
+
+  await pool.query(`
+    ALTER TABLE bets ADD COLUMN IF NOT EXISTS room_id TEXT;
+    ALTER TABLE categories ADD COLUMN IF NOT EXISTS room_id TEXT;
   `);
 
   await pool.query(`

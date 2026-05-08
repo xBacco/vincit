@@ -5,7 +5,8 @@ import * as api from './api.js';
 import { DARK, LIGHT, rootVars, DEF_CATS, COLORS } from './components/Atoms.jsx';
 import { useLang } from './i18n.js';
 import WinOverlay from './components/WinOverlay.jsx';
-import WelcomeScreen from './components/views/WelcomeScreen.jsx';
+import AuthView from './components/views/AuthView.jsx';
+import PairingView from './components/views/PairingView.jsx';
 import DashboardView from './components/views/DashboardView.jsx';
 import BetsView from './components/views/BetsView.jsx';
 import VaultView from './components/views/VaultView.jsx';
@@ -16,7 +17,6 @@ import RevealModal from './components/modals/RevealModal.jsx';
 import { ResolveModal, OvertimeModal } from './components/modals/ResolveModal.jsx';
 import CounterModal from './components/modals/CounterModal.jsx';
 import PinModal from './components/modals/PinModal.jsx';
-import PinLoginModal from './components/modals/PinLoginModal.jsx';
 import CommentModal from './components/modals/CommentModal.jsx';
 import EditModal from './components/modals/EditModal.jsx';
 
@@ -35,7 +35,9 @@ async function registerPush(user) {
     const perm = await Notification.requestPermission();
     if (perm !== 'granted') return;
     const sub = await reg.pushManager.subscribe({ userVisibleOnly:true, applicationServerKey:urlB64ToUint8(publicKey) });
-    await fetch('/api/push/subscribe', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({user, subscription:sub.toJSON()}) });
+    await api.fetchState; // ensure token is set before subscribing
+    const token = localStorage.getItem('bc_token');
+    await fetch('/api/push/subscribe', { method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`}, body:JSON.stringify({user, subscription:sub.toJSON()}) });
   } catch(e) { console.warn('Push registration failed:', e); }
 }
 
@@ -64,7 +66,6 @@ const CSS_BASE = `
 ::-webkit-scrollbar-thumb{background:var(--mut);border-radius:2px}
 `;
 
-// localStorage helpers — vault PIN and notification timestamps stay client-only
 const lsGet  = (k, fallback) => { try { const v = localStorage.getItem(k); return v !== null ? JSON.parse(v) : fallback; } catch { return fallback; } };
 const lsSet  = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
 const lsDel  = k => { try { localStorage.removeItem(k); } catch {} };
@@ -95,69 +96,76 @@ export default function App() {
   const isDesktop = useBreakpoint(768);
   const { t } = useLang();
 
-  // Server state: profiles, credits, bets, categories (custom only)
-  const [profiles, setProfiles] = useState({
-    tomas: { name: 'Tomas', avatar: '🃏', colorKey: 'blue' },
-    giulia: { name: 'Giulia', avatar: '♥️', colorKey: 'purple' },
-  });
-  const [credits, setCredits]     = useState({ tomas: 100, giulia: 100 });
-  const [bets, setBets]           = useState([]);
-  const [customCats, setCustomCats] = useState([]);
-  const [pinProtected, setPinProtected] = useState({ tomas: false, giulia: false });
-  const [reactions, setReactions] = useState([]);
+  // Auth state
+  const [token,       setToken]       = useState(() => localStorage.getItem('bc_token'));
+  const [authUser,    setAuthUser]    = useState(null);
+  const [authLoading, setAuthLoading] = useState(!!localStorage.getItem('bc_token'));
 
-  // useSync merges server response fields into the right state slices
+  useEffect(() => {
+    if (!token) { setAuthLoading(false); return; }
+    api.getMe()
+      .then(u => { setAuthUser(u); setAuthLoading(false); })
+      .catch(() => {
+        localStorage.removeItem('bc_token');
+        setToken(null);
+        setAuthLoading(false);
+      });
+  }, []); // runs once on mount
+
+  const handleAuth = ({ token: t, user: u }) => {
+    localStorage.setItem('bc_token', t);
+    setToken(t);
+    setAuthUser(u);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('bc_token');
+    setToken(null);
+    setAuthUser(null);
+  };
+
+  // user is the UUID string (same type as before, just UUID instead of "tomas")
+  const user = authUser?.id ?? null;
+
+  // Server state
+  const [profiles,   setProfiles]   = useState({});
+  const [credits,    setCredits]    = useState({});
+  const [bets,       setBets]       = useState([]);
+  const [customCats, setCustomCats] = useState([]);
+  const [reactions,  setReactions]  = useState([]);
+
   const refresh = useSync(useCallback(data => {
     if (data.profiles)   setProfiles(data.profiles);
     if (data.credits)    setCredits(data.credits);
     if (data.bets)       setBets(data.bets);
     if (data.categories) setCustomCats(data.categories);
-    if (data.pinProtected) setPinProtected(data.pinProtected);
-    if (data.reactions)    setReactions(data.reactions);
-  }, []));
+    if (data.reactions)  setReactions(data.reactions);
+  }, []), authUser?.room_id, token);
 
-  // categories: server returns { id, e, label, color } — DEF_CATS have same shape
   const cats = [...DEF_CATS, ...customCats];
 
-  // User selection persisted in localStorage
-  const [user, setUser] = useState(() => lsGet('bc_user', null));
   const [view, setView] = useState('dashboard');
   const [vaultUnlocked, setVaultUnlocked] = useState(false);
-
-  // Re-render trigger for vault PIN changes (localStorage doesn't trigger re-renders)
   const [pinVersion, setPinVersion] = useState(0);
   const vaultPin = user ? getVaultPin(user) : null;
 
-  const [showCreate, setShowCreate]     = useState(false);
-  const [revealBet, setRevealBet]       = useState(null);
-  const [resolveBet, setResolveBet]     = useState(null);
+  const [showCreate, setShowCreate]       = useState(false);
+  const [revealBet, setRevealBet]         = useState(null);
+  const [resolveBet, setResolveBet]       = useState(null);
   const [counterTarget, setCounterTarget] = useState(null);
-  const [overtimeBet, setOvertimeBet]   = useState(null);
-  const [showPin, setShowPin]           = useState(false);
-  const [winAnim, setWinAnim]           = useState(null);
-  const [pendingPinUser, setPendingPinUser] = useState(null);
+  const [overtimeBet, setOvertimeBet]     = useState(null);
+  const [showPin, setShowPin]             = useState(false);
+  const [winAnim, setWinAnim]             = useState(null);
   const [commentBetModal, setCommentBetModal] = useState(null);
-  const [editingBet, setEditingBet] = useState(null);
+  const [editingBet, setEditingBet]       = useState(null);
 
-  useEffect(() => { if (user) registerPush(user); }, [user]);
+  useEffect(() => { if (user && authUser?.paired) registerPush(user); }, [user]);
 
-  const login = u => {
-    const prev = getLastSeen(u);
-    setNotifSince(u, prev);
-    setLastSeen(u, Date.now());
-    lsSet('bc_user', u);
-    setUser(u);
-    setView('dashboard');
-    setVaultUnlocked(false);
-  };
-
-  const notifSince = user
-    ? { [user]: getNotifSince(user), [user === 'tomas' ? 'giulia' : 'tomas']: getNotifSince(user === 'tomas' ? 'giulia' : 'tomas') }
-    : { tomas: 0, giulia: 0 };
+  const notifSince = user ? { [user]: getNotifSince(user) } : {};
 
   const handleCreate = async data => {
     try {
-      await api.createBet({ ...data, id: `b${Date.now()}`, creator: user, createdAt: Date.now() });
+      await api.createBet({ ...data, id: `b${Date.now()}`, createdAt: Date.now() });
       setShowCreate(false);
       refresh();
     } catch (e) { console.error(e); alert(t('app.error_create')); }
@@ -169,13 +177,8 @@ export default function App() {
   };
 
   const handleDelete = async bet => {
-    try {
-      await api.cancelBet(bet.id, user);
-      refresh();
-    } catch (e) {
-      console.error(e);
-      alert(t('app.error_cancel'));
-    }
+    try { await api.cancelBet(bet.id); refresh(); }
+    catch (e) { console.error(e); alert(t('app.error_cancel')); }
   };
 
   const handleResolve = async (bet, outcome) => {
@@ -209,13 +212,13 @@ export default function App() {
       if (existing && existing.emoji === emoji) {
         await api.removeReaction(betId, user);
       } else {
-        await api.addReaction(betId, user, emoji);
+        await api.addReaction(betId, emoji);
       }
     } catch (e) { console.error(e); }
   };
 
   const handleUpdateProfile = async (userId, data) => {
-    try { await api.updateProfile(userId, data); } catch (e) { console.error(e); }
+    try { await api.updateProfile(data); } catch (e) { console.error(e); }
   };
 
   const handleResetCredits = async amounts => {
@@ -223,7 +226,7 @@ export default function App() {
   };
 
   const handleReset = async () => {
-    try { await api.resetAll(user); refresh(); }
+    try { await api.resetAll(); refresh(); }
     catch(e) { console.error(e); alert(t('app.error_reset')); }
   };
 
@@ -235,43 +238,39 @@ export default function App() {
     try { await api.deleteCategory(id); } catch (e) { console.error(e); }
   };
 
-  // Vault PIN stays in localStorage only — never sent to server
   const handleSetVaultPin = pin => {
     setVaultPin(user, pin);
-    setPinVersion(v => v + 1); // trigger re-render so vaultPin reflects new value
+    setPinVersion(v => v + 1);
   };
+
+  // Loading screen
+  if (authLoading) return (
+    <div style={{position:'fixed',inset:0,display:'flex',alignItems:'center',
+      justifyContent:'center',background:'var(--bg)'}}>
+      <div style={{fontFamily:"'Playfair Display',serif",fontSize:32,color:'var(--gold)'}}>₡</div>
+    </div>
+  );
+
+  // Auth gate
+  if (!token || !authUser) return (
+    <div className="bc" style={rootVars(C)}>
+      <style>{CSS_BASE}</style>
+      <AuthView onAuth={handleAuth} />
+    </div>
+  );
+
+  // Pairing gate
+  if (!authUser.paired) return (
+    <div className="bc" style={rootVars(C)}>
+      <style>{CSS_BASE}</style>
+      <PairingView user={authUser} onPaired={handleAuth} />
+    </div>
+  );
 
   const secretCount = bets.filter(b => b.creator === user && b.isSecret && b.status === 'active').length;
   const rootStyle = isDesktop
     ? { ...rootVars(C), minHeight: '100vh', position: 'relative' }
     : { ...rootVars(C), maxWidth: 480, margin: '0 auto', paddingBottom: 90, position: 'relative' };
-
-  if (!user || !profiles[user]) {
-    return (
-      <div className="bc" style={rootVars(C)}>
-        <style>{CSS_BASE}</style>
-        <WelcomeScreen
-          profiles={profiles}
-          pinProtected={pinProtected}
-          onSelect={k => {
-            if (pinProtected[k]) {
-              setPendingPinUser(k);
-            } else {
-              login(k);
-            }
-          }}
-        />
-        {pendingPinUser && (
-          <PinLoginModal
-            user={pendingPinUser}
-            profile={profiles[pendingPinUser]}
-            onSuccess={() => { login(pendingPinUser); setPendingPinUser(null); }}
-            onClose={() => setPendingPinUser(null)}
-          />
-        )}
-      </div>
-    );
-  }
 
   const NAV = [
     { id: 'dashboard', e: '🏠', l: t('nav.dashboard') },
@@ -281,6 +280,8 @@ export default function App() {
     { id: 'settings', e: '⚙️', l: t('nav.settings') },
   ];
 
+  const myProfile = profiles[user] ?? { name: authUser.name, avatar: authUser.avatar, colorKey: authUser.color_key };
+
   return (
     <div className="bc" style={rootStyle}>
       <style>{CSS_BASE}</style>
@@ -289,12 +290,12 @@ export default function App() {
       {isDesktop && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: 220, height: '100vh', background: 'var(--surf)', borderRight: '1px solid var(--brd)', display: 'flex', flexDirection: 'column', zIndex: 50, padding: '24px 0' }}>
           <div style={{ padding: '0 20px 16px', borderBottom: '1px solid var(--brd)', marginBottom: 8 }}>
-            <div style={{ width: 44, height: 44, borderRadius: '50%', background: `${COLORS[profiles[user].colorKey] || '#5b8af0'}33`, border: `2px solid ${COLORS[profiles[user].colorKey] || '#5b8af0'}66`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, marginBottom: 10 }}>{profiles[user].avatar}</div>
+            <div style={{ width: 44, height: 44, borderRadius: '50%', background: `${COLORS[myProfile.colorKey] || '#5b8af0'}33`, border: `2px solid ${COLORS[myProfile.colorKey] || '#5b8af0'}66`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, marginBottom: 10 }}>{myProfile.avatar}</div>
             <div style={{ fontSize: 10, color: 'var(--dim)', letterSpacing: 2, textTransform: 'uppercase' }}>{t('app.welcome_back')}</div>
-            <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 16, fontWeight: 700, marginBottom: 2 }}>{profiles[user].name}</div>
+            <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 16, fontWeight: 700, marginBottom: 2 }}>{myProfile.name}</div>
             <div style={{ fontSize: 10, color: 'var(--dim)' }}>{t('app.credits')}</div>
-            <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--gold)', marginBottom: 10 }}>{Math.round(credits[user])} ₡</div>
-            <button style={{ width: '100%', padding: '6px 0', borderRadius: 8, border: '1px solid var(--brd)', cursor: 'pointer', fontFamily: "'Syne',sans-serif", fontSize: 11, fontWeight: 600, background: 'transparent', color: 'var(--dim)' }} onClick={() => { lsDel('bc_user'); setUser(null); setVaultUnlocked(false); }}>{t('app.switch')}</button>
+            <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--gold)', marginBottom: 10 }}>{Math.round(credits[user] ?? 0)} ₡</div>
+            <button style={{ width: '100%', padding: '6px 0', borderRadius: 8, border: '1px solid var(--brd)', cursor: 'pointer', fontFamily: "'Syne',sans-serif", fontSize: 11, fontWeight: 600, background: 'transparent', color: 'var(--dim)' }} onClick={handleLogout}>{t('settings.logout')}</button>
           </div>
           <div style={{ flex: 1, padding: '4px 12px' }}>
             {NAV.map(n => (
@@ -317,18 +318,17 @@ export default function App() {
       {!isDesktop && (
         <div style={{ padding: '18px 20px 4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, background: C.bg, zIndex: 10, borderBottom: `1px solid ${C.brd}22` }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 38, height: 38, borderRadius: '50%', background: `${COLORS[profiles[user].colorKey] || '#5b8af0'}33`, border: `2px solid ${COLORS[profiles[user].colorKey] || '#5b8af0'}66`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 38 * 0.42, flexShrink: 0 }}>{profiles[user].avatar}</div>
+            <div style={{ width: 38, height: 38, borderRadius: '50%', background: `${COLORS[myProfile.colorKey] || '#5b8af0'}33`, border: `2px solid ${COLORS[myProfile.colorKey] || '#5b8af0'}66`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 38 * 0.42, flexShrink: 0 }}>{myProfile.avatar}</div>
             <div>
               <div style={{ fontSize: 10, color: 'var(--dim)', letterSpacing: 2, textTransform: 'uppercase' }}>{t('app.welcome_back')}</div>
-              <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, fontWeight: 700 }}>{profiles[user].name}</div>
+              <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, fontWeight: 700 }}>{myProfile.name}</div>
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ textAlign: 'right' }}>
               <div style={{ fontSize: 10, color: 'var(--dim)' }}>{t('app.credits')}</div>
-              <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--gold)' }}>{Math.round(credits[user])} ₡</div>
+              <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--gold)' }}>{Math.round(credits[user] ?? 0)} ₡</div>
             </div>
-            <button style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '7px 13px', borderRadius: 10, border: '1px solid var(--brd)', cursor: 'pointer', fontFamily: "'Syne',sans-serif", fontSize: 11, fontWeight: 600, background: 'transparent', color: 'var(--dim)' }} onClick={() => { lsDel('bc_user'); setUser(null); setVaultUnlocked(false); }}>{t('app.switch')}</button>
           </div>
         </div>
       )}
@@ -339,7 +339,7 @@ export default function App() {
         {view === 'bets'      && <BetsView user={user} profiles={profiles} bets={bets} cats={cats} onResolve={b => setResolveBet(b)} onCounter={b => setCounterTarget(b)} onFlame={handleFlame} isDesktop={isDesktop} reactions={reactions} onReaction={handleReaction} onDelete={handleDelete} onEdit={b => setEditingBet(b)} />}
         {view === 'vault'     && <VaultView user={user} profiles={profiles} bets={bets} cats={cats} onReveal={b => setRevealBet(b)} onFlame={handleFlame} unlocked={vaultUnlocked} onPinRequest={() => setShowPin(true)} vaultPin={vaultPin} isDesktop={isDesktop} onDelete={handleDelete} onEdit={b => setEditingBet(b)} />}
         {view === 'stats'     && <StatsView user={user} profiles={profiles} credits={credits} bets={bets} cats={cats} isDesktop={isDesktop} />}
-        {view === 'settings'  && <SettingsView user={user} profiles={profiles} isDark={isDark} setIsDark={setIsDark} customCats={customCats} credits={credits} bets={bets} onUpdateProfile={handleUpdateProfile} onResetCredits={handleResetCredits} onCreateCategory={handleCreateCategory} onDeleteCategory={handleDeleteCategory} vaultPin={vaultPin} onSetVaultPin={handleSetVaultPin} pinProtected={pinProtected} isDesktop={isDesktop} onReset={handleReset} />}
+        {view === 'settings'  && <SettingsView user={user} profiles={profiles} isDark={isDark} setIsDark={setIsDark} customCats={customCats} credits={credits} bets={bets} onUpdateProfile={handleUpdateProfile} onResetCredits={handleResetCredits} onCreateCategory={handleCreateCategory} onDeleteCategory={handleDeleteCategory} vaultPin={vaultPin} onSetVaultPin={handleSetVaultPin} isDesktop={isDesktop} onReset={handleReset} onLogout={handleLogout} onProfileUpdate={u => setAuthUser(prev => ({...prev,...u}))} />}
       </div>
 
       {/* Bottom nav: mobile only */}
@@ -362,7 +362,7 @@ export default function App() {
       )}
 
       {/* Modals */}
-      {showCreate     && <CreateModal user={user} profiles={profiles} maxC={credits[user]} cats={cats} onCreate={handleCreate} onClose={() => setShowCreate(false)} />}
+      {showCreate     && <CreateModal user={user} profiles={profiles} maxC={credits[user]??0} cats={cats} onCreate={handleCreate} onClose={() => setShowCreate(false)} />}
       {revealBet      && <RevealModal bet={revealBet} cats={cats} onResolve={handleResolve} onClose={() => setRevealBet(null)} />}
       {resolveBet     && <ResolveModal bet={resolveBet} cats={cats} profiles={profiles} onResolve={handleResolve} onOvertime={b => { setResolveBet(null); setOvertimeBet(b); }} onClose={() => setResolveBet(null)} />}
       {counterTarget  && <CounterModal bet={counterTarget} user={user} profiles={profiles} credits={credits} cats={cats} onPlace={handleCounter} onClose={() => setCounterTarget(null)} />}

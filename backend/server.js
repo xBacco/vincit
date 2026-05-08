@@ -2,8 +2,9 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const { router: eventsRouter, broadcastUpdate } = require('./routes/events.js');
-const { router: pushRouter, sendPushToUser } = require('./routes/push.js');
+const { authMiddleware, authMiddlewareSSE } = require('./middleware/auth.js');
+const authRouter = require('./routes/auth.js');
+const { sendPushToUser } = require('./routes/push.js');
 const rateLimit = require('express-rate-limit');
 const db = require('./db.js');
 
@@ -25,14 +26,50 @@ app.use('/api/bets',    betLimiter);
 app.use('/api/credits', betLimiter);
 app.use('/api/push',    betLimiter);
 
-app.use('/api/events',     eventsRouter);
-app.use('/api/state',      require('./routes/state.js'));
-app.use('/api/bets',       require('./routes/bets.js')(broadcastUpdate));
-app.use('/api/profiles',   require('./routes/profiles.js')(broadcastUpdate));
-app.use('/api/credits',    require('./routes/credits.js')(broadcastUpdate));
-app.use('/api/categories', require('./routes/categories.js')(broadcastUpdate));
-app.use('/api/bets',       require('./routes/reactions.js')(broadcastUpdate));
-app.use('/api/push',       pushRouter);
+// Room-scoped SSE clients
+const clients = new Map(); // roomId → Set<res>
+
+function broadcastUpdate(roomId) {
+  if (roomId) {
+    clients.get(roomId)?.forEach(r => r.write('data: update\n\n'));
+  } else {
+    clients.forEach(set => set.forEach(r => r.write('data: update\n\n')));
+  }
+}
+
+// SSE stream — token in query param (EventSource can't send custom headers)
+app.get('/api/state/stream', authMiddlewareSSE, (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders();
+  const { roomId } = req;
+  if (!clients.has(roomId)) clients.set(roomId, new Set());
+  clients.get(roomId).add(res);
+  const ping = setInterval(() => res.write(': ping\n\n'), 25000);
+  req.on('close', () => { clearInterval(ping); clients.get(roomId)?.delete(res); });
+});
+
+// Public routes (no auth)
+app.use('/api/auth', authRouter);
+
+// Protected routes
+const stateRouter    = require('./routes/state.js');
+const betsRouter     = require('./routes/bets.js')(broadcastUpdate);
+const profilesRouter = require('./routes/profiles.js')(broadcastUpdate);
+const creditsRouter  = require('./routes/credits.js')(broadcastUpdate);
+const catsRouter     = require('./routes/categories.js')(broadcastUpdate);
+const reactionsRouter = require('./routes/reactions.js')(broadcastUpdate);
+const { router: pushRouter } = require('./routes/push.js');
+
+app.use('/api/state',      authMiddleware, stateRouter);
+app.use('/api/bets',       authMiddleware, betsRouter);
+app.use('/api/profiles',   authMiddleware, profilesRouter);
+app.use('/api/credits',    authMiddleware, creditsRouter);
+app.use('/api/categories', authMiddleware, catsRouter);
+app.use('/api/bets',       authMiddleware, reactionsRouter);
+app.use('/api/push',       authMiddleware, pushRouter);
 
 app.use(express.static(path.join(__dirname, '../frontend/dist')));
 app.get('*', (req, res) => {
@@ -47,12 +84,12 @@ setInterval(async () => {
   try {
     const now = Date.now();
     const result = await db.query(
-      "UPDATE bets SET status='expired' WHERE status='active' AND expires_at IS NOT NULL AND expires_at < $1 RETURNING creator, title",
+      "UPDATE bets SET status='expired' WHERE status='active' AND expires_at IS NOT NULL AND expires_at < $1 RETURNING creator, title, room_id",
       [now]
     );
     if (result.rowCount > 0) {
-      broadcastUpdate();
       for (const b of result.rows) {
+        broadcastUpdate(b.room_id);
         const { rows: prefs } = await db.query('SELECT on_expiry FROM notification_prefs WHERE "user"=$1', [b.creator]);
         if (prefs[0]?.on_expiry !== false)
           sendPushToUser(b.creator, { title:'BetCouple ⏱', body:`"${b.title}" è scaduta — dichiara l'esito!`, url:'/' });

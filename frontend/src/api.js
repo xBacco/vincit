@@ -1,37 +1,51 @@
 const BASE = '/api';
 
+const getToken = () => localStorage.getItem('bc_token');
+
 async function req(method, path, body) {
-  const res = await fetch(BASE + path, {
+  const token = getToken();
+  const r = await fetch(BASE + path, {
     method,
-    headers: body ? { 'Content-Type': 'application/json' } : {},
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
     body: body ? JSON.stringify(body) : undefined,
   });
-  if (!res.ok) throw new Error(`${method} ${path} → ${res.status}`);
-  return res.json();
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    throw Object.assign(new Error(err.error || `${method} ${path} → ${r.status}`), { status: r.status, data: err });
+  }
+  return r.json();
 }
 
+// Auth
+export const register      = d           => req('POST',  '/auth/register', d);
+export const login         = (email, pw) => req('POST',  '/auth/login', { email, password: pw });
+export const joinRoom      = code        => req('POST',  '/auth/join', { code });
+export const getMe         = ()          => req('GET',   '/auth/me');
+export const updateProfile = d           => req('PATCH', '/auth/profile', d);
+
+// State
 export const fetchState     = ()             => req('GET',    '/state');
+
+// Bets
 export const createBet      = (data)         => req('POST',   '/bets', data);
 export const resolveBet     = (id, outcome)  => req('PATCH',  `/bets/${id}/resolve`, { outcome });
 export const counterBet     = (betId, cb)    => req('POST',   `/bets/${betId}/counter`, cb);
 export const flameBet       = (id)           => req('PATCH',  `/bets/${id}/flame`);
-export const updateProfile  = (user, data)   => req('PUT',    `/profiles/${user}`, data);
 export const resetCredits   = (amounts)      => req('PUT',    '/credits', amounts);
 export const createCategory = (cat)          => req('POST',   '/categories', cat);
 export const deleteCategory = (id)           => req('DELETE', `/categories/${id}`);
 
-export const setAccountPin    = (user, pin)        => req('POST',   `/profiles/${user}/pin`, { pin });
-export const verifyAccountPin = (user, pin)        => req('POST',   `/profiles/${user}/pin/verify`, { pin });
-export const removeAccountPin = (user, currentPin) => req('DELETE', `/profiles/${user}/pin`, { currentPin });
-
 export const deltaCredits = (user, delta) => req('PATCH', `/credits/${user}`, { delta });
 
-export const cancelBet      = (id, creator)          => req('DELETE', `/bets/${id}`, { creator });
-export const editBet        = (id, data)             => req('PATCH',  `/bets/${id}/edit`, data);
-export const resetAll       = (requestedBy)          => req('POST',   '/bets/reset', { requestedBy });
-export const commentBet     = (id, comment)         => req('PATCH',  `/bets/${id}/comment`, { comment });
-export const addReaction    = (id, bettor, emoji)    => req('POST',   `/bets/${id}/reaction`, { bettor, emoji });
-export const removeReaction = (id, bettor)           => req('DELETE', `/bets/${id}/reaction/${bettor}`);
+export const cancelBet      = (id)           => req('DELETE', `/bets/${id}`);
+export const editBet        = (id, data)     => req('PATCH',  `/bets/${id}/edit`, data);
+export const resetAll       = ()             => req('POST',   '/bets/reset');
+export const commentBet     = (id, comment)  => req('PATCH',  `/bets/${id}/comment`, { comment });
+export const addReaction    = (id, emoji)    => req('POST',   `/bets/${id}/reaction`, { emoji });
+export const removeReaction = (id, bettor)   => req('DELETE', `/bets/${id}/reaction/${bettor}`);
 
 export const getNotifPrefs  = (user)        => req('GET',  `/push/prefs/${user}`);
 export const saveNotifPrefs = (user, prefs) => req('POST', '/push/prefs', { user, ...prefs });

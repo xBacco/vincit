@@ -1,27 +1,31 @@
 import { useEffect, useCallback } from 'react';
 import { fetchState } from './api.js';
 
-export function useSync(setState) {
+export function useSync(setState, roomId, token) {
+  const ready = !!(roomId && token);
+
   const refresh = useCallback(async () => {
+    if (!ready) return;
     try {
       const data = await fetchState();
       setState(data);
     } catch (e) {
       console.error('fetchState failed:', e);
     }
-  }, [setState]);
-
-  useEffect(() => { refresh(); }, [refresh]);
+  }, [setState, ready]);
 
   useEffect(() => {
-    const es = new EventSource('/api/events');
-    es.onmessage = (e) => {
-      const msg = JSON.parse(e.data);
-      if (msg.type === 'update') refresh();
-    };
-    es.onerror = () => {};
+    if (!ready) return;
+    refresh();
+  }, [refresh, ready]);
+
+  useEffect(() => {
+    if (!ready) return;
+    const es = new EventSource(`/api/state/stream?token=${encodeURIComponent(token)}`);
+    es.onmessage = () => refresh();
+    es.onerror   = () => { es.close(); };
     return () => es.close();
-  }, [refresh]);
+  }, [ready, token, refresh]);
 
   return refresh;
 }

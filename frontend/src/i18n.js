@@ -75,6 +75,7 @@ const TRANSLATIONS = {
       reset_confirm_desc:'Questa azione è irreversibile. Tutte le bet e lo storico verranno cancellati. I crediti torneranno a 100.',
       reset_cancel:'Annulla',
       reset_confirm_btn:'🗑 Sì, azzera tutto',
+      logout:'Esci',
     },
     bet_card: {
       reveal:'🔓 Rivela', declare:'Dichiara esito', secret_label:'Bet Segreta', challenge:'Sfida diretta',
@@ -91,6 +92,23 @@ const TRANSLATIONS = {
     comment:  { won:'✅ Vinta!', lost:'❌ Persa', prompt:"Aggiungi un commento... es. \"te l'avevo detto! 😂\"", placeholder:'Scrivi un commento...', save:'Salva commento', skip:'Salta' },
     pin_modal:  { title:'PIN Vault', subtitle:'Inserisci il PIN a 4 cifre', placeholder:'● ● ● ●', unlock:'Sblocca', cancel:'Annulla', err_wrong:'PIN errato — riprova' },
     pin_login:  { subtitle:'Inserisci il PIN account', placeholder:'●●●●', forgot:'Hai dimenticato il PIN?', forgot_hint:'Chiedi al tuo partner 💬', back:'Indietro', err_wrong:'PIN errato', err_network:'Errore di rete' },
+    auth: {
+      tab_register:'Registrati', tab_login:'Accedi',
+      name_ph:'Il tuo nome', email_ph:'Email', password_ph:'Password (min 8 caratteri)',
+      register_btn:'Crea account', login_btn:'Accedi',
+      err_fields:'Compila tutti i campi. Password min 8 caratteri.',
+      err_taken:'Email già registrata.',
+      err_credentials:'Email o password errata.',
+      err_generic:'Errore. Riprova.',
+    },
+    pairing: {
+      your_code:'Il tuo codice', share_hint:'Condividi con il partner',
+      copy_btn:'Copia', copied:'Copiato! ✓', or:'oppure',
+      join_ph:'Codice a 6 lettere', join_btn:'Unisciti',
+      err_invalid:'Codice non valido.',
+      err_paired:'Questo spazio ha già un partner.',
+      err_own:'Non puoi unirti al tuo stesso spazio.',
+    },
   },
 
   en: {
@@ -164,6 +182,7 @@ const TRANSLATIONS = {
       reset_confirm_desc:'This action cannot be undone. All bets and history will be deleted. Credits will reset to 100.',
       reset_cancel:'Cancel',
       reset_confirm_btn:'🗑 Yes, reset everything',
+      logout:'Log out',
     },
     bet_card: {
       reveal:'🔓 Reveal', declare:'Declare result', secret_label:'Secret Bet', challenge:'Direct challenge',
@@ -180,6 +199,23 @@ const TRANSLATIONS = {
     comment:  { won:'✅ Won!', lost:'❌ Lost', prompt:'Add a comment... e.g. "told you so! 😂"', placeholder:'Write a comment...', save:'Save comment', skip:'Skip' },
     pin_modal:  { title:'Vault PIN', subtitle:'Enter your 4-digit PIN', placeholder:'● ● ● ●', unlock:'Unlock', cancel:'Cancel', err_wrong:'Wrong PIN — try again' },
     pin_login:  { subtitle:'Enter your account PIN', placeholder:'●●●●', forgot:'Forgot your PIN?', forgot_hint:'Ask your partner 💬', back:'Back', err_wrong:'Wrong PIN', err_network:'Network error' },
+    auth: {
+      tab_register:'Register', tab_login:'Log in',
+      name_ph:'Your name', email_ph:'Email', password_ph:'Password (min 8 chars)',
+      register_btn:'Create account', login_btn:'Log in',
+      err_fields:'Fill in all fields. Password min 8 chars.',
+      err_taken:'Email already registered.',
+      err_credentials:'Invalid email or password.',
+      err_generic:'Something went wrong. Try again.',
+    },
+    pairing: {
+      your_code:'Your code', share_hint:'Share with your partner',
+      copy_btn:'Copy', copied:'Copied! ✓', or:'or',
+      join_ph:'6-letter code', join_btn:'Join',
+      err_invalid:'Invalid code.',
+      err_paired:'This space already has a partner.',
+      err_own:"You can't join your own space.",
+    },
   },
 };
 

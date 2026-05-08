@@ -29,7 +29,11 @@ module.exports = function(broadcastUpdate) {
 
       broadcastUpdate();
       const { rows: profiles } = await db.query('SELECT "user" FROM profiles WHERE "user" != $1', [creator]);
-      if (profiles[0]) sendPushToUser(profiles[0].user, { title:'BetCouple 🎲', body:`Nuova bet: "${title}"`, url:'/' });
+      if (profiles[0]) {
+        const targetUser = profiles[0].user;
+        const { rows: prefs } = await db.query('SELECT on_new_bet FROM notification_prefs WHERE "user"=$1', [targetUser]);
+        if (prefs[0]?.on_new_bet !== false) sendPushToUser(targetUser, { title:'BetCouple 🎲', body:`Nuova bet: "${title}"`, url:'/' });
+      }
       res.status(201).json({ id });
     } catch (err) {
       console.error(err);
@@ -190,6 +194,43 @@ module.exports = function(broadcastUpdate) {
       console.error(err);
       res.status(500).json({ error: 'Internal server error' });
     }
+  });
+
+  router.post('/reset', async (req, res) => {
+    try {
+      const { requestedBy } = req.body;
+      if (!requestedBy) return res.status(400).json({ error: 'requestedBy required' });
+      await db.query('DELETE FROM reactions');
+      await db.query('DELETE FROM counter_bets');
+      await db.query('DELETE FROM bets');
+      await db.query('UPDATE credits SET amount = 100');
+      broadcastUpdate();
+      res.json({ ok: true });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Server error' });
+    }
+  });
+
+  router.get('/export/:user', async (req, res) => {
+    try {
+      const u = req.params.user;
+      const [betsRes, creditsRes, profileRes] = await Promise.all([
+        db.query('SELECT * FROM bets WHERE creator=$1 ORDER BY created_at DESC', [u]),
+        db.query('SELECT * FROM credits WHERE "user"=$1', [u]),
+        db.query('SELECT * FROM profiles WHERE "user"=$1', [u]),
+      ]);
+      const payload = {
+        exported_at: new Date().toISOString(),
+        user: u,
+        profile: profileRes.rows[0] ?? null,
+        credits: creditsRes.rows[0]?.amount ?? 0,
+        bets: betsRes.rows,
+      };
+      res.setHeader('Content-Disposition', `attachment; filename="betcouple-${u}-${Date.now()}.json"`);
+      res.setHeader('Content-Type', 'application/json');
+      res.json(payload);
+    } catch(e) { console.error(e); res.status(500).json({ error: 'Server error' }); }
   });
 
   return router;

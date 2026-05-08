@@ -28,6 +28,10 @@ export const deltaCredits = (user, delta) => req('PATCH', `/credits/${user}`, { 
 
 export const cancelBet      = (id, creator)          => req('DELETE', `/bets/${id}`, { creator });
 export const editBet        = (id, data)             => req('PATCH',  `/bets/${id}/edit`, data);
+export const resetAll       = (requestedBy)          => req('POST',   '/bets/reset', { requestedBy });
 export const commentBet     = (id, comment)         => req('PATCH',  `/bets/${id}/comment`, { comment });
 export const addReaction    = (id, bettor, emoji)    => req('POST',   `/bets/${id}/reaction`, { bettor, emoji });
 export const removeReaction = (id, bettor)           => req('DELETE', `/bets/${id}/reaction/${bettor}`);
+
+export const getNotifPrefs  = (user)        => req('GET',  `/push/prefs/${user}`);
+export const saveNotifPrefs = (user, prefs) => req('POST', '/push/prefs', { user, ...prefs });

@@ -30,6 +30,26 @@ router.delete('/subscribe', async (req, res) => {
   res.json({ ok: true });
 });
 
+router.post('/prefs', async (req, res) => {
+  try {
+    const { user, on_new_bet, on_resolved, on_expiry } = req.body;
+    if (!user) return res.status(400).json({ error: 'user required' });
+    await db.query(`
+      INSERT INTO notification_prefs("user", on_new_bet, on_resolved, on_expiry)
+      VALUES($1,$2,$3,$4)
+      ON CONFLICT("user") DO UPDATE SET on_new_bet=$2, on_resolved=$3, on_expiry=$4
+    `, [user, on_new_bet ?? true, on_resolved ?? true, on_expiry ?? true]);
+    res.json({ ok: true });
+  } catch(e) { console.error(e); res.status(500).json({ error: 'Server error' }); }
+});
+
+router.get('/prefs/:user', async (req, res) => {
+  try {
+    const { rows } = await db.query('SELECT * FROM notification_prefs WHERE "user"=$1', [req.params.user]);
+    res.json(rows[0] ?? { on_new_bet: true, on_resolved: true, on_expiry: true });
+  } catch(e) { res.status(500).json({ error: 'Server error' }); }
+});
+
 async function sendPushToUser(targetUser, payload) {
   if (!process.env.VAPID_PUBLIC_KEY) return;
   const { rows } = await db.query('SELECT subscription FROM push_subscriptions WHERE "user"=$1', [targetUser]);

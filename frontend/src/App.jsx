@@ -222,6 +222,11 @@ export default function App() {
     try { await api.resetCredits(amounts); } catch (e) { console.error(e); }
   };
 
+  const handleReset = async () => {
+    try { await api.resetAll(user); refresh(); }
+    catch(e) { console.error(e); alert(t('app.error_reset')); }
+  };
+
   const handleCreateCategory = async cat => {
     try { await api.createCategory(cat); } catch (e) { console.error(e); }
   };
@@ -334,7 +339,7 @@ export default function App() {
         {view === 'bets'      && <BetsView user={user} profiles={profiles} bets={bets} cats={cats} onResolve={b => setResolveBet(b)} onCounter={b => setCounterTarget(b)} onFlame={handleFlame} isDesktop={isDesktop} reactions={reactions} onReaction={handleReaction} onDelete={handleDelete} onEdit={b => setEditingBet(b)} />}
         {view === 'vault'     && <VaultView user={user} profiles={profiles} bets={bets} cats={cats} onReveal={b => setRevealBet(b)} onFlame={handleFlame} unlocked={vaultUnlocked} onPinRequest={() => setShowPin(true)} vaultPin={vaultPin} isDesktop={isDesktop} onDelete={handleDelete} onEdit={b => setEditingBet(b)} />}
         {view === 'stats'     && <StatsView user={user} profiles={profiles} credits={credits} bets={bets} cats={cats} isDesktop={isDesktop} />}
-        {view === 'settings'  && <SettingsView user={user} profiles={profiles} isDark={isDark} setIsDark={setIsDark} customCats={customCats} credits={credits} onUpdateProfile={handleUpdateProfile} onResetCredits={handleResetCredits} onCreateCategory={handleCreateCategory} onDeleteCategory={handleDeleteCategory} vaultPin={vaultPin} onSetVaultPin={handleSetVaultPin} pinProtected={pinProtected} isDesktop={isDesktop} />}
+        {view === 'settings'  && <SettingsView user={user} profiles={profiles} isDark={isDark} setIsDark={setIsDark} customCats={customCats} credits={credits} bets={bets} onUpdateProfile={handleUpdateProfile} onResetCredits={handleResetCredits} onCreateCategory={handleCreateCategory} onDeleteCategory={handleDeleteCategory} vaultPin={vaultPin} onSetVaultPin={handleSetVaultPin} pinProtected={pinProtected} isDesktop={isDesktop} onReset={handleReset} />}
       </div>
 
       {/* Bottom nav: mobile only */}

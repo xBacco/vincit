@@ -60,6 +60,13 @@ const pool = new Pool({
       endpoint     TEXT PRIMARY KEY,
       subscription JSONB NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS notification_prefs (
+      "user"       TEXT PRIMARY KEY,
+      on_new_bet   BOOLEAN DEFAULT true,
+      on_resolved  BOOLEAN DEFAULT true,
+      on_expiry    BOOLEAN DEFAULT true
+    );
   `);
 
   await pool.query(`

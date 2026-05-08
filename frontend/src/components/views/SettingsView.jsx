@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Btn, Inp, Toggle, SecLabel, Avatar, AVATARS, COLORS, CAT_COLS, getC } from '../Atoms.jsx';
 import { useLang } from '../../i18n.js';
 import * as api from '../../api.js';
@@ -6,9 +6,10 @@ import * as api from '../../api.js';
 const S = {
   card: {background:"var(--card)",border:"1px solid var(--brd)",borderRadius:16,padding:16},
   inp: {background:"var(--inp)",border:"1px solid var(--brd)",color:"var(--txt)",borderRadius:10,padding:"10px 14px",fontFamily:"'Syne',sans-serif",fontSize:14,outline:"none",width:"100%"},
+  btn: {display:"inline-flex",alignItems:"center",justifyContent:"center",gap:6,padding:"10px 18px",borderRadius:10,border:"none",cursor:"pointer",fontFamily:"'Syne',sans-serif",fontSize:13,fontWeight:600,transition:"all .18s",userSelect:"none",whiteSpace:"nowrap"},
 };
 
-export default function SettingsView({user,profiles,isDark,setIsDark,customCats,credits,onUpdateProfile,onResetCredits,onCreateCategory,onDeleteCategory,vaultPin,onSetVaultPin,pinProtected,isDesktop}){
+export default function SettingsView({user,profiles,isDark,setIsDark,customCats,credits,bets,onUpdateProfile,onResetCredits,onCreateCategory,onDeleteCategory,vaultPin,onSetVaultPin,pinProtected,isDesktop,onReset}){
   const { t, lang, setLang } = useLang();
   const [newE,setNewE]=useState("🎯");
   const [newLabel,setNewLabel]=useState("");
@@ -26,6 +27,12 @@ export default function SettingsView({user,profiles,isDark,setIsDark,customCats,
   const [acctPin2,setAcctPin2]=useState('');
   const [acctPinErr,setAcctPinErr]=useState('');
   const [acctPinLoading,setAcctPinLoading]=useState(false);
+  const [showResetConfirm,setShowResetConfirm]=useState(false);
+  const [notifPrefs,setNotifPrefs]=useState({on_new_bet:true,on_resolved:true,on_expiry:true});
+
+  useEffect(()=>{
+    api.getNotifPrefs(user).then(setNotifPrefs).catch(console.error);
+  },[user]);
 
   const handleDeltaCredits = async (targetUser, delta) => {
     try {
@@ -114,11 +121,14 @@ export default function SettingsView({user,profiles,isDark,setIsDark,customCats,
                 ))}
               </div>
               <div style={{fontSize:11,color:"var(--dim)",marginBottom:8}}>{t('settings.color_label')}</div>
-              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+              <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:12}}>
                 {Object.entries(COLORS).map(([k2,hex])=>(
                   <div key={k2} onClick={()=>onUpdateProfile(k,{...profiles[k],colorKey:k2})} style={{width:26,height:26,borderRadius:"50%",background:hex,cursor:"pointer",border:`3px solid ${p.colorKey===k2?"#fff":"transparent"}`,boxShadow:p.colorKey===k2?`0 0 8px ${hex}`:"none"}}/>
                 ))}
               </div>
+              <button onClick={()=>window.open(`/api/bets/export/${user}`,'_blank')} style={{...S.btn,width:'100%',background:'transparent',border:'1px solid var(--brd)',color:'var(--dim)',fontSize:12}}>
+                ⬇ {t('settings.export_btn')}
+              </button>
             </>}
           </div>
         );
@@ -236,6 +246,27 @@ export default function SettingsView({user,profiles,isDark,setIsDark,customCats,
         </div>
       </div>
 
+      {/* NOTIFICATIONS */}
+      <SecLabel mt={16}>{t('settings.notif_title')}</SecLabel>
+      <div style={{...S.card,marginBottom:12}}>
+        {[
+          {key:'on_new_bet',  label:t('settings.notif_new_bet')},
+          {key:'on_resolved', label:t('settings.notif_resolved')},
+          {key:'on_expiry',   label:t('settings.notif_expiry')},
+        ].map(({key,label})=>(
+          <div key={key} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:key!=='on_expiry'?'1px solid var(--brd)':'none'}}>
+            <span style={{fontSize:13}}>{label}</span>
+            <button onClick={()=>{
+              const next={...notifPrefs,[key]:!notifPrefs[key]};
+              setNotifPrefs(next);
+              api.saveNotifPrefs(user,next).catch(console.error);
+            }} style={{width:44,height:24,borderRadius:12,border:'none',cursor:'pointer',position:'relative',background:notifPrefs[key]?'var(--gold)':'var(--brd)',transition:'background .2s'}}>
+              <div style={{position:'absolute',top:3,width:18,height:18,borderRadius:9,background:'#fff',left:notifPrefs[key]?23:3,transition:'left .2s'}}/>
+            </button>
+          </div>
+        ))}
+      </div>
+
       {/* CREDITI */}
       <SecLabel mt={16}>{t('settings.credits_section')}</SecLabel>
       <div style={{...S.card}}>
@@ -284,6 +315,29 @@ export default function SettingsView({user,profiles,isDark,setIsDark,customCats,
             </div>
           );
         })}
+      </div>
+
+      {/* DANGER ZONE */}
+      <div style={{marginTop:32,paddingTop:24,borderTop:'1px solid var(--red)33'}}>
+        <SecLabel style={{color:'var(--red)88'}}>{t('settings.danger_zone')}</SecLabel>
+        {!showResetConfirm?(
+          <div style={{...S.card,border:'1px solid var(--red)33'}}>
+            <div style={{fontSize:14,fontWeight:600,marginBottom:4}}>{t('settings.reset_title')}</div>
+            <div style={{fontSize:12,color:'var(--dim)',marginBottom:14}}>{t('settings.reset_desc',{count:(bets||[]).filter(b=>b.status==='active').length,total:(bets||[]).length})}</div>
+            <button onClick={()=>setShowResetConfirm(true)} style={{...S.btn,width:'100%',background:'transparent',border:'1px solid var(--red)66',color:'var(--red)',fontSize:13}}>
+              🏆 {t('settings.reset_btn')}
+            </button>
+          </div>
+        ):(
+          <div style={{...S.card,border:'1px solid var(--red)',background:'var(--red)0d'}}>
+            <div style={{fontSize:14,fontWeight:700,color:'var(--red)',marginBottom:8}}>{t('settings.reset_confirm_title')}</div>
+            <div style={{fontSize:12,color:'var(--dim)',marginBottom:16}}>{t('settings.reset_confirm_desc')}</div>
+            <div style={{display:'flex',gap:10}}>
+              <button onClick={()=>setShowResetConfirm(false)} style={{...S.btn,flex:1,background:'transparent',border:'1px solid var(--brd)',color:'var(--dim)'}}>{t('settings.reset_cancel')}</button>
+              <button onClick={()=>{onReset();setShowResetConfirm(false);}} style={{...S.btn,flex:1,background:'var(--red)',border:'none',color:'#fff',fontWeight:700}}>{t('settings.reset_confirm_btn')}</button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

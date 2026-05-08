@@ -1,4 +1,24 @@
 import React from 'react';
+
+function computeStreak(bets, user) {
+  const days = new Set();
+  for (const b of bets) {
+    if (b.creator === user) days.add(new Date(b.createdAt).toDateString());
+    if (b.status !== 'active' && b.resolvedAt && (b.creator === user || b.winnerId === user))
+      days.add(new Date(b.resolvedAt).toDateString());
+  }
+  if (days.size === 0) return 0;
+  const sorted = Array.from(days).map(d => new Date(d)).sort((a, b) => b - a);
+  const today     = new Date().toDateString();
+  const yesterday = new Date(Date.now() - 86400000).toDateString();
+  if (sorted[0].toDateString() !== today && sorted[0].toDateString() !== yesterday) return 0;
+  let streak = 1;
+  for (let i = 1; i < sorted.length; i++) {
+    if (Math.round((sorted[i-1] - sorted[i]) / 86400000) === 1) streak++;
+    else break;
+  }
+  return streak;
+}
 import { Btn, SecLabel, fmtD, isSoon, tLeft, COLORS, getC } from '../Atoms.jsx';
 import { useLang, TRANSLATIONS } from '../../i18n.js';
 import BetCard from '../BetCard.jsx';
@@ -59,6 +79,21 @@ export default function DashboardView({user,profiles,credits,bets,cats,onCreate,
           </div>
         ))}
       </div>
+      {(()=>{
+        const myStreak=computeStreak(bets,user);
+        const thStreak=computeStreak(bets,other);
+        return myStreak>0||thStreak>0?(
+          <div style={{display:'flex',justifyContent:'space-around',marginTop:10,paddingTop:10,borderTop:'1px solid var(--brd)'}}>
+            {[{u:user,s:myStreak},{u:other,s:thStreak}].map(({u,s})=>(
+              <div key={u} style={{textAlign:'center'}}>
+                <div style={{fontSize:18}}>🔥</div>
+                <div style={{fontFamily:"'Playfair Display',serif",fontSize:20,fontWeight:700,color:s>=7?'var(--red)':s>=3?'var(--gold)':'var(--txt)'}}>{s}</div>
+                <div style={{fontSize:10,color:'var(--dim)',letterSpacing:1}}>{t('dashboard.streak')}</div>
+              </div>
+            ))}
+          </div>
+        ):null;
+      })()}
     </div>
   );
 

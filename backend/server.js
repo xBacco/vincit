@@ -4,6 +4,7 @@ const cors = require('cors');
 const path = require('path');
 const { router: eventsRouter, broadcastUpdate } = require('./routes/events.js');
 const { router: pushRouter, sendPushToUser } = require('./routes/push.js');
+const rateLimit = require('express-rate-limit');
 const db = require('./db.js');
 
 const app = express();
@@ -11,6 +12,18 @@ const PORT = process.env.PORT || 3001;
 
 app.use(cors({ origin: process.env.ALLOWED_ORIGIN || '*' }));
 app.use(express.json());
+
+const betLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please slow down.' },
+});
+
+app.use('/api/bets',    betLimiter);
+app.use('/api/credits', betLimiter);
+app.use('/api/push',    betLimiter);
 
 app.use('/api/events',     eventsRouter);
 app.use('/api/state',      require('./routes/state.js'));
@@ -39,8 +52,11 @@ setInterval(async () => {
     );
     if (result.rowCount > 0) {
       broadcastUpdate();
-      for (const b of result.rows)
-        sendPushToUser(b.creator, { title:'BetCouple ⏱', body:`"${b.title}" è scaduta — dichiara l'esito!`, url:'/' });
+      for (const b of result.rows) {
+        const { rows: prefs } = await db.query('SELECT on_expiry FROM notification_prefs WHERE "user"=$1', [b.creator]);
+        if (prefs[0]?.on_expiry !== false)
+          sendPushToUser(b.creator, { title:'BetCouple ⏱', body:`"${b.title}" è scaduta — dichiara l'esito!`, url:'/' });
+      }
     }
   } catch (err) {
     console.error('Expiry job error:', err);

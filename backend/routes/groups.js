@@ -119,4 +119,73 @@ router.post('/join', async (req, res) => {
   } catch (e) { console.error(e); res.status(500).json({ error: 'server_error' }); }
 });
 
+// DELETE /api/groups/:id/leave — leave a group
+router.delete('/:id/leave', async (req, res) => {
+  try {
+    const { rows: members } = await db.query(
+      'SELECT user_id, role FROM user_groups WHERE group_id=$1', [req.params.id]
+    );
+    const me = members.find(m => m.user_id === req.userId);
+    if (!me) return res.status(404).json({ error: 'Not a member' });
+
+    const owners = members.filter(m => m.role === 'owner');
+    if (me.role === 'owner' && owners.length === 1 && members.length > 1)
+      return res.status(400).json({ error: 'Transfer ownership before leaving' });
+
+    await db.query('BEGIN');
+    await db.query(
+      'DELETE FROM user_groups WHERE group_id=$1 AND user_id=$2',
+      [req.params.id, req.userId]
+    );
+    if (members.length === 1) {
+      await db.query(
+        'DELETE FROM reactions WHERE bet_id IN (SELECT id FROM bets WHERE room_id=$1)',
+        [req.params.id]
+      );
+      await db.query(
+        'DELETE FROM counter_bets WHERE bet_id IN (SELECT id FROM bets WHERE room_id=$1)',
+        [req.params.id]
+      );
+      await db.query('DELETE FROM bets WHERE room_id=$1',         [req.params.id]);
+      await db.query('DELETE FROM categories WHERE room_id=$1',   [req.params.id]);
+      await db.query('DELETE FROM rooms WHERE id=$1',             [req.params.id]);
+    }
+    await db.query('COMMIT');
+    res.json({ ok: true });
+  } catch (e) {
+    await db.query('ROLLBACK').catch(() => {});
+    console.error(e); res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// DELETE /api/groups/:id — delete group (owner only)
+router.delete('/:id', async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      "SELECT 1 FROM user_groups WHERE group_id=$1 AND user_id=$2 AND role='owner'",
+      [req.params.id, req.userId]
+    );
+    if (!rows.length) return res.status(403).json({ error: 'Owner only' });
+
+    await db.query('BEGIN');
+    await db.query(
+      'DELETE FROM reactions WHERE bet_id IN (SELECT id FROM bets WHERE room_id=$1)',
+      [req.params.id]
+    );
+    await db.query(
+      'DELETE FROM counter_bets WHERE bet_id IN (SELECT id FROM bets WHERE room_id=$1)',
+      [req.params.id]
+    );
+    await db.query('DELETE FROM bets WHERE room_id=$1',        [req.params.id]);
+    await db.query('DELETE FROM categories WHERE room_id=$1',  [req.params.id]);
+    await db.query('DELETE FROM user_groups WHERE group_id=$1', [req.params.id]);
+    await db.query('DELETE FROM rooms WHERE id=$1',            [req.params.id]);
+    await db.query('COMMIT');
+    res.json({ ok: true });
+  } catch (e) {
+    await db.query('ROLLBACK').catch(() => {});
+    console.error(e); res.status(500).json({ error: 'Server error' });
+  }
+});
+
 module.exports = router;

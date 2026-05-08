@@ -1,0 +1,225 @@
+import React, { useState, useEffect } from 'react';
+import { useLang } from '../../i18n.js';
+import * as api from '../../api.js';
+
+const EMOJI_OPTIONS = ['🎲','🔥','❤️','🏆','⚡','🎯','👥','🎪','🃏','🌙',
+                       '🎉','🎮','🍻','⚽','🎵','💪','🤝','🎭','🎨','🌟'];
+
+export default function GroupInfoModal({ group, userId, onClose, onLeft, onDeleted, onRenamed }) {
+  const { t } = useLang();
+
+  const [members,   setMembers]   = useState([]);
+  const [copied,    setCopied]    = useState(false);
+  const [editing,   setEditing]   = useState(false);
+  const [editName,  setEditName]  = useState('');
+  const [editEmoji, setEditEmoji] = useState('🎲');
+  const [saving,    setSaving]    = useState(false);
+  const [leaving,   setLeaving]   = useState(false);
+  const [deleting,  setDeleting]  = useState(false);
+
+  useEffect(() => {
+    if (!group) return;
+    api.getGroupMembers(group.id).then(setMembers).catch(console.error);
+  }, [group?.id]);
+
+  if (!group) return null;
+
+  const myRole  = members.find(m => m.id === userId)?.role;
+  const isOwner = myRole === 'owner';
+
+  const copyCode = () => {
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(group.invite_code)
+        .then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
+    } else {
+      prompt('Copy the code:', group.invite_code);
+    }
+  };
+
+  const startEdit = () => {
+    setEditName(group.name);
+    setEditEmoji(group.emoji || '🎲');
+    setEditing(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editName.trim()) return;
+    setSaving(true);
+    try {
+      await api.renameGroup(group.id, { name: editName.trim(), emoji: editEmoji });
+      onRenamed?.({ ...group, name: editName.trim(), emoji: editEmoji });
+    } catch (e) { console.error(e); }
+    finally { setSaving(false); }
+  };
+
+  const handleLeave = async () => {
+    if (!window.confirm(t('group_info.leave_confirm'))) return;
+    setLeaving(true);
+    try {
+      await api.leaveGroup(group.id);
+      onLeft?.();
+    } catch (e) {
+      const msg = e?.data?.error;
+      alert(msg === 'Transfer ownership before leaving'
+        ? t('group_info.leave_err')
+        : (msg || t('app.error_cancel'))
+      );
+    } finally { setLeaving(false); }
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm(t('group_info.delete_confirm1'))) return;
+    if (!window.confirm(t('group_info.delete_confirm2'))) return;
+    setDeleting(true);
+    try {
+      await api.deleteGroup(group.id);
+      onDeleted?.();
+    } catch { alert(t('group_info.delete_err')); }
+    finally { setDeleting(false); }
+  };
+
+  const S = {
+    btn: { fontFamily:"'Syne',sans-serif", fontSize:13, fontWeight:600,
+           cursor:'pointer', transition:'all .18s', borderRadius:10, border:'none' },
+  };
+
+  return (
+    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.85)',
+      display:'flex', alignItems:'flex-end', justifyContent:'center', zIndex:100 }}>
+      <div className="sUp" style={{
+        background:'var(--surf)', borderRadius:'22px 22px 0 0',
+        width:'100%', maxWidth:480, padding:'24px 20px 40px',
+        borderTop:'1px solid var(--brd)', maxHeight:'88vh', overflowY:'auto',
+      }}>
+        {editing ? (
+          <div style={{ marginBottom:20 }}>
+            <div style={{ fontSize:14, fontWeight:600, marginBottom:14 }}>
+              {t('group_info.edit_title')}
+            </div>
+            <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:12 }}>
+              {EMOJI_OPTIONS.map(e => (
+                <button key={e} onClick={() => setEditEmoji(e)} style={{
+                  fontSize:20, padding:'4px 7px', borderRadius:8, cursor:'pointer',
+                  border:`1px solid ${editEmoji===e?'var(--gold)':'var(--brd)'}`,
+                  background: editEmoji===e ? 'var(--gold)22' : 'transparent',
+                }}>{e}</button>
+              ))}
+            </div>
+            <input
+              value={editName}
+              onChange={e => setEditName(e.target.value)}
+              placeholder={t('group_info.name_ph')}
+              maxLength={40}
+              style={{ width:'100%', background:'var(--inp)', border:'1px solid var(--brd)',
+                color:'var(--txt)', borderRadius:10, padding:'10px 14px',
+                fontFamily:"'Syne',sans-serif", fontSize:14, outline:'none', marginBottom:12 }}
+            />
+            <div style={{ display:'flex', gap:8 }}>
+              <button onClick={() => setEditing(false)} style={{
+                ...S.btn, flex:1, padding:'10px',
+                background:'transparent', border:'1px solid var(--brd)', color:'var(--dim)',
+              }}>{t('group_info.cancel')}</button>
+              <button onClick={handleSaveEdit}
+                disabled={saving || !editName.trim()} style={{
+                  ...S.btn, flex:1, padding:'10px',
+                  background:'var(--gold)', color:'#07060f',
+                  opacity: (saving || !editName.trim()) ? 0.5 : 1,
+                }}>
+                {saving ? '...' : t('group_info.save')}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div style={{ display:'flex', justifyContent:'space-between',
+              alignItems:'center', marginBottom:20 }}>
+              <div style={{ fontFamily:"'Playfair Display',serif", fontSize:20, fontWeight:700 }}>
+                {group.emoji} {group.name}
+              </div>
+              <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+                {isOwner && (
+                  <button onClick={startEdit} style={{
+                    background:'transparent', border:'none',
+                    color:'var(--dim)', fontSize:16, cursor:'pointer', lineHeight:1,
+                  }}>✏️</button>
+                )}
+                <button onClick={onClose} style={{
+                  background:'transparent', border:'none',
+                  color:'var(--dim)', fontSize:20, cursor:'pointer', lineHeight:1,
+                }}>✕</button>
+              </div>
+            </div>
+
+            {/* Invite code */}
+            <div style={{ background:'var(--card)', borderRadius:12, padding:'16px 14px',
+              border:'1px solid var(--brd)', marginBottom:16, textAlign:'center' }}>
+              <div style={{ fontSize:9, color:'var(--dim)', letterSpacing:2,
+                textTransform:'uppercase', marginBottom:10 }}>
+                {t('group_info.invite_label')}
+              </div>
+              <div style={{ fontFamily:'monospace', fontSize:34, fontWeight:700,
+                color:'var(--gold)', letterSpacing:8, marginBottom:14, userSelect:'all' }}>
+                {group.invite_code ?? '—'}
+              </div>
+              <button onClick={copyCode} style={{
+                ...S.btn, padding:'8px 20px',
+                border:'1px solid var(--gold)',
+                background: copied ? 'var(--gold)' : 'transparent',
+                color:      copied ? '#07060f'     : 'var(--gold)',
+              }}>
+                {copied ? t('group_info.copied') : t('group_info.copy')}
+              </button>
+              <div style={{ fontSize:11, color:'var(--dim)', marginTop:10 }}>
+                {t('group_info.invite_hint')}
+              </div>
+            </div>
+
+            {/* Members */}
+            <div style={{ fontSize:9, color:'var(--dim)', letterSpacing:2,
+              textTransform:'uppercase', marginBottom:10 }}>
+              {t('group_info.members')} ({members.length})
+            </div>
+            {members.map(m => (
+              <div key={m.id} style={{ display:'flex', alignItems:'center', gap:10,
+                padding:'10px 0', borderBottom:'1px solid var(--brd)22' }}>
+                <span style={{ fontSize:22, lineHeight:1 }}>{m.avatar || '😊'}</span>
+                <span style={{ flex:1, fontSize:14, fontWeight:600,
+                  color: m.id === userId ? 'var(--gold)' : 'var(--txt)' }}>
+                  {m.name}
+                </span>
+                {m.role === 'owner' && (
+                  <span style={{ fontSize:10, color:'var(--gold)',
+                    border:'1px solid var(--gold)44', borderRadius:20, padding:'2px 8px' }}>
+                    {t('group_info.owner_badge')}
+                  </span>
+                )}
+              </div>
+            ))}
+
+            {/* Leave — non-owner only, not when sole member */}
+            {!isOwner && members.length > 1 && (
+              <button onClick={handleLeave} disabled={leaving} style={{
+                ...S.btn, width:'100%', marginTop:24, padding:'12px',
+                border:'1px solid var(--red)44', background:'transparent',
+                color:'var(--red)', opacity: leaving ? 0.5 : 1,
+              }}>{t('group_info.leave_btn')}</button>
+            )}
+
+            {/* Delete — owner only */}
+            {isOwner && (
+              <div style={{ marginTop:28, paddingTop:20, borderTop:'1px solid var(--red)22' }}>
+                <button onClick={handleDelete} disabled={deleting} style={{
+                  ...S.btn, width:'100%', padding:'12px',
+                  border:'1px solid var(--red)44', background:'transparent',
+                  color:'var(--red)', opacity: deleting ? 0.5 : 1,
+                }}>
+                  {deleting ? '...' : `🗑 ${t('group_info.delete_btn')}`}
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}

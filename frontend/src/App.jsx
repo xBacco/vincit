@@ -14,6 +14,7 @@ import StatsView from './components/views/StatsView.jsx';
 import SettingsView from './components/views/SettingsView.jsx';
 import CreateModal from './components/modals/CreateModal.jsx';
 import CreateGroupModal from './components/modals/CreateGroupModal.jsx';
+import GroupInfoModal from './components/modals/GroupInfoModal.jsx';
 import RevealModal from './components/modals/RevealModal.jsx';
 import { ResolveModal, OvertimeModal } from './components/modals/ResolveModal.jsx';
 import CounterModal from './components/modals/CounterModal.jsx';
@@ -106,6 +107,7 @@ export default function App() {
   const [groups,        setGroups]        = useState([]);
   const [activeGroupId, setActiveGroupId] = useState(() => lsGet('bc_active_group', null));
   const [showGroupModal, setShowGroupModal] = useState(false);
+  const [showGroupInfo,  setShowGroupInfo]  = useState(false);
 
   const loadGroups = useCallback(async () => {
     try {
@@ -329,10 +331,29 @@ export default function App() {
   const groupSwitcher = groups.length > 0 && (
     <div style={{ display:'flex', gap:6, overflowX:'auto', padding:'8px 0', scrollbarWidth:'none' }}>
       {groups.map(g => (
-        <button key={g.id} onClick={() => switchGroup(g.id)}
-          style={{ display:'inline-flex', alignItems:'center', gap:5, padding:'5px 10px', borderRadius:20, border:`1px solid ${g.id===activeGroupId?'var(--gold)':'var(--brd)'}`, background:g.id===activeGroupId?'var(--gold)22':'transparent', cursor:'pointer', fontFamily:"'Syne',sans-serif", fontSize:11, fontWeight:600, color:g.id===activeGroupId?'var(--gold)':'var(--dim)', whiteSpace:'nowrap', flexShrink:0, transition:'all .18s' }}>
-          {g.emoji} {g.name}
-        </button>
+        <div key={g.id} style={{
+          display:'flex', alignItems:'center', flexShrink:0,
+          borderRadius:20, overflow:'hidden',
+          border:`1px solid ${activeGroupId===g.id?'var(--gold)':'var(--brd)'}`,
+          background: activeGroupId===g.id ? 'var(--gold)22' : 'transparent',
+          transition:'all .18s',
+        }}>
+          <button onClick={() => switchGroup(g.id)} style={{
+            padding:'5px 10px 5px 12px', border:'none', background:'transparent',
+            color: activeGroupId===g.id?'var(--gold)':'var(--dim)',
+            fontFamily:"'Syne',sans-serif", fontSize:12, fontWeight:600, cursor:'pointer',
+            whiteSpace:'nowrap',
+          }}>
+            {g.emoji} {g.name}
+            {parseInt(g.member_count) > 1 && <span style={{ marginLeft:5, opacity:.5, fontSize:10 }}>{g.member_count}</span>}
+          </button>
+          {activeGroupId === g.id && (
+            <button onClick={() => setShowGroupInfo(true)} style={{
+              padding:'5px 10px 5px 4px', border:'none', background:'transparent',
+              color:'var(--gold)', fontSize:12, cursor:'pointer', opacity:.65,
+            }}>👥</button>
+          )}
+        </div>
       ))}
       <button onClick={() => setShowGroupModal(true)}
         style={{ display:'inline-flex', alignItems:'center', padding:'5px 10px', borderRadius:20, border:'1px solid var(--brd)', background:'transparent', cursor:'pointer', fontFamily:"'Syne',sans-serif", fontSize:11, fontWeight:600, color:'var(--dim)', whiteSpace:'nowrap', flexShrink:0, transition:'all .18s' }}>
@@ -441,6 +462,35 @@ export default function App() {
       {commentBetModal && <CommentModal bet={commentBetModal} onSave={handleComment} onSkip={() => setCommentBetModal(null)} />}
       {editingBet && <EditModal bet={editingBet} cats={cats} user={user} onSave={handleEdit} onClose={() => setEditingBet(null)}/>}
       {showGroupModal && <CreateGroupModal onCreated={handleGroupCreated} onClose={() => setShowGroupModal(false)} />}
+      {showGroupInfo && (
+        <GroupInfoModal
+          group={groups.find(g => g.id === activeGroupId)}
+          userId={user}
+          onClose={() => setShowGroupInfo(false)}
+          onRenamed={updated => {
+            setGroups(prev => prev.map(g => g.id === updated.id ? { ...g, ...updated } : g));
+            setShowGroupInfo(false);
+          }}
+          onLeft={async () => {
+            setShowGroupInfo(false);
+            const updated = await api.getMyGroups().catch(() => []);
+            setGroups(updated);
+            const first = updated[0]?.id ?? null;
+            setActiveGroupId(first);
+            if (first) lsSet('bc_active_group', first);
+            else lsDel('bc_active_group');
+          }}
+          onDeleted={async () => {
+            setShowGroupInfo(false);
+            const updated = await api.getMyGroups().catch(() => []);
+            setGroups(updated);
+            const first = updated[0]?.id ?? null;
+            setActiveGroupId(first);
+            if (first) lsSet('bc_active_group', first);
+            else lsDel('bc_active_group');
+          }}
+        />
+      )}
     </div>
   );
 }

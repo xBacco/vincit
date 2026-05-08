@@ -35,6 +35,8 @@ export const getGroupMembers = (id)          => req('GET',    `/groups/${id}/mem
 export const createGroup    = (data)         => req('POST',   '/groups', data);
 export const renameGroup    = (id, data)     => req('PATCH',  `/groups/${id}`, data);
 export const joinGroup      = (code)         => req('POST',   '/groups/join', { code });
+export const leaveGroup     = (groupId)      => req('DELETE', `/groups/${groupId}/leave`);
+export const deleteGroup    = (groupId)      => req('DELETE', `/groups/${groupId}`);
 
 // Bets
 export const createBet      = (data)         => req('POST',   '/bets', data);

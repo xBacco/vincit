@@ -9,7 +9,7 @@ const S = {
   btn: {display:"inline-flex",alignItems:"center",justifyContent:"center",gap:6,padding:"10px 18px",borderRadius:10,border:"none",cursor:"pointer",fontFamily:"'Syne',sans-serif",fontSize:13,fontWeight:600,transition:"all .18s",userSelect:"none",whiteSpace:"nowrap"},
 };
 
-export default function SettingsView({user,profiles,isDark,setIsDark,customCats,credits,bets,onUpdateProfile,onResetCredits,onCreateCategory,onDeleteCategory,vaultPin,onSetVaultPin,isDesktop,onReset,onLogout,onProfileUpdate,isAdmin=false}){
+export default function SettingsView({user,profiles,isDark,setIsDark,customCats,credits,bets,onUpdateProfile,onCreateCategory,onDeleteCategory,vaultPin,onSetVaultPin,isDesktop,onReset,onLogout,onProfileUpdate,isAdmin=false}){
   const { t, lang, setLang } = useLang();
   const [newE,setNewE]=useState("🎯");
   const [newLabel,setNewLabel]=useState("");
@@ -73,8 +73,6 @@ export default function SettingsView({user,profiles,isDark,setIsDark,customCats,
     setPinPhase(null);setPin1("");setPin2("");setPinErr("");
   };
 
-  const partnerIds = Object.keys(profiles).filter(k => k !== user);
-
   return(
     <div className="sUp">
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
@@ -131,10 +129,10 @@ export default function SettingsView({user,profiles,isDark,setIsDark,customCats,
       )}
 
       {/* PARTNER PROFILES (read-only) */}
-      {partnerIds.length > 0 && (
+      {Object.keys(profiles).filter(k => k !== user).length > 0 && (
         <>
           <SecLabel mt={16}>{t('settings.partner')}</SecLabel>
-          {partnerIds.map(k => {
+          {Object.keys(profiles).filter(k => k !== user).map(k => {
             const p = profiles[k];
             return (
               <div key={k} style={{...S.card,marginBottom:10,opacity:.65}}>
@@ -228,7 +226,7 @@ export default function SettingsView({user,profiles,isDark,setIsDark,customCats,
             <button onClick={()=>{
               const next={...notifPrefs,[key]:!notifPrefs[key]};
               setNotifPrefs(next);
-              api.saveNotifPrefs(user,next).catch(console.error);
+              api.saveNotifPrefs(next).catch(console.error);
             }} style={{width:44,height:24,borderRadius:12,border:'none',cursor:'pointer',position:'relative',background:notifPrefs[key]?'var(--gold)':'var(--brd)',transition:'background .2s'}}>
               <div style={{position:'absolute',top:3,width:18,height:18,borderRadius:9,background:'#fff',left:notifPrefs[key]?23:3,transition:'left .2s'}}/>
             </button>
@@ -243,53 +241,62 @@ export default function SettingsView({user,profiles,isDark,setIsDark,customCats,
           <div style={{fontSize:13,color:'var(--dim)'}}>{t('settings.admin_only')}</div>
         </div>
       )}
-      {isAdmin && <div style={{...S.card}}>
-        {Object.keys(profiles).map((k, i) => {
-          const p=profiles[k]; const amt=parseFloat(creditAmounts[k])||0;
-          return(
-            <div key={k} style={{marginBottom:i<Object.keys(profiles).length-1?14:0}}>
-              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
-                <div style={{fontSize:24}}>{p.avatar}</div>
-                <div style={{flex:1}}>
-                  <div style={{fontSize:13,fontWeight:600}}>{p.name}</div>
-                  <div style={{fontSize:12,color:"var(--gold)",fontWeight:700}}>{t('settings.balance')} {Math.round(credits[k]||0)} ₡</div>
-                </div>
-              </div>
-              {creditErr[k]&&<div style={{fontSize:12,color:"var(--red)",marginBottom:6}}>{creditErr[k]}</div>}
-              {creditConfirm?.user===k?(
-                <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-                  <div style={{fontSize:13,color:"var(--dim)",flex:1}}>
-                    {t('settings.credits_confirm_q',{amount:creditConfirm.amount,name:p.name})}
+      {isAdmin && (
+        Object.keys(profiles).length === 0 ? (
+          <div style={{...S.card,opacity:.6}}>
+            <div style={{fontSize:13,color:'var(--dim)',textAlign:'center'}}>{t('settings.loading')}</div>
+          </div>
+        ) : (
+          <div style={{...S.card}}>
+            {Object.keys(profiles).map((k, i) => {
+              const p=profiles[k]; const amt=parseFloat(creditAmounts[k])||0;
+              const isMe = k === user;
+              return(
+                <div key={k} style={{marginBottom:i<Object.keys(profiles).length-1?14:0}}>
+                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+                    <div style={{fontSize:24}}>{p.avatar}</div>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:13,fontWeight:600}}>{p.name}{isMe ? ` · ${t('settings.you')}` : ''}</div>
+                      <div style={{fontSize:12,color:"var(--gold)",fontWeight:700}}>{t('settings.balance')} {Math.round(credits[k]||0)} ₡</div>
+                    </div>
                   </div>
-                  <Btn variant="red" sm onClick={()=>handleDeltaCredits(k,-creditConfirm.amount)}>{t('settings.credits_confirm')}</Btn>
-                  <Btn variant="ghost" sm onClick={()=>setCreditConfirm(null)}>{t('settings.credits_cancel')}</Btn>
+                  {!isMe && creditErr[k]&&<div style={{fontSize:12,color:"var(--red)",marginBottom:6}}>{creditErr[k]}</div>}
+                  {!isMe && (creditConfirm?.user===k?(
+                    <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                      <div style={{fontSize:13,color:"var(--dim)",flex:1}}>
+                        {t('settings.credits_confirm_q',{amount:creditConfirm.amount,name:p.name})}
+                      </div>
+                      <Btn variant="red" sm onClick={()=>handleDeltaCredits(k,-creditConfirm.amount)}>{t('settings.credits_confirm')}</Btn>
+                      <Btn variant="ghost" sm onClick={()=>setCreditConfirm(null)}>{t('settings.credits_cancel')}</Btn>
+                    </div>
+                  ):(
+                    <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+                      <Inp
+                        type="number"
+                        min={1}
+                        max={9999}
+                        value={creditAmounts[k]||''}
+                        onChange={e=>setCreditAmounts(a=>({...a,[k]:e.target.value}))}
+                        placeholder={t('settings.amount_ph')}
+                        style={{width:90,padding:"6px 10px",fontSize:13}}
+                      />
+                      <Btn variant="grn" sm onClick={()=>{
+                        if(!amt||amt<1)return;
+                        handleDeltaCredits(k, Math.floor(amt));
+                      }}>{t('settings.credits_add')}</Btn>
+                      <Btn variant="ghost" sm style={{color:"var(--red)",borderColor:"var(--red)22"}} onClick={()=>{
+                        if(!amt||amt<1)return;
+                        setCreditConfirm({user:k, amount:Math.floor(amt)});
+                        setCreditErr(e=>({...e,[k]:''}));
+                      }}>{t('settings.credits_sub')}</Btn>
+                    </div>
+                  ))}
                 </div>
-              ):(
-                <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-                  <Inp
-                    type="number"
-                    min={1}
-                    max={9999}
-                    value={creditAmounts[k]||''}
-                    onChange={e=>setCreditAmounts(a=>({...a,[k]:e.target.value}))}
-                    placeholder={t('settings.amount_ph')}
-                    style={{width:90,padding:"6px 10px",fontSize:13}}
-                  />
-                  <Btn variant="grn" sm onClick={()=>{
-                    if(!amt||amt<1)return;
-                    handleDeltaCredits(k, Math.floor(amt));
-                  }}>{t('settings.credits_add')}</Btn>
-                  <Btn variant="ghost" sm style={{color:"var(--red)",borderColor:"var(--red)22"}} onClick={()=>{
-                    if(!amt||amt<1)return;
-                    setCreditConfirm({user:k, amount:Math.floor(amt)});
-                    setCreditErr(e=>({...e,[k]:''}));
-                  }}>{t('settings.credits_sub')}</Btn>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>}
+              );
+            })}
+          </div>
+        )
+      )}
 
       {/* DANGER ZONE */}
       <div style={{marginTop:32,paddingTop:24,borderTop:'1px solid var(--red)33'}}>

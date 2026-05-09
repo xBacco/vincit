@@ -44,7 +44,7 @@ async function registerPush(user) {
 }
 
 const CSS_BASE = `
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Syne:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Syne:wght@400;500;600;700;800&display=swap');
 @keyframes sUp{from{transform:translateY(18px);opacity:0}to{transform:translateY(0);opacity:1}}
 @keyframes fIn{from{opacity:0}to{opacity:1}}
 @keyframes bIn{0%{transform:scale(.3);opacity:0}60%{transform:scale(1.1)}80%{transform:scale(.95)}100%{transform:scale(1);opacity:1}}
@@ -66,6 +66,8 @@ const CSS_BASE = `
 .bc input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--gold);cursor:pointer;box-shadow:0 0 8px var(--glow)}
 ::-webkit-scrollbar{width:4px}
 ::-webkit-scrollbar-thumb{background:var(--mut);border-radius:2px}
+.bc{letter-spacing:-0.005em;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+.bc h1,.bc h2{letter-spacing:-0.02em}
 `;
 
 const lsGet  = (k, fallback) => { try { const v = localStorage.getItem(k); return v !== null ? JSON.parse(v) : fallback; } catch { return fallback; } };
@@ -185,6 +187,7 @@ export default function App() {
   const [customCats, setCustomCats] = useState([]);
   const [reactions,  setReactions]  = useState([]);
   const [settings,   setSettings]   = useState({ acceptance_threshold: 20, max_stake: 100 });
+  const [syncError,  setSyncError]  = useState(null);
 
   const refresh = useSync(useCallback(data => {
     if (data.profiles)   setProfiles(data.profiles);
@@ -193,7 +196,7 @@ export default function App() {
     if (data.categories) setCustomCats(data.categories);
     if (data.reactions)  setReactions(data.reactions);
     if (data.settings)   setSettings(data.settings);
-  }, []), activeGroupId, token);
+  }, []), activeGroupId, token, setSyncError);
 
   const cats = [...DEF_CATS, ...customCats];
 
@@ -342,7 +345,7 @@ export default function App() {
 
   const myProfile = profiles[user] ?? { name: authUser.name, avatar: authUser.avatar, colorKey: authUser.color_key };
   const activeGroup = groups.find(g => g.id === activeGroupId);
-  const myRole  = groupMembers.find(m => m.id === user)?.role ?? 'member';
+  const myRole  = activeGroup?.role ?? 'member';
   const isAdmin = myRole === 'owner';
 
   const groupSwitcher = groups.length > 0 && (
@@ -383,9 +386,23 @@ export default function App() {
     <div className="bc" style={rootStyle}>
       <style>{CSS_BASE}</style>
 
+      {syncError && (
+        <div style={{position:'fixed',top:8,left:'50%',transform:'translateX(-50%)',zIndex:1000,
+          background:'var(--red)',color:'#fff',padding:'8px 14px',borderRadius:8,fontSize:12,
+          boxShadow:'0 4px 12px rgba(0,0,0,.3)',cursor:'pointer'}}
+          onClick={() => { setSyncError(null); refresh(); }}>
+          ⚠ {t('app.sync_error')}
+        </div>
+      )}
+
       {/* Sidebar: desktop only */}
       {isDesktop && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: 220, height: '100vh', background: 'var(--surf)', borderRight: '1px solid var(--brd)', display: 'flex', flexDirection: 'column', zIndex: 50, padding: '24px 0' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, width: 240, height: '100vh', background: 'var(--surf)', borderRight: '1px solid var(--brd)', display: 'flex', flexDirection: 'column', zIndex: 50, padding: '24px 0' }}>
+          <div style={{ padding: '0 20px 12px', borderBottom: '1px solid var(--brd)', marginBottom: 12 }}>
+            <div style={{ fontFamily:"'Playfair Display',serif", fontSize:22, fontWeight:900, letterSpacing:-0.5 }}>
+              <span className="shim">BetCouple</span>
+            </div>
+          </div>
           <div style={{ padding: '0 20px 16px', borderBottom: '1px solid var(--brd)', marginBottom: 8 }}>
             <div style={{ width: 44, height: 44, borderRadius: '50%', background: `${COLORS[myProfile.colorKey] || '#5b8af0'}33`, border: `2px solid ${COLORS[myProfile.colorKey] || '#5b8af0'}66`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, marginBottom: 10 }}>{myProfile.avatar}</div>
             <div style={{ fontSize: 10, color: 'var(--dim)', letterSpacing: 2, textTransform: 'uppercase' }}>{t('app.welcome_back')}</div>
@@ -440,7 +457,7 @@ export default function App() {
       )}
 
       {/* Content */}
-      <div style={isDesktop ? { marginLeft: 220, maxWidth: 960, padding: '32px 40px' } : { padding: '14px 20px' }}>
+      <div style={isDesktop ? { marginLeft: 240, maxWidth: 1080, padding: '40px 56px' } : { padding: '14px 20px' }}>
         {view === 'dashboard' && <DashboardView user={user} profiles={profiles} credits={credits} bets={bets} cats={cats} onCreate={() => setShowCreate(true)} onResolve={b => setResolveBet(b)} onReveal={b => setRevealBet(b)} onCounter={b => setCounterTarget(b)} onFlame={handleFlame} notifSince={notifSince} isDesktop={isDesktop} reactions={reactions} onReaction={handleReaction} onDelete={handleDelete} onEdit={b => setEditingBet(b)} onAccept={handleAccept} onReject={handleReject} />}
         {view === 'bets'      && <BetsView user={user} profiles={profiles} bets={bets} cats={cats} onResolve={b => setResolveBet(b)} onCounter={b => setCounterTarget(b)} onFlame={handleFlame} isDesktop={isDesktop} reactions={reactions} onReaction={handleReaction} onDelete={handleDelete} onEdit={b => setEditingBet(b)} onAccept={handleAccept} onReject={handleReject} />}
         {view === 'vault'     && <VaultView user={user} profiles={profiles} bets={bets} cats={cats} onReveal={b => setRevealBet(b)} onFlame={handleFlame} unlocked={vaultUnlocked} onPinRequest={() => setShowPin(true)} vaultPin={vaultPin} isDesktop={isDesktop} onDelete={handleDelete} onEdit={b => setEditingBet(b)} />}

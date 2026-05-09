@@ -100,6 +100,10 @@ router.post('/', async (req, res) => {
         'INSERT INTO user_groups (group_id, user_id, role, joined_at) VALUES ($1,$2,$3,$4)',
         [groupId, req.userId, 'owner', now]
       );
+      await client.query(
+        'UPDATE users SET room_id=COALESCE(room_id,$1) WHERE id=$2',
+        [groupId, req.userId]
+      );
     });
     res.json({ id: groupId, name: name.trim() || 'My Group', emoji: emoji || '🎲', invite_code: code, role: 'owner', member_count: '1' });
   } catch (e) { console.error(e); res.status(500).json({ error: 'server_error' }); }
@@ -223,6 +227,12 @@ router.delete('/:id/leave', async (req, res) => {
       await client.query(
         'DELETE FROM user_groups WHERE group_id=$1 AND user_id=$2',
         [req.params.id, req.userId]
+      );
+      await client.query(
+        `UPDATE users SET room_id=(
+           SELECT group_id FROM user_groups WHERE user_id=$1 ORDER BY joined_at LIMIT 1
+         ) WHERE id=$1 AND room_id=$2`,
+        [req.userId, req.params.id]
       );
       if (members.length === 1) {
         await client.query(

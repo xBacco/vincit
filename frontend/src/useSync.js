@@ -1,7 +1,7 @@
 import { useEffect, useCallback } from 'react';
 import { fetchState } from './api.js';
 
-export function useSync(setState, groupId, token) {
+export function useSync(setState, groupId, token, setError = null) {
   const ready = !!(groupId && token);
 
   const refresh = useCallback(async () => {
@@ -9,10 +9,12 @@ export function useSync(setState, groupId, token) {
     try {
       const data = await fetchState(groupId);
       setState(data);
+      setError?.(null);
     } catch (e) {
       console.error('fetchState failed:', e);
+      setError?.(e?.data?.error || 'sync_failed');
     }
-  }, [setState, ready, groupId]);
+  }, [setState, ready, groupId, setError]);
 
   useEffect(() => {
     if (!ready) return;

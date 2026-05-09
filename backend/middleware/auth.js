@@ -1,6 +1,7 @@
 'use strict';
 const jwt    = require('jsonwebtoken');
 const SECRET = process.env.JWT_SECRET || 'dev-secret';
+const db     = require('../db.js');
 
 function verify(token) {
   const p = jwt.verify(token, SECRET);
@@ -26,4 +27,15 @@ function authMiddlewareSSE(req, res, next) {
   } catch { res.status(401).end(); }
 }
 
-module.exports = { authMiddleware, authMiddlewareSSE };
+// Verify caller is owner of groupId (defaults to req.roomId)
+async function requireOwner(req, res, groupId) {
+  const gid = groupId ?? req.roomId;
+  const { rows } = await db.query(
+    "SELECT 1 FROM user_groups WHERE group_id=$1 AND user_id=$2 AND role='owner'",
+    [gid, req.userId]
+  );
+  if (!rows.length) { res.status(403).json({ error: 'Owner only' }); return false; }
+  return true;
+}
+
+module.exports = { authMiddleware, authMiddlewareSSE, requireOwner };

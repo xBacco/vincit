@@ -1,12 +1,14 @@
 'use strict';
 const express = require('express');
 const db = require('../db.js');
+const { requireOwner } = require('../middleware/auth.js');
 
 module.exports = function(broadcastUpdate) {
   const router = express.Router();
 
   router.patch('/:user', async (req, res) => {
     try {
+      if (!(await requireOwner(req, res))) return;
       const { delta } = req.body;
       if (!Number.isInteger(delta) || delta === 0) {
         return res.status(400).json({ error: 'Delta deve essere un intero non zero' });

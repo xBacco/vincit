@@ -3,6 +3,7 @@ const express = require('express');
 const router  = express.Router();
 const crypto  = require('crypto');
 const db      = require('../db.js');
+const { requireOwner } = require('../middleware/auth.js');
 
 const CHARSET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 function genCode() {
@@ -22,7 +23,8 @@ async function uniqueCode() {
 router.get('/', async (req, res) => {
   try {
     const { rows } = await db.query(
-      `SELECT r.id, r.name, r.emoji, r.invite_code, r.max_size, ug.role,
+      `SELECT r.id, r.name, r.emoji, r.invite_code, r.max_size,
+              r.acceptance_threshold, r.max_stake, ug.role,
               (SELECT COUNT(*) FROM user_groups WHERE group_id = r.id) AS member_count
        FROM rooms r
        JOIN user_groups ug ON ug.group_id = r.id
@@ -119,6 +121,55 @@ router.post('/join', async (req, res) => {
   } catch (e) { console.error(e); res.status(500).json({ error: 'server_error' }); }
 });
 
+// DELETE /api/groups/:id/members/:userId — kick a member (owner only)
+router.delete('/:id/members/:userId', async (req, res) => {
+  try {
+    if (!(await requireOwner(req, res, req.params.id))) return;
+    if (req.params.userId === req.userId)
+      return res.status(400).json({ error: 'Cannot kick yourself' });
+    await db.query(
+      'DELETE FROM user_groups WHERE group_id=$1 AND user_id=$2',
+      [req.params.id, req.params.userId]
+    );
+    res.json({ ok: true });
+  } catch (e) { console.error(e); res.status(500).json({ error: 'Server error' }); }
+});
+
+// POST /api/groups/:id/regenerate-code — new invite code (owner only)
+router.post('/:id/regenerate-code', async (req, res) => {
+  try {
+    if (!(await requireOwner(req, res, req.params.id))) return;
+    const newCode = await uniqueCode();
+    await db.query('UPDATE rooms SET invite_code=$1 WHERE id=$2', [newCode, req.params.id]);
+    res.json({ invite_code: newCode });
+  } catch (e) { console.error(e); res.status(500).json({ error: 'Server error' }); }
+});
+
+// PATCH /api/groups/:id/members/:userId/promote — promote to owner (owner only)
+router.patch('/:id/members/:userId/promote', async (req, res) => {
+  try {
+    if (!(await requireOwner(req, res, req.params.id))) return;
+    await db.query(
+      "UPDATE user_groups SET role='owner' WHERE group_id=$1 AND user_id=$2",
+      [req.params.id, req.params.userId]
+    );
+    res.json({ ok: true });
+  } catch (e) { console.error(e); res.status(500).json({ error: 'Server error' }); }
+});
+
+// PATCH /api/groups/:id/settings — update group settings (owner only)
+router.patch('/:id/settings', async (req, res) => {
+  try {
+    if (!(await requireOwner(req, res, req.params.id))) return;
+    const { acceptance_threshold, max_stake } = req.body;
+    await db.query(
+      'UPDATE rooms SET acceptance_threshold=COALESCE($1,acceptance_threshold), max_stake=COALESCE($2,max_stake) WHERE id=$3',
+      [acceptance_threshold ?? null, max_stake ?? null, req.params.id]
+    );
+    res.json({ ok: true });
+  } catch (e) { console.error(e); res.status(500).json({ error: 'Server error' }); }
+});
+
 // DELETE /api/groups/:id/leave — leave a group
 router.delete('/:id/leave', async (req, res) => {
   try {
@@ -161,11 +212,7 @@ router.delete('/:id/leave', async (req, res) => {
 // DELETE /api/groups/:id — delete group (owner only)
 router.delete('/:id', async (req, res) => {
   try {
-    const { rows } = await db.query(
-      "SELECT 1 FROM user_groups WHERE group_id=$1 AND user_id=$2 AND role='owner'",
-      [req.params.id, req.userId]
-    );
-    if (!rows.length) return res.status(403).json({ error: 'Owner only' });
+    if (!(await requireOwner(req, res, req.params.id))) return;
 
     await db.query('BEGIN');
     await db.query(

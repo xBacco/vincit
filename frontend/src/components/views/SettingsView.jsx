@@ -9,7 +9,7 @@ const S = {
   btn: {display:"inline-flex",alignItems:"center",justifyContent:"center",gap:6,padding:"10px 18px",borderRadius:10,border:"none",cursor:"pointer",fontFamily:"'Syne',sans-serif",fontSize:13,fontWeight:600,transition:"all .18s",userSelect:"none",whiteSpace:"nowrap"},
 };
 
-export default function SettingsView({user,profiles,isDark,setIsDark,customCats,credits,bets,onUpdateProfile,onResetCredits,onCreateCategory,onDeleteCategory,vaultPin,onSetVaultPin,isDesktop,onReset,onLogout,onProfileUpdate}){
+export default function SettingsView({user,profiles,isDark,setIsDark,customCats,credits,bets,onUpdateProfile,onResetCredits,onCreateCategory,onDeleteCategory,vaultPin,onSetVaultPin,isDesktop,onReset,onLogout,onProfileUpdate,isAdmin=false}){
   const { t, lang, setLang } = useLang();
   const [newE,setNewE]=useState("🎯");
   const [newLabel,setNewLabel]=useState("");
@@ -190,24 +190,30 @@ export default function SettingsView({user,profiles,isDark,setIsDark,customCats,
 
       {/* CUSTOM CATS */}
       <SecLabel>{t('settings.custom_cats')}</SecLabel>
-      <div style={{...S.card,marginBottom:12}}>
-        {customCats.map(c=>(
-          <div key={c.id} style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,paddingBottom:8,borderBottom:"1px solid var(--brd)"}}>
-            <span style={{fontSize:18}}>{c.e||c.emoji}</span>
-            <span style={{flex:1,fontSize:13}}>{c.label}</span>
-            <div style={{width:12,height:12,borderRadius:"50%",background:c.color}}/>
-            <Btn variant="ghost" sm style={{color:"var(--red)",borderColor:"var(--red)22",padding:"4px 8px"}} onClick={()=>onDeleteCategory(c.id)}>✕</Btn>
+      {isAdmin ? (
+        <div style={{...S.card,marginBottom:12}}>
+          {customCats.map(c=>(
+            <div key={c.id} style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,paddingBottom:8,borderBottom:"1px solid var(--brd)"}}>
+              <span style={{fontSize:18}}>{c.e||c.emoji}</span>
+              <span style={{flex:1,fontSize:13}}>{c.label}</span>
+              <div style={{width:12,height:12,borderRadius:"50%",background:c.color}}/>
+              <Btn variant="ghost" sm style={{color:"var(--red)",borderColor:"var(--red)22",padding:"4px 8px"}} onClick={()=>onDeleteCategory(c.id)}>✕</Btn>
+            </div>
+          ))}
+          <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginTop:4}}>
+            <Inp value={newE} onChange={e=>setNewE(e.target.value)} style={{width:56,textAlign:"center",fontSize:20,padding:"6px 8px"}} placeholder="🎯"/>
+            <Inp value={newLabel} onChange={e=>setNewLabel(e.target.value)} style={{flex:1,minWidth:100}} placeholder={t('settings.cat_name_ph')}/>
+            <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+              {CAT_COLS.map(col=><div key={col} onClick={()=>setNewColor(col)} style={{width:20,height:20,borderRadius:"50%",background:col,cursor:"pointer",border:`2px solid ${newColor===col?"#fff":"transparent"}`}}/>)}
+            </div>
+            <Btn variant="gold" sm onClick={addCat}>{t('settings.cat_add')}</Btn>
           </div>
-        ))}
-        <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginTop:4}}>
-          <Inp value={newE} onChange={e=>setNewE(e.target.value)} style={{width:56,textAlign:"center",fontSize:20,padding:"6px 8px"}} placeholder="🎯"/>
-          <Inp value={newLabel} onChange={e=>setNewLabel(e.target.value)} style={{flex:1,minWidth:100}} placeholder={t('settings.cat_name_ph')}/>
-          <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
-            {CAT_COLS.map(col=><div key={col} onClick={()=>setNewColor(col)} style={{width:20,height:20,borderRadius:"50%",background:col,cursor:"pointer",border:`2px solid ${newColor===col?"#fff":"transparent"}`}}/>)}
-          </div>
-          <Btn variant="gold" sm onClick={addCat}>{t('settings.cat_add')}</Btn>
         </div>
-      </div>
+      ) : (
+        <div style={{...S.card,marginBottom:12,opacity:.5}}>
+          <div style={{fontSize:13,color:'var(--dim)'}}>{t('settings.admin_only')}</div>
+        </div>
+      )}
 
       {/* NOTIFICATIONS */}
       <SecLabel mt={16}>{t('settings.notif_title')}</SecLabel>
@@ -232,7 +238,12 @@ export default function SettingsView({user,profiles,isDark,setIsDark,customCats,
 
       {/* CREDITS */}
       <SecLabel mt={16}>{t('settings.credits_section')}</SecLabel>
-      <div style={{...S.card}}>
+      {!isAdmin && (
+        <div style={{...S.card,opacity:.5}}>
+          <div style={{fontSize:13,color:'var(--dim)'}}>{t('settings.admin_only')}</div>
+        </div>
+      )}
+      {isAdmin && <div style={{...S.card}}>
         {Object.keys(profiles).map((k, i) => {
           const p=profiles[k]; const amt=parseFloat(creditAmounts[k])||0;
           return(
@@ -278,20 +289,17 @@ export default function SettingsView({user,profiles,isDark,setIsDark,customCats,
             </div>
           );
         })}
-      </div>
+      </div>}
 
       {/* DANGER ZONE */}
       <div style={{marginTop:32,paddingTop:24,borderTop:'1px solid var(--red)33'}}>
         <SecLabel style={{color:'var(--red)88'}}>{t('settings.danger_zone')}</SecLabel>
-        {!showResetConfirm?(
-          <div style={{...S.card,border:'1px solid var(--red)33'}}>
-            <div style={{fontSize:14,fontWeight:600,marginBottom:4}}>{t('settings.reset_title')}</div>
-            <div style={{fontSize:12,color:'var(--dim)',marginBottom:14}}>{t('settings.reset_desc',{count:(bets||[]).filter(b=>b.status==='active').length,total:(bets||[]).length})}</div>
-            <button onClick={()=>setShowResetConfirm(true)} style={{...S.btn,width:'100%',background:'transparent',border:'1px solid var(--red)66',color:'var(--red)',fontSize:13}}>
-              🏆 {t('settings.reset_btn')}
-            </button>
+        {!isAdmin && (
+          <div style={{...S.card,opacity:.5}}>
+            <div style={{fontSize:13,color:'var(--dim)'}}>{t('settings.admin_only')}</div>
           </div>
-        ):(
+        )}
+        {isAdmin && (showResetConfirm ? (
           <div style={{...S.card,border:'1px solid var(--red)',background:'var(--red)0d'}}>
             <div style={{fontSize:14,fontWeight:700,color:'var(--red)',marginBottom:8}}>{t('settings.reset_confirm_title')}</div>
             <div style={{fontSize:12,color:'var(--dim)',marginBottom:16}}>{t('settings.reset_confirm_desc')}</div>
@@ -300,7 +308,15 @@ export default function SettingsView({user,profiles,isDark,setIsDark,customCats,
               <button onClick={()=>{onReset();setShowResetConfirm(false);}} style={{...S.btn,flex:1,background:'var(--red)',border:'none',color:'#fff',fontWeight:700}}>{t('settings.reset_confirm_btn')}</button>
             </div>
           </div>
-        )}
+        ) : (
+          <div style={{...S.card,border:'1px solid var(--red)33'}}>
+            <div style={{fontSize:14,fontWeight:600,marginBottom:4}}>{t('settings.reset_title')}</div>
+            <div style={{fontSize:12,color:'var(--dim)',marginBottom:14}}>{t('settings.reset_desc',{count:(bets||[]).filter(b=>b.status==='active').length,total:(bets||[]).length})}</div>
+            <button onClick={()=>setShowResetConfirm(true)} style={{...S.btn,width:'100%',background:'transparent',border:'1px solid var(--red)66',color:'var(--red)',fontSize:13}}>
+              🏆 {t('settings.reset_btn')}
+            </button>
+          </div>
+        ))}
       </div>
     </div>
   );

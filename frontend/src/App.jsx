@@ -106,6 +106,7 @@ export default function App() {
   // Groups state
   const [groups,        setGroups]        = useState([]);
   const [activeGroupId, setActiveGroupId] = useState(() => lsGet('bc_active_group', null));
+  const [groupMembers,  setGroupMembers]  = useState([]);
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [showGroupInfo,  setShowGroupInfo]  = useState(false);
 
@@ -168,6 +169,11 @@ export default function App() {
     setActiveGroupId(id);
     lsSet('bc_active_group', id);
   };
+
+  useEffect(() => {
+    if (!activeGroupId || !token) return;
+    api.getGroupMembers(activeGroupId).then(setGroupMembers).catch(() => {});
+  }, [activeGroupId, token]);
 
   // user is the UUID string (same type as before, just UUID instead of "tomas")
   const user = authUser?.id ?? null;
@@ -327,6 +333,8 @@ export default function App() {
 
   const myProfile = profiles[user] ?? { name: authUser.name, avatar: authUser.avatar, colorKey: authUser.color_key };
   const activeGroup = groups.find(g => g.id === activeGroupId);
+  const myRole  = groupMembers.find(m => m.id === user)?.role ?? 'member';
+  const isAdmin = myRole === 'owner';
 
   const groupSwitcher = groups.length > 0 && (
     <div style={{ display:'flex', gap:6, overflowX:'auto', padding:'8px 0', scrollbarWidth:'none' }}>
@@ -374,8 +382,7 @@ export default function App() {
             <div style={{ fontSize: 10, color: 'var(--dim)', letterSpacing: 2, textTransform: 'uppercase' }}>{t('app.welcome_back')}</div>
             <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 16, fontWeight: 700, marginBottom: 2 }}>{myProfile.name}</div>
             <div style={{ fontSize: 10, color: 'var(--dim)' }}>{t('app.credits')}</div>
-            <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--gold)', marginBottom: 10 }}>{Math.round(credits[user] ?? 0)} ₡</div>
-            <button style={{ width: '100%', padding: '6px 0', borderRadius: 8, border: '1px solid var(--brd)', cursor: 'pointer', fontFamily: "'Syne',sans-serif", fontSize: 11, fontWeight: 600, background: 'transparent', color: 'var(--dim)' }} onClick={handleLogout}>{t('settings.logout')}</button>
+            <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--gold)' }}>{Math.round(credits[user] ?? 0)} ₡</div>
           </div>
           {groups.length > 0 && (
             <div style={{ padding:'8px 12px', borderBottom:'1px solid var(--brd)', marginBottom:4 }}>
@@ -429,7 +436,7 @@ export default function App() {
         {view === 'bets'      && <BetsView user={user} profiles={profiles} bets={bets} cats={cats} onResolve={b => setResolveBet(b)} onCounter={b => setCounterTarget(b)} onFlame={handleFlame} isDesktop={isDesktop} reactions={reactions} onReaction={handleReaction} onDelete={handleDelete} onEdit={b => setEditingBet(b)} />}
         {view === 'vault'     && <VaultView user={user} profiles={profiles} bets={bets} cats={cats} onReveal={b => setRevealBet(b)} onFlame={handleFlame} unlocked={vaultUnlocked} onPinRequest={() => setShowPin(true)} vaultPin={vaultPin} isDesktop={isDesktop} onDelete={handleDelete} onEdit={b => setEditingBet(b)} />}
         {view === 'stats'     && <StatsView user={user} profiles={profiles} credits={credits} bets={bets} cats={cats} isDesktop={isDesktop} />}
-        {view === 'settings'  && <SettingsView user={user} profiles={profiles} isDark={isDark} setIsDark={setIsDark} customCats={customCats} credits={credits} bets={bets} onUpdateProfile={handleUpdateProfile} onResetCredits={handleResetCredits} onCreateCategory={handleCreateCategory} onDeleteCategory={handleDeleteCategory} vaultPin={vaultPin} onSetVaultPin={handleSetVaultPin} isDesktop={isDesktop} onReset={handleReset} onLogout={handleLogout} onProfileUpdate={u => setAuthUser(prev => ({...prev,...u}))} />}
+        {view === 'settings'  && <SettingsView user={user} profiles={profiles} isDark={isDark} setIsDark={setIsDark} customCats={customCats} credits={credits} bets={bets} onUpdateProfile={handleUpdateProfile} onResetCredits={handleResetCredits} onCreateCategory={handleCreateCategory} onDeleteCategory={handleDeleteCategory} vaultPin={vaultPin} onSetVaultPin={handleSetVaultPin} isDesktop={isDesktop} onReset={handleReset} onLogout={handleLogout} onProfileUpdate={u => setAuthUser(prev => ({...prev,...u}))} isAdmin={isAdmin} />}
       </div>
 
       {/* Bottom nav: mobile only */}
@@ -466,10 +473,12 @@ export default function App() {
         <GroupInfoModal
           group={groups.find(g => g.id === activeGroupId)}
           userId={user}
+          isAdmin={isAdmin}
           onClose={() => setShowGroupInfo(false)}
-          onRenamed={updated => {
+          onRenamed={async updated => {
             setGroups(prev => prev.map(g => g.id === updated.id ? { ...g, ...updated } : g));
             setShowGroupInfo(false);
+            api.getGroupMembers(updated.id).then(setGroupMembers).catch(() => {});
           }}
           onLeft={async () => {
             setShowGroupInfo(false);

@@ -5,17 +5,18 @@ import * as api from '../../api.js';
 const EMOJI_OPTIONS = ['🎲','🔥','❤️','🏆','⚡','🎯','👥','🎪','🃏','🌙',
                        '🎉','🎮','🍻','⚽','🎵','💪','🤝','🎭','🎨','🌟'];
 
-export default function GroupInfoModal({ group, userId, onClose, onLeft, onDeleted, onRenamed }) {
+export default function GroupInfoModal({ group, userId, onClose, onLeft, onDeleted, onRenamed, isAdmin=false }) {
   const { t } = useLang();
 
-  const [members,   setMembers]   = useState([]);
-  const [copied,    setCopied]    = useState(false);
-  const [editing,   setEditing]   = useState(false);
-  const [editName,  setEditName]  = useState('');
-  const [editEmoji, setEditEmoji] = useState('🎲');
-  const [saving,    setSaving]    = useState(false);
-  const [leaving,   setLeaving]   = useState(false);
-  const [deleting,  setDeleting]  = useState(false);
+  const [members,        setMembers]        = useState([]);
+  const [copied,         setCopied]         = useState(false);
+  const [editing,        setEditing]        = useState(false);
+  const [editName,       setEditName]       = useState('');
+  const [editEmoji,      setEditEmoji]      = useState('🎲');
+  const [editThreshold,  setEditThreshold]  = useState(20);
+  const [saving,         setSaving]         = useState(false);
+  const [leaving,        setLeaving]        = useState(false);
+  const [deleting,       setDeleting]       = useState(false);
 
   useEffect(() => {
     if (!group) return;
@@ -24,8 +25,7 @@ export default function GroupInfoModal({ group, userId, onClose, onLeft, onDelet
 
   if (!group) return null;
 
-  const myRole  = members.find(m => m.id === userId)?.role;
-  const isOwner = myRole === 'owner';
+  const isOwner = isAdmin;
 
   const copyCode = () => {
     if (navigator.clipboard?.writeText) {
@@ -39,6 +39,7 @@ export default function GroupInfoModal({ group, userId, onClose, onLeft, onDelet
   const startEdit = () => {
     setEditName(group.name);
     setEditEmoji(group.emoji || '🎲');
+    setEditThreshold(group.acceptance_threshold ?? 20);
     setEditing(true);
   };
 
@@ -47,9 +48,38 @@ export default function GroupInfoModal({ group, userId, onClose, onLeft, onDelet
     setSaving(true);
     try {
       await api.renameGroup(group.id, { name: editName.trim(), emoji: editEmoji });
-      onRenamed?.({ ...group, name: editName.trim(), emoji: editEmoji });
+      await api.updateGroupSettings(group.id, { acceptance_threshold: Number(editThreshold) });
+      onRenamed?.({ ...group, name: editName.trim(), emoji: editEmoji, acceptance_threshold: Number(editThreshold) });
+      setEditing(false);
     } catch (e) { console.error(e); }
     finally { setSaving(false); }
+  };
+
+  const handleKick = async (member) => {
+    if (!window.confirm(t('group_info.kick_confirm', { name: member.name }))) return;
+    try {
+      await api.kickMember(group.id, member.id);
+      setMembers(ms => ms.filter(m => m.id !== member.id));
+    } catch (e) { console.error(e); }
+  };
+
+  const handlePromote = async (member) => {
+    if (!window.confirm(t('group_info.promote_confirm', { name: member.name }))) return;
+    try {
+      await api.promoteMember(group.id, member.id);
+      setMembers(ms => ms.map(m => ({
+        ...m,
+        role: m.id === member.id ? 'owner' : (m.id === userId ? 'member' : m.role),
+      })));
+    } catch (e) { console.error(e); }
+  };
+
+  const handleRegenCode = async () => {
+    if (!window.confirm(t('group_info.regen_confirm'))) return;
+    try {
+      const res = await api.regenerateCode(group.id);
+      onRenamed?.({ ...group, invite_code: res.invite_code });
+    } catch (e) { console.error(e); }
   };
 
   const handleLeave = async () => {
@@ -112,8 +142,30 @@ export default function GroupInfoModal({ group, userId, onClose, onLeft, onDelet
               maxLength={40}
               style={{ width:'100%', background:'var(--inp)', border:'1px solid var(--brd)',
                 color:'var(--txt)', borderRadius:10, padding:'10px 14px',
-                fontFamily:"'Syne',sans-serif", fontSize:14, outline:'none', marginBottom:12 }}
+                fontFamily:"'Syne',sans-serif", fontSize:14, outline:'none', marginBottom:12,
+                boxSizing:'border-box' }}
             />
+            {isOwner && (
+              <div style={{ marginBottom:12 }}>
+                <div style={{ fontSize:11, color:'var(--dim)', marginBottom:4 }}>
+                  {t('group_info.acceptance_threshold')}
+                </div>
+                <input
+                  type="number"
+                  min={1}
+                  max={9999}
+                  value={editThreshold}
+                  onChange={e => setEditThreshold(e.target.value)}
+                  style={{ width:'100%', background:'var(--inp)', border:'1px solid var(--brd)',
+                    color:'var(--txt)', borderRadius:10, padding:'10px 14px',
+                    fontFamily:"'Syne',sans-serif", fontSize:14, outline:'none', marginBottom:4,
+                    boxSizing:'border-box' }}
+                />
+                <div style={{ fontSize:11, color:'var(--dim)' }}>
+                  {t('group_info.threshold_hint')}
+                </div>
+              </div>
+            )}
             <div style={{ display:'flex', gap:8 }}>
               <button onClick={() => setEditing(false)} style={{
                 ...S.btn, flex:1, padding:'10px',
@@ -161,14 +213,25 @@ export default function GroupInfoModal({ group, userId, onClose, onLeft, onDelet
                 color:'var(--gold)', letterSpacing:8, marginBottom:14, userSelect:'all' }}>
                 {group.invite_code ?? '—'}
               </div>
-              <button onClick={copyCode} style={{
-                ...S.btn, padding:'8px 20px',
-                border:'1px solid var(--gold)',
-                background: copied ? 'var(--gold)' : 'transparent',
-                color:      copied ? '#07060f'     : 'var(--gold)',
-              }}>
-                {copied ? t('group_info.copied') : t('group_info.copy')}
-              </button>
+              <div style={{ display:'flex', gap:8, justifyContent:'center' }}>
+                <button onClick={copyCode} style={{
+                  ...S.btn, padding:'8px 20px',
+                  border:'1px solid var(--gold)',
+                  background: copied ? 'var(--gold)' : 'transparent',
+                  color:      copied ? '#07060f'     : 'var(--gold)',
+                }}>
+                  {copied ? t('group_info.copied') : t('group_info.copy')}
+                </button>
+                {isOwner && (
+                  <button onClick={handleRegenCode} style={{
+                    ...S.btn, padding:'8px 14px',
+                    border:'1px solid var(--brd)',
+                    background:'transparent', color:'var(--dim)',
+                  }}>
+                    {t('group_info.regen_code')}
+                  </button>
+                )}
+              </div>
               <div style={{ fontSize:11, color:'var(--dim)', marginTop:10 }}>
                 {t('group_info.invite_hint')}
               </div>
@@ -192,6 +255,18 @@ export default function GroupInfoModal({ group, userId, onClose, onLeft, onDelet
                     border:'1px solid var(--gold)44', borderRadius:20, padding:'2px 8px' }}>
                     {t('group_info.owner_badge')}
                   </span>
+                )}
+                {isOwner && m.id !== userId && (
+                  <div style={{ display:'flex', gap:6 }}>
+                    <button onClick={() => handlePromote(m)} style={{
+                      ...S.btn, padding:'4px 10px', fontSize:11,
+                      background:'transparent', border:'1px solid var(--gold)44', color:'var(--gold)',
+                    }}>{t('group_info.promote')}</button>
+                    <button onClick={() => handleKick(m)} style={{
+                      ...S.btn, padding:'4px 10px', fontSize:11,
+                      background:'transparent', border:'1px solid var(--red)44', color:'var(--red)',
+                    }}>{t('group_info.kick')}</button>
+                  </div>
                 )}
               </div>
             ))}

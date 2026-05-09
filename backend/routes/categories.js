@@ -12,9 +12,9 @@ module.exports = function(broadcastUpdate) {
       const { id, emoji, label, color } = req.body;
       await db.query(
         'INSERT INTO categories (id, emoji, label, color, room_id) VALUES ($1,$2,$3,$4,$5)',
-        [id, emoji, label, color, req.roomId]
+        [id, emoji, label, color, req.activeRoomId]
       );
-      broadcastUpdate(req.roomId);
+      broadcastUpdate(req.activeRoomId);
       res.status(201).json({ id });
     } catch (err) {
       console.error(err);
@@ -25,8 +25,8 @@ module.exports = function(broadcastUpdate) {
   router.delete('/:id', async (req, res) => {
     try {
       if (!(await requireOwner(req, res))) return;
-      await db.query('DELETE FROM categories WHERE id = $1 AND room_id=$2', [req.params.id, req.roomId]);
-      broadcastUpdate(req.roomId);
+      await db.query('DELETE FROM categories WHERE id = $1 AND room_id=$2', [req.params.id, req.activeRoomId]);
+      broadcastUpdate(req.activeRoomId);
       res.json({ ok: true });
     } catch (err) {
       console.error(err);

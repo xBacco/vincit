@@ -1,10 +1,19 @@
 const BASE = '/api';
 
 const getToken = () => localStorage.getItem('bc_token');
+export const getActiveGroupId = () => localStorage.getItem('bc_active_group');
+export const setActiveGroupId = (id) => id ? localStorage.setItem('bc_active_group', id) : localStorage.removeItem('bc_active_group');
+
+function withGroupId(path) {
+  const gid = getActiveGroupId();
+  if (!gid) return path;
+  const sep = path.includes('?') ? '&' : '?';
+  return `${path}${sep}groupId=${encodeURIComponent(gid)}`;
+}
 
 async function req(method, path, body) {
   const token = getToken();
-  const r = await fetch(BASE + path, {
+  const r = await fetch(BASE + withGroupId(path), {
     method,
     headers: {
       'Content-Type': 'application/json',
@@ -27,7 +36,7 @@ export const getMe         = ()          => req('GET',   '/auth/me');
 export const updateProfile = d           => req('PATCH', '/auth/profile', d);
 
 // State
-export const fetchState     = (groupId)      => req('GET',    groupId ? `/state?groupId=${encodeURIComponent(groupId)}` : '/state');
+export const fetchState     = ()             => req('GET',    '/state');
 
 // Groups
 export const getMyGroups    = ()             => req('GET',    '/groups');
@@ -47,11 +56,9 @@ export const createBet      = (data)         => req('POST',   '/bets', data);
 export const resolveBet     = (id, outcome)  => req('PATCH',  `/bets/${id}/resolve`, { outcome });
 export const counterBet     = (betId, cb)    => req('POST',   `/bets/${betId}/counter`, cb);
 export const flameBet       = (id)           => req('PATCH',  `/bets/${id}/flame`);
-export const resetCredits   = (amounts)      => req('PUT',    '/credits', amounts);
 export const createCategory = (cat)          => req('POST',   '/categories', cat);
 export const deleteCategory = (id)           => req('DELETE', `/categories/${id}`);
-
-export const deltaCredits = (user, delta) => req('PATCH', `/credits/${user}`, { delta });
+export const deltaCredits   = (user, delta)  => req('PATCH',  `/credits/${user}`, { delta });
 
 export const cancelBet      = (id)           => req('DELETE', `/bets/${id}`);
 export const acceptBet      = (id)           => req('POST',   `/bets/${id}/accept`);
@@ -63,4 +70,4 @@ export const addReaction    = (id, emoji)    => req('POST',   `/bets/${id}/react
 export const removeReaction = (id, bettor)   => req('DELETE', `/bets/${id}/reaction/${bettor}`);
 
 export const getNotifPrefs  = (user)        => req('GET',  `/push/prefs/${user}`);
-export const saveNotifPrefs = (user, prefs) => req('POST', '/push/prefs', { user, ...prefs });
+export const saveNotifPrefs = (prefs)       => req('POST', '/push/prefs', prefs);

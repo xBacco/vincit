@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const { authMiddleware, authMiddlewareSSE } = require('./middleware/auth.js');
+const { authMiddleware, authMiddlewareSSE, resolveActiveRoom } = require('./middleware/auth.js');
 const authRouter = require('./routes/auth.js');
 const { sendPushToUser } = require('./routes/push.js');
 const rateLimit = require('express-rate-limit');
@@ -77,11 +77,11 @@ const { router: pushRouter } = require('./routes/push.js');
 
 app.use('/api/state',      authMiddleware, stateRouter);
 app.use('/api/groups',     authMiddleware, groupsRouter);
-app.use('/api/bets',       authMiddleware, betsRouter);
+app.use('/api/bets',       authMiddleware, resolveActiveRoom, betsRouter);
 // app.use('/api/profiles', authMiddleware, profilesRouter); // removed
-app.use('/api/credits',    authMiddleware, creditsRouter);
-app.use('/api/categories', authMiddleware, catsRouter);
-app.use('/api/bets',       authMiddleware, reactionsRouter);
+app.use('/api/credits',    authMiddleware, resolveActiveRoom, creditsRouter);
+app.use('/api/categories', authMiddleware, resolveActiveRoom, catsRouter);
+app.use('/api/bets',       authMiddleware, resolveActiveRoom, reactionsRouter);
 app.use('/api/push',       authMiddleware, pushRouter);
 
 app.use(express.static(path.join(__dirname, '../frontend/dist')));

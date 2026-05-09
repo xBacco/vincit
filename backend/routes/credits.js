@@ -17,10 +17,11 @@ module.exports = function(broadcastUpdate) {
         return res.status(400).json({ error: 'Delta fuori range' });
       }
 
-      const { rows: userRows } = await db.query('SELECT room_id FROM users WHERE id=$1', [req.params.user]);
-      if (!userRows.length || userRows[0].room_id !== req.roomId) {
-        return res.status(403).json({ error: 'Forbidden' });
-      }
+      const { rows: userRows } = await db.query(
+        'SELECT 1 FROM user_groups WHERE group_id=$1 AND user_id=$2',
+        [req.activeRoomId, req.params.user]
+      );
+      if (!userRows.length) return res.status(403).json({ error: 'Forbidden' });
 
       const { rows } = await db.query('SELECT amount FROM credits WHERE "user" = $1', [req.params.user]);
       if (!rows.length) return res.status(404).json({ error: 'User not found' });
@@ -32,7 +33,7 @@ module.exports = function(broadcastUpdate) {
         'UPDATE credits SET amount = amount + $1 WHERE "user" = $2 RETURNING amount',
         [delta, req.params.user]
       );
-      broadcastUpdate(req.roomId);
+      broadcastUpdate(req.activeRoomId);
       res.json({ user: req.params.user, newAmount: updated[0].amount });
     } catch (err) {
       console.error(err);

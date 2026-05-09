@@ -37,7 +37,7 @@ async function registerPush(user) {
     const perm = await Notification.requestPermission();
     if (perm !== 'granted') return;
     const sub = await reg.pushManager.subscribe({ userVisibleOnly:true, applicationServerKey:urlB64ToUint8(publicKey) });
-    await api.fetchState; // ensure token is set before subscribing
+    // token already set in localStorage at this point
     const token = localStorage.getItem('bc_token');
     await fetch('/api/push/subscribe', { method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`}, body:JSON.stringify({user, subscription:sub.toJSON()}) });
   } catch(e) { console.warn('Push registration failed:', e); }
@@ -285,10 +285,6 @@ export default function App() {
     try { await api.updateProfile(data); } catch (e) { console.error(e); }
   };
 
-  const handleResetCredits = async amounts => {
-    try { await api.resetCredits(amounts); } catch (e) { console.error(e); }
-  };
-
   const handleReset = async () => {
     try { await api.resetAll(); refresh(); }
     catch(e) { console.error(e); alert(t('app.error_reset')); }
@@ -449,7 +445,7 @@ export default function App() {
         {view === 'bets'      && <BetsView user={user} profiles={profiles} bets={bets} cats={cats} onResolve={b => setResolveBet(b)} onCounter={b => setCounterTarget(b)} onFlame={handleFlame} isDesktop={isDesktop} reactions={reactions} onReaction={handleReaction} onDelete={handleDelete} onEdit={b => setEditingBet(b)} onAccept={handleAccept} onReject={handleReject} />}
         {view === 'vault'     && <VaultView user={user} profiles={profiles} bets={bets} cats={cats} onReveal={b => setRevealBet(b)} onFlame={handleFlame} unlocked={vaultUnlocked} onPinRequest={() => setShowPin(true)} vaultPin={vaultPin} isDesktop={isDesktop} onDelete={handleDelete} onEdit={b => setEditingBet(b)} />}
         {view === 'stats'     && <StatsView user={user} profiles={profiles} credits={credits} bets={bets} cats={cats} isDesktop={isDesktop} />}
-        {view === 'settings'  && <SettingsView user={user} profiles={profiles} isDark={isDark} setIsDark={setIsDark} customCats={customCats} credits={credits} bets={bets} onUpdateProfile={handleUpdateProfile} onResetCredits={handleResetCredits} onCreateCategory={handleCreateCategory} onDeleteCategory={handleDeleteCategory} vaultPin={vaultPin} onSetVaultPin={handleSetVaultPin} isDesktop={isDesktop} onReset={handleReset} onLogout={handleLogout} onProfileUpdate={u => setAuthUser(prev => ({...prev,...u}))} isAdmin={isAdmin} />}
+        {view === 'settings'  && <SettingsView user={user} profiles={profiles} isDark={isDark} setIsDark={setIsDark} customCats={customCats} credits={credits} bets={bets} onUpdateProfile={handleUpdateProfile} onCreateCategory={handleCreateCategory} onDeleteCategory={handleDeleteCategory} vaultPin={vaultPin} onSetVaultPin={handleSetVaultPin} isDesktop={isDesktop} onReset={handleReset} onLogout={handleLogout} onProfileUpdate={u => setAuthUser(prev => ({...prev,...u}))} isAdmin={isAdmin} />}
       </div>
 
       {/* Bottom nav: mobile only */}

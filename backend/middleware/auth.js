@@ -39,4 +39,23 @@ async function requireOwner(req, res, groupId) {
   return true;
 }
 
-module.exports = { authMiddleware, authMiddlewareSSE, requireOwner };
+// Resolves the active group from ?groupId= query param and validates membership.
+// Sets req.activeRoomId. Falls back to req.roomId if no ?groupId= provided.
+async function resolveActiveRoom(req, res, next) {
+  const groupId = req.query.groupId || req.roomId;
+  if (!groupId) return res.status(400).json({ error: 'groupId required' });
+  try {
+    const { rows } = await db.query(
+      'SELECT 1 FROM user_groups WHERE group_id=$1 AND user_id=$2',
+      [groupId, req.userId]
+    );
+    if (!rows.length) return res.status(403).json({ error: 'Not a member of that group' });
+    req.activeRoomId = groupId;
+    next();
+  } catch (e) {
+    console.error('[resolveActiveRoom]', e);
+    res.status(500).json({ error: 'Server error' });
+  }
+}
+
+module.exports = { authMiddleware, authMiddlewareSSE, requireOwner, resolveActiveRoom };

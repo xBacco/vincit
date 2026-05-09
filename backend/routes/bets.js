@@ -11,7 +11,7 @@ module.exports = function(broadcastUpdate) {
   router.post('/', async (req, res) => {
     try {
       const creator = req.userId;
-      const roomId  = req.roomId;
+      const roomId  = req.activeRoomId;
       const { title, quota: quotaRaw, stake: stakeRaw,
               category, isSecret, isCounterable, pegno, expiresAt, opponent } = req.body;
 
@@ -79,7 +79,7 @@ module.exports = function(broadcastUpdate) {
         );
         const bet = rows[0];
         if (!bet) { res.status(404).json({ error: 'Bet not found' }); return; }
-        if (bet.room_id !== req.roomId) { res.status(403).json({ error: 'Forbidden' }); return; }
+        if (bet.room_id !== req.activeRoomId) { res.status(403).json({ error: 'Forbidden' }); return; }
         if (bet.status !== 'active') { res.status(400).json({ error: 'Bet not active' }); return; }
         if (bet.creator !== req.userId && bet.opponent !== req.userId)
           { res.status(403).json({ error: 'Forbidden' }); return; }
@@ -114,7 +114,7 @@ module.exports = function(broadcastUpdate) {
       });
 
       if (!res.headersSent) {
-        broadcastUpdate(req.roomId);
+        broadcastUpdate(req.activeRoomId);
         res.json({ ok: true });
       }
     } catch (err) {
@@ -137,7 +137,7 @@ module.exports = function(broadcastUpdate) {
       const { rows } = await db.query('SELECT * FROM bets WHERE id=$1', [req.params.id]);
       const bet = rows[0];
       if (!bet) return res.status(404).json({ error: 'Bet not found' });
-      if (bet.room_id !== req.roomId) return res.status(403).json({ error: 'Forbidden' });
+      if (bet.room_id !== req.activeRoomId) return res.status(403).json({ error: 'Forbidden' });
       if (bet.status !== 'active') return res.status(400).json({ error: 'Bet not active' });
       if (!bet.is_counterable) return res.status(400).json({ error: 'Bet not counterable' });
       if (bet.is_secret) return res.status(400).json({ error: 'Cannot counter secret bet' });
@@ -159,7 +159,7 @@ module.exports = function(broadcastUpdate) {
         );
       });
 
-      broadcastUpdate(req.roomId);
+      broadcastUpdate(req.activeRoomId);
       res.status(201).json({ id });
     } catch (err) {
       console.error(err);
@@ -174,9 +174,9 @@ module.exports = function(broadcastUpdate) {
         return res.status(400).json({ error: 'Commento troppo lungo' });
       }
       const { rows } = await db.query('SELECT room_id FROM bets WHERE id=$1', [req.params.id]);
-      if (!rows[0] || rows[0].room_id !== req.roomId) return res.status(403).json({ error: 'Forbidden' });
+      if (!rows[0] || rows[0].room_id !== req.activeRoomId) return res.status(403).json({ error: 'Forbidden' });
       await db.query('UPDATE bets SET comment = $1 WHERE id = $2', [comment, req.params.id]);
-      broadcastUpdate(req.roomId);
+      broadcastUpdate(req.activeRoomId);
       res.json({ ok: true });
     } catch (err) {
       console.error(err);
@@ -195,7 +195,7 @@ module.exports = function(broadcastUpdate) {
       const { rows } = await db.query('SELECT * FROM bets WHERE id=$1', [req.params.id]);
       const bet = rows[0];
       if (!bet)                                    return res.status(404).json({ error: 'Not found' });
-      if (bet.room_id !== req.roomId)              return res.status(403).json({ error: 'Forbidden' });
+      if (bet.room_id !== req.activeRoomId)              return res.status(403).json({ error: 'Forbidden' });
       if (bet.creator !== creator)                 return res.status(403).json({ error: 'Forbidden' });
       if (bet.status !== 'active')                 return res.status(403).json({ error: 'Already resolved' });
       if (Date.now() - bet.created_at > 60000)     return res.status(403).json({ error: 'Window expired' });
@@ -204,7 +204,7 @@ module.exports = function(broadcastUpdate) {
         `UPDATE bets SET title=$1, quota=$2, potential_win=$3, category=$4, pegno=$5, expires_at=$6 WHERE id=$7`,
         [title.trim(), parsedQuota, potentialWin, category, pegno||null, expiresAt||null, bet.id]
       );
-      broadcastUpdate(req.roomId);
+      broadcastUpdate(req.activeRoomId);
       res.json({ ok: true });
     } catch(e) { console.error(e); res.status(500).json({ error: 'Server error' }); }
   });
@@ -214,7 +214,7 @@ module.exports = function(broadcastUpdate) {
       const { rows } = await db.query('SELECT * FROM bets WHERE id=$1', [req.params.id]);
       const bet = rows[0];
       if (!bet) return res.status(404).json({ error: 'Not found' });
-      if (bet.room_id !== req.roomId) return res.status(403).json({ error: 'Forbidden' });
+      if (bet.room_id !== req.activeRoomId) return res.status(403).json({ error: 'Forbidden' });
       if (bet.status !== 'pending') return res.status(400).json({ error: 'Not pending' });
       if (bet.opponent !== req.userId) return res.status(403).json({ error: 'Not the opponent' });
 
@@ -226,7 +226,7 @@ module.exports = function(broadcastUpdate) {
         );
       });
 
-      broadcastUpdate(req.roomId);
+      broadcastUpdate(req.activeRoomId);
       res.json({ ok: true });
     } catch (err) {
       console.error(err);
@@ -239,12 +239,12 @@ module.exports = function(broadcastUpdate) {
       const { rows } = await db.query('SELECT * FROM bets WHERE id=$1', [req.params.id]);
       const bet = rows[0];
       if (!bet) return res.status(404).json({ error: 'Not found' });
-      if (bet.room_id !== req.roomId) return res.status(403).json({ error: 'Forbidden' });
+      if (bet.room_id !== req.activeRoomId) return res.status(403).json({ error: 'Forbidden' });
       if (bet.status !== 'pending') return res.status(400).json({ error: 'Not pending' });
       if (bet.opponent !== req.userId) return res.status(403).json({ error: 'Not the opponent' });
 
       await db.query('UPDATE bets SET status=$1 WHERE id=$2', ['rejected', bet.id]);
-      broadcastUpdate(req.roomId);
+      broadcastUpdate(req.activeRoomId);
       res.json({ ok: true });
     } catch (err) {
       console.error(err);
@@ -258,7 +258,7 @@ module.exports = function(broadcastUpdate) {
       const { rows } = await db.query('SELECT * FROM bets WHERE id = $1', [req.params.id]);
       const bet = rows[0];
       if (!bet) return res.status(404).json({ error: 'Not found' });
-      if (bet.room_id !== req.roomId)                        return res.status(403).json({ error: 'Forbidden' });
+      if (bet.room_id !== req.activeRoomId)                        return res.status(403).json({ error: 'Forbidden' });
       if (bet.creator !== creator)                           return res.status(403).json({ error: 'Forbidden' });
       if (!['active','pending'].includes(bet.status))        return res.status(403).json({ error: 'Already resolved' });
       if (Date.now() - bet.created_at > 60 * 1000)          return res.status(403).json({ error: 'Window expired' });
@@ -281,7 +281,7 @@ module.exports = function(broadcastUpdate) {
         await client.query('DELETE FROM bets WHERE id = $1', [bet.id]);
       });
 
-      broadcastUpdate(req.roomId);
+      broadcastUpdate(req.activeRoomId);
       res.json({ ok: true });
     } catch (err) {
       console.error(err);
@@ -292,12 +292,12 @@ module.exports = function(broadcastUpdate) {
   router.patch('/:id/flame', async (req, res) => {
     try {
       const { rows } = await db.query('SELECT room_id FROM bets WHERE id=$1', [req.params.id]);
-      if (!rows[0] || rows[0].room_id !== req.roomId) return res.status(403).json({ error: 'Forbidden' });
+      if (!rows[0] || rows[0].room_id !== req.activeRoomId) return res.status(403).json({ error: 'Forbidden' });
       await db.query(
         'UPDATE bets SET flamed = ((flamed | 1) - (flamed & 1)) WHERE id = $1',
         [req.params.id]
       );
-      broadcastUpdate(req.roomId);
+      broadcastUpdate(req.activeRoomId);
       res.json({ ok: true });
     } catch (err) {
       console.error(err);
@@ -308,12 +308,12 @@ module.exports = function(broadcastUpdate) {
   router.post('/reset', async (req, res) => {
     try {
       if (!(await requireOwner(req, res))) return;
-      await db.query('DELETE FROM bets WHERE room_id=$1', [req.roomId]);
+      await db.query('DELETE FROM bets WHERE room_id=$1', [req.activeRoomId]);
       await db.query(
         'UPDATE credits SET amount=100 WHERE "user" IN (SELECT id FROM users WHERE room_id=$1)',
-        [req.roomId]
+        [req.activeRoomId]
       );
-      broadcastUpdate(req.roomId);
+      broadcastUpdate(req.activeRoomId);
       res.json({ ok: true });
     } catch (err) {
       console.error(err);
@@ -326,7 +326,7 @@ module.exports = function(broadcastUpdate) {
       if (req.params.user !== req.userId) return res.status(403).json({ error: 'Forbidden' });
       const u = req.params.user;
       const [betsRes, creditsRes, profileRes] = await Promise.all([
-        db.query('SELECT * FROM bets WHERE creator=$1 AND room_id=$2 ORDER BY created_at DESC', [u, req.roomId]),
+        db.query('SELECT * FROM bets WHERE creator=$1 AND room_id=$2 ORDER BY created_at DESC', [u, req.activeRoomId]),
         db.query('SELECT * FROM credits WHERE "user"=$1', [u]),
         db.query('SELECT id,name,avatar,color_key FROM users WHERE id=$1', [u]),
       ]);

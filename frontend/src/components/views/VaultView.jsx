@@ -32,21 +32,21 @@ export default function VaultView({user,profiles,bets,cats,onReveal,onFlame,unlo
     );
   }
 
-  return(
-    <div className="sUp">
-      <div style={{fontFamily:"'Playfair Display',serif",fontSize:24,fontWeight:700,marginBottom:4}}>{t('vault_view.title')}</div>
-      <div style={{fontSize:13,color:"var(--dim)",marginBottom:8}}>{t('vault_view.subtitle')}</div>
-      <div style={{fontSize:11,color:"var(--gold)",padding:"10px 12px",background:"var(--gold)10",borderRadius:10,border:"1px solid var(--gold)30",marginBottom:20,lineHeight:1.5}}>
-        {t('vault_view.honesty')}
-      </div>
-      {active.length===0&&resolved.length===0&&(
-        <div style={{textAlign:"center",padding:"52px 0",color:"var(--dim)"}}>
-          <div style={{fontSize:48,marginBottom:12}}>🔒</div>
-          <div style={{fontFamily:"'Playfair Display',serif",fontSize:17,marginBottom:6}}>{t('vault_view.empty_title')}</div>
-          <div style={{fontSize:13}}>{t('vault_view.empty_sub')}</div>
-        </div>
-      )}
-      {active.map(b=>{
+  const honestyBanner=(
+    <div style={{fontSize:11,color:"var(--gold)",padding:"10px 12px",background:"var(--gold)10",borderRadius:10,border:"1px solid var(--gold)30",marginBottom:16,lineHeight:1.5}}>
+      {t('vault_view.honesty')}
+    </div>
+  );
+
+  const emptyState=active.length===0&&resolved.length===0&&(
+    <div style={{textAlign:"center",padding:"52px 0",color:"var(--dim)"}}>
+      <div style={{fontSize:48,marginBottom:12}}>🔒</div>
+      <div style={{fontFamily:"'Playfair Display',serif",fontSize:17,marginBottom:6}}>{t('vault_view.empty_title')}</div>
+      <div style={{fontSize:13}}>{t('vault_view.empty_sub')}</div>
+    </div>
+  );
+
+  const activeCards=active.map(b=>{
         const cat=cats.find(c=>c.id===b.category)||cats[cats.length-1];
         return(
           <div key={b.id} className="sUp" style={{...S.card,marginBottom:10,border:"1px solid var(--gold)44",position:"relative",overflow:"hidden"}}>
@@ -79,8 +79,24 @@ export default function VaultView({user,profiles,bets,cats,onReveal,onFlame,unlo
             </div>
           </div>
         );
-      })}
-      {resolved.length>0&&<><SecLabel mt={16}>{t('vault_view.resolved')}</SecLabel>{resolved.map(b=><BetCard key={b.id} bet={b} user={user} profiles={profiles} cats={cats} onFlame={onFlame} onCounter={()=>{}} isDesktop={isDesktop} onDelete={onDelete} onEdit={onEdit}/>)}</>}
+  });
+
+  const resolvedCards=resolved.length>0&&(
+    <><SecLabel mt={16}>{t('vault_view.resolved')}</SecLabel>{resolved.map(b=><BetCard key={b.id} bet={b} user={user} profiles={profiles} cats={cats} onFlame={onFlame} onCounter={()=>{}} isDesktop={isDesktop} onDelete={onDelete} onEdit={onEdit}/>)}</>
+  );
+
+  return(
+    <div className="sUp">
+      <div style={{fontFamily:"'Playfair Display',serif",fontSize:24,fontWeight:700,marginBottom:4}}>{t('vault_view.title')}</div>
+      <div style={{fontSize:13,color:"var(--dim)",marginBottom:8}}>{t('vault_view.subtitle')}</div>
+      {isDesktop?(
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20,alignItems:"start"}}>
+          <div>{honestyBanner}{emptyState}{activeCards}</div>
+          <div>{resolvedCards}</div>
+        </div>
+      ):(
+        <>{honestyBanner}{emptyState}{activeCards}{resolvedCards}</>
+      )}
     </div>
   );
 }

@@ -52,9 +52,11 @@ export default function BetsView({user,profiles,bets,cats,onResolve,onCounter,on
             <div style={{fontSize:48,marginBottom:12}}>🎯</div>
             <div style={{fontFamily:"'Playfair Display',serif",fontSize:17}}>{t('bets_view.empty')}</div>
           </div>
-        : visible.map(b => <BetCard key={b.id} bet={b} user={user} profiles={profiles} cats={cats}
-            onResolve={onResolve} onFlame={onFlame} onCounter={onCounter} onDelete={onDelete} onEdit={onEdit}
-            isDesktop={isDesktop} reactions={reactions} onReaction={onReaction}/>)
+        : <div style={isDesktop?{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,alignItems:'start'}:{}}>
+            {visible.map(b => <BetCard key={b.id} bet={b} user={user} profiles={profiles} cats={cats}
+              onResolve={onResolve} onFlame={onFlame} onCounter={onCounter} onDelete={onDelete} onEdit={onEdit}
+              isDesktop={isDesktop} reactions={reactions} onReaction={onReaction}/>)}
+          </div>
       }
     </div>
   );

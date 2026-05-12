@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { SecLabel, Avatar, fmtQ, qToP, COLORS, getC } from '../Atoms.jsx';
 import { useLang } from '../../i18n.js';
+import Sparkline from '../Sparkline.jsx';
 
 const S = {
   card: {background:"var(--card)",border:"1px solid var(--brd)",borderRadius:16,padding:16},
@@ -24,11 +25,55 @@ export default function StatsView({user,profiles,credits,bets,cats,isDesktop}){
   [...bets].filter(b=>b.creator===user&&["won","lost"].includes(b.status)).sort((a,b)=>a.createdAt-b.createdAt).forEach(b=>{cur=b.status==="won"?cur+1:0;if(cur>streak)streak=cur;});
   const flamed=all.filter(b=>b.flamed);
   const catS=cats.map(c=>({...c,w:won.filter(b=>b.category===c.id).length,l:lost.filter(b=>b.category===c.id).length})).filter(c=>c.w+c.l>0);
+
+  // Balance trajectory (approximate: start at 100, walk through resolved bets chronologically)
+  const sortedResolved = [...all].sort((a,b) => (a.resolvedAt||a.createdAt) - (b.resolvedAt||b.createdAt));
+  const balanceSeries = (() => {
+    if (sortedResolved.length === 0) return [];
+    let bal = 100;
+    const pts = [bal];
+    for (const b of sortedResolved) {
+      bal += b.status === 'won' ? (b.potentialWin - b.stake) : -b.stake;
+      pts.push(bal);
+    }
+    return pts;
+  })();
+  const peakBalance = balanceSeries.length ? Math.max(...balanceSeries) : 100;
+  const lowBalance  = balanceSeries.length ? Math.min(...balanceSeries) : 100;
+
+  // Responsive sparkline width based on container measurement
+  const sparkRef = useRef(null);
+  const [sparkW, setSparkW] = useState(280);
+  useEffect(() => {
+    if (!sparkRef.current) return;
+    const ro = new ResizeObserver(entries => {
+      const w = entries[0]?.contentRect?.width;
+      if (w && w > 0) setSparkW(Math.floor(w));
+    });
+    ro.observe(sparkRef.current);
+    return () => ro.disconnect();
+  }, []);
   const balanceCard=(
     <div className="pGold" style={{...S.card,marginBottom:12,textAlign:"center",background:"linear-gradient(135deg,var(--card),var(--surf))"}}>
       <SecLabel>{t('stats_view.balance')}</SecLabel>
       <div className="shim" style={{fontFamily:"'Playfair Display',serif",fontSize:44,fontWeight:900}}>{Math.round(credits[user] ?? 0)} ₡</div>
       <div style={{fontSize:13,color:net>=0?"var(--grn)":"var(--red)",marginTop:6,fontWeight:600}}>{net>=0?t('stats_view.net_pos',{n:Math.abs(net)}):t('stats_view.net_neg',{n:Math.abs(net)})}</div>
+      {balanceSeries.length >= 2 && (
+        <div ref={sparkRef} style={{marginTop:14, paddingTop:12, borderTop:"1px solid var(--brd)"}}>
+          <Sparkline
+            points={balanceSeries}
+            width={sparkW}
+            height={64}
+            color={net >= 0 ? "var(--grn)" : "var(--red)"}
+            baseline={100}
+          />
+          <div style={{display:"flex",justifyContent:"space-between",marginTop:8,fontSize:10,color:"var(--dim)",letterSpacing:1}}>
+            <div><span style={{color:"var(--mut)"}}>Start</span> · 100 ₡</div>
+            <div><span style={{color:"var(--gold)"}}>Peak</span> · {peakBalance} ₡</div>
+            <div><span style={{color:"var(--red)"}}>Low</span> · {lowBalance} ₡</div>
+          </div>
+        </div>
+      )}
     </div>
   );
   const statsGrid=(
@@ -52,18 +97,28 @@ export default function StatsView({user,profiles,credits,bets,cats,isDesktop}){
   const catCard=catS.length>0&&(
     <div style={{...S.card,marginBottom:10}}>
       <SecLabel>{t('stats_view.by_cat')}</SecLabel>
-      {catS.map(c=>(
-        <div key={c.id} style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
-          <span style={{fontSize:14}}>{c.e}</span>
-          <div style={{flex:1}}>
-            <div style={{fontSize:12}}>{catLabel(c)}</div>
-            <div style={{height:4,borderRadius:2,background:"var(--mut)",marginTop:4,overflow:"hidden"}}>
-              <div style={{height:"100%",borderRadius:2,background:c.color,width:`${(c.w+c.l)?c.w/(c.w+c.l)*100:0}%`,transition:"width .5s"}}/>
+      {catS.map(c=>{
+        const tot = c.w + c.l;
+        const wrPct = tot ? Math.round(c.w/tot*100) : 0;
+        return (
+          <div key={c.id} style={{marginBottom:14}}>
+            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
+              <span style={{fontSize:16}}>{c.e}</span>
+              <div style={{flex:1,fontSize:13,fontWeight:600}}>{catLabel(c)}</div>
+              <div style={{fontSize:12,fontWeight:700,color:wrPct>=50?"var(--grn)":"var(--red)"}}>{wrPct}%</div>
+            </div>
+            <div style={{display:"flex",height:8,borderRadius:4,overflow:"hidden",background:"var(--mut)33",border:"1px solid var(--brd)"}}>
+              <div style={{flex:c.w,background:`linear-gradient(90deg, ${c.color}, ${c.color}cc)`,transition:"flex .6s",boxShadow:c.w>0?`inset 0 0 8px ${c.color}77`:"none"}}/>
+              <div style={{flex:c.l,background:"var(--red)22",transition:"flex .6s"}}/>
+            </div>
+            <div style={{display:"flex",justifyContent:"space-between",marginTop:4,fontSize:11,color:"var(--dim)"}}>
+              <span><span style={{color:"var(--grn)",fontWeight:700}}>{c.w}</span> vinte</span>
+              <span><span style={{color:"var(--red)",fontWeight:700}}>{c.l}</span> perse</span>
+              <span>{tot} totali</span>
             </div>
           </div>
-          <div style={{fontSize:11}}><span style={{color:"var(--grn)"}}>{c.w}V</span> <span style={{color:"var(--red)"}}>{c.l}P</span></div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
   const hofCard=flamed.length>0&&(

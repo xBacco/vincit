@@ -99,21 +99,30 @@ export default function DashboardView({user,profiles,groupMembers,credits,bets,c
       <div style={{display:"flex",alignItems:"flex-start",gap:8,overflowX:"auto",paddingBottom:rankRows.length>3?6:0}}>
         {rankRows.map((s,i)=>(
           <div key={s.id} style={{flex:"1 0 22%", minWidth:78, textAlign:"center"}}>
-            <div style={{position:"relative",width:44,height:44,borderRadius:"50%",background:`${s.c}33`,border:`2px solid ${s.c}66`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:26,margin:"0 auto",overflow:"hidden"}}>
-              {s.p?.avatarUrl
-                ? <img src={s.p.avatarUrl} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
-                : (s.p?.avatar ?? '')}
-              {i===0 && rankRows.length>1 && (
-                <div style={{position:"absolute",top:-6,right:-6,fontSize:14}}>👑</div>
-              )}
-              {(s.streaks.winStreak >= 3 || s.streaks.lossStreak >= 3) && (
-                <div style={{position:'absolute', bottom:-4, right:-6,
-                  background:'var(--surf)', borderRadius:10, padding:'1px 4px',
-                  border:'1px solid var(--brd)', display:'flex', alignItems:'center'}}>
-                  <StreakInline winStreak={s.streaks.winStreak} lossStreak={s.streaks.lossStreak} size={13}/>
+            {(() => {
+              const isLeader = i === 0 && rankRows.length > 1 && s.w > 0;
+              return (
+                <div className={isLeader ? 'pGold' : ''} style={{
+                  position:"relative", width:48, height:48, borderRadius:"50%",
+                  background:`${s.c}33`,
+                  border: isLeader ? '2px solid var(--gold)' : `2px solid ${s.c}66`,
+                  padding: isLeader ? 1 : 0,
+                  display:"flex", alignItems:"center", justifyContent:"center",
+                  fontSize:26, margin:"0 auto", overflow:"hidden",
+                }}>
+                  {s.p?.avatarUrl
+                    ? <img src={s.p.avatarUrl} alt="" style={{width:"100%",height:"100%",objectFit:"cover",borderRadius:'50%'}}/>
+                    : (s.p?.avatar ?? '')}
+                  {(s.streaks.winStreak >= 3 || s.streaks.lossStreak >= 3) && (
+                    <div style={{position:'absolute', bottom:-4, right:-6,
+                      background:'var(--surf)', borderRadius:10, padding:'1px 4px',
+                      border:'1px solid var(--brd)', display:'flex', alignItems:'center'}}>
+                      <StreakInline winStreak={s.streaks.winStreak} lossStreak={s.streaks.lossStreak} size={13}/>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              );
+            })()}
             <div style={{fontFamily:"'Playfair Display',serif",fontSize:13,fontWeight:700,marginTop:6,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
               {s.p?.name}{s.isMe && <span style={{color:"var(--gold)",marginLeft:3}}>·</span>}
             </div>

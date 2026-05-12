@@ -42,11 +42,32 @@ export default function BetCard({bet,user,profiles,cats,onResolve,onReveal,onCou
   const cat=cats.find(c=>c.id===bet.category)||cats[cats.length-1];
   const done=["won","lost","rejected"].includes(bet.status);
   const CANCEL_MS=60*1000;
+  const createdAtMs = Number(bet.createdAt) || 0;
+
+  // Live ticker — rerender once per second while we're inside the cancel window
+  const [nowTs, setNowTs] = useState(Date.now());
+  useEffect(() => {
+    if (!isOwner || done) return;
+    const expireAt = createdAtMs + CANCEL_MS;
+    if (Date.now() >= expireAt) return; // already past the window, nothing to tick
+    const id = setInterval(() => {
+      const t = Date.now();
+      setNowTs(t);
+      if (t >= expireAt) clearInterval(id);
+    }, 1000);
+    return () => clearInterval(id);
+  }, [isOwner, done, createdAtMs]);
+
   // Owner of the bet: 60s window. Moderator (co-admin with moderate_bets, or owner of group): always.
-  const withinWindow = Date.now() - bet.createdAt < CANCEL_MS;
-  const canCancel = !done && !!onDelete && ((isOwner && withinWindow) || canModerate);
-  const canEditBet = !done && !!onEdit && ((isOwner && withinWindow) || canModerate);
-  const minsLeft=Math.ceil((bet.createdAt+CANCEL_MS-Date.now())/60000);
+  const msLeft       = Math.max(0, createdAtMs + CANCEL_MS - nowTs);
+  const withinWindow = msLeft > 0;
+  const canCancel    = !done && !!onDelete && ((isOwner && withinWindow) || canModerate);
+  const canEditBet   = !done && !!onEdit   && ((isOwner && withinWindow) || canModerate);
+  const secsLeft     = Math.ceil(msLeft / 1000);
+  const mm           = Math.floor(secsLeft / 60);
+  const ss           = secsLeft % 60;
+  const timerStr     = `${mm}:${ss.toString().padStart(2, '0')}`;
+  const isUrgent     = secsLeft <= 10;
   const tl=tLeft(bet.expiresAt,lang);
   const myCounter=(bet.counterBets||[]).find(cb=>cb.bettor===user);
   const theirCounter=(bet.counterBets||[]).find(cb=>cb.bettor!==user);
@@ -106,9 +127,22 @@ export default function BetCard({bet,user,profiles,cats,onResolve,onReveal,onCou
         <button onClick={()=>onEdit(bet)} style={{...S.btn,padding:"7px 10px",background:"transparent",border:"1px solid var(--gold)44",color:"var(--gold)",fontSize:11}}>✏️ {t('bet_card.edit_btn')}{!isOwner && canModerate ? ' 🛡' : ''}</button>
       )}
       {canCancel&&(
-        <button onClick={()=>{if(window.confirm(t('bet_card.cancel_confirm')))onDelete(bet);}} style={{...S.btn,padding:"7px 10px",background:"transparent",border:"1px solid var(--red)44",color:"var(--red)",fontSize:11}}>
+        <button onClick={()=>{if(window.confirm(t('bet_card.cancel_confirm')))onDelete(bet);}} style={{
+          ...S.btn,padding:"7px 10px",background:"transparent",
+          border:`1px solid ${isUrgent && isOwner && withinWindow ? 'var(--red)' : 'var(--red)44'}`,
+          color: isUrgent && isOwner && withinWindow ? 'var(--red)' : 'var(--red)',
+          fontSize:11,
+          fontVariantNumeric: 'tabular-nums',
+        }}>
           ✕ {t('bet_card.cancel_btn')}
-          {isOwner && withinWindow && ` (${t('bet_card.cancel_window',{m:minsLeft})})`}
+          {isOwner && withinWindow && (
+            <span style={{
+              marginLeft:5,
+              fontWeight:700,
+              color: isUrgent ? 'var(--red)' : 'var(--dim)',
+              opacity: isUrgent ? 1 : .85,
+            }}>{timerStr}</span>
+          )}
           {!isOwner && canModerate && ' 🛡'}
         </button>
       )}

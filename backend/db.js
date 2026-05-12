@@ -1,5 +1,12 @@
 'use strict';
-const { Pool } = require('pg');
+const { Pool, types } = require('pg');
+
+// BIGINT (OID 20) ships as a string by default to preserve precision past 2^53.
+// All our BIGINT columns are millisecond timestamps that fit safely in a Number,
+// so we parse them as numbers — otherwise the frontend ends up doing
+// "string + number" concatenation (e.g. createdAt + 60000) and miscalculating
+// time windows by trillions.
+types.setTypeParser(20, val => val == null ? null : parseInt(val, 10));
 
 const needsSsl =
   process.env.NODE_ENV === 'production' ||

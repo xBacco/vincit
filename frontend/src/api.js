@@ -106,6 +106,8 @@ export const adminAddToGroup     = (groupId, userId)        => req('POST',  `/ad
 export const adminRemoveFromGroup= (groupId, userId)        => req('DELETE', `/admin/groups/${groupId}/members/${userId}`);
 export const adminRegenCode      = (groupId)                => req('POST',  `/admin/groups/${groupId}/regenerate-code`);
 export const adminSetPassword    = (userId, password)       => req('POST',  `/admin/users/${userId}/set-password`, { password });
+export const adminNukeStatus     = ()                       => req('GET',  '/admin/nuke-status');
+export const adminNuke           = ()                       => req('POST', '/admin/nuke', { confirm: 'NUKE' });
 
 export const getAchievements = ()           => req('GET',  '/achievements');
 

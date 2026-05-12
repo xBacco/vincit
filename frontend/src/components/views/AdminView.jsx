@@ -42,6 +42,7 @@ export default function AdminView({ isDesktop }) {
   const [users,     setUsers]     = useState([]);
   const [groups,    setGroups]    = useState([]);
   const [integrity, setIntegrity] = useState(null);
+  const [nukeAvailable, setNukeAvailable] = useState(false);
   const [loading,   setLoading]   = useState(true);
   const [query,     setQuery]     = useState('');
   const [selectedId,  setSelectedId]  = useState(null);
@@ -52,12 +53,14 @@ export default function AdminView({ isDesktop }) {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const [u, g, i] = await Promise.all([
+      const [u, g, i, n] = await Promise.all([
         api.adminUsers().catch(() => []),
         api.adminGroups().catch(() => []),
         api.adminIntegrity().catch(() => null),
+        api.adminNukeStatus().catch(() => ({ available: false })),
       ]);
       setUsers(u); setGroups(g); setIntegrity(i);
+      setNukeAvailable(!!n?.available);
     } finally { setLoading(false); }
   }, []);
 
@@ -147,6 +150,7 @@ export default function AdminView({ isDesktop }) {
         <TabBtn id="users"     label={`Utenti (${users.length})`}/>
         <TabBtn id="groups"    label={`Gruppi (${groups.length})`}/>
         <TabBtn id="integrity" label={`Integrità${integrity ? ` (${(integrity.dangling_room_ids?.length||0) + (integrity.duplicate_names?.length||0) + (integrity.orphan_user_groups?.length||0) + (integrity.duplicate_emails?.length||0)})` : ''}`}/>
+        {nukeAvailable && <TabBtn id="nuke" label="🔥 Reset"/>}
       </div>
 
       {/* ── UTENTI ─────────────────────────────────────────── */}
@@ -438,6 +442,46 @@ export default function AdminView({ isDesktop }) {
               : <pre style={S.pre}>{JSON.stringify(integrity.orphan_user_groups, null, 2)}</pre>}
           </div>
         </>
+      )}
+
+      {/* ── RESET TOTALE (one-shot) ─────────────────────────── */}
+      {tab === 'nuke' && nukeAvailable && (
+        <div style={{ ...S.card, borderColor: 'var(--red)55', background: 'var(--red)0d' }}>
+          <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 800, color: 'var(--red)', marginBottom: 8 }}>
+            🔥 Reset totale
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--mut)', lineHeight: 1.6, marginBottom: 14 }}>
+            Cancella <b>TUTTO</b>: bet, contatori, reazioni, crediti, trofei, profili, gruppi, amicizie, richieste, template, notifiche.
+            Sopravvive solo il tuo account admin (crediti resettati a 100).
+            <br/><br/>
+            Pensato per il momento "fine test → produzione". È <b>usa-e-getta</b>: dopo che lo clicchi, questo bottone scompare per sempre. Non si torna indietro.
+          </div>
+          <button
+            disabled={busy}
+            onClick={async () => {
+              if (!window.confirm('Cancellare DEFINITIVAMENTE tutti i dati?\n\nResterà solo il tuo account admin. Non recuperabile.')) return;
+              const phrase = window.prompt("Scrivi NUKE in maiuscolo per confermare:");
+              if (phrase !== 'NUKE') { toast.error('Reset annullato'); return; }
+              setBusy(true);
+              try {
+                const r = await api.adminNuke();
+                console.log('[nuke] wiped:', r.wiped);
+                toast.success('Reset eseguito. Ricarico la pagina…');
+                setTimeout(() => window.location.reload(), 800);
+              } catch (e) {
+                console.error(e);
+                toast.error(e?.message || 'errore');
+              } finally { setBusy(false); }
+            }}
+            style={{
+              width: '100%', padding: '14px 0', borderRadius: 12, border: '1px solid var(--red)',
+              background: 'var(--red)', color: '#fff',
+              fontFamily: "'Syne',sans-serif", fontSize: 15, fontWeight: 800, letterSpacing: 0.5,
+              cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.7 : 1,
+            }}>
+            {busy ? '…' : '🔥 RESET TOTALE'}
+          </button>
+        </div>
       )}
     </div>
   );

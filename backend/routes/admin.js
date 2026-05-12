@@ -281,4 +281,77 @@ router.post('/users/:id/set-password', async (req, res) => {
   } catch (e) { console.error('[admin:set-password]', e); res.status(500).json({ error: 'server_error' }); }
 });
 
+// ── One-shot global reset ──────────────────────────────────────────────
+// Single-use "nuke everything" intended for the transition from testing to
+// real use. Wipes every row of user-generated data and every non-admin
+// account, then sets a flag so the route refuses to run again. After this
+// fires once, the corresponding admin tab in the UI also disappears.
+const NUKE_FLAG = 'one_shot_nuke_v1';
+
+router.get('/nuke-status', async (req, res) => {
+  try {
+    const { rows } = await db.query('SELECT 1 FROM _system_flags WHERE id=$1', [NUKE_FLAG]);
+    res.json({ available: rows.length === 0 });
+  } catch (e) {
+    console.error('[admin:nuke-status]', e);
+    res.status(500).json({ error: 'server_error' });
+  }
+});
+
+router.post('/nuke', async (req, res) => {
+  try {
+    if (req.body?.confirm !== 'NUKE')
+      return res.status(400).json({ error: 'confirm_phrase_required' });
+
+    const { rows: flagged } = await db.query('SELECT 1 FROM _system_flags WHERE id=$1', [NUKE_FLAG]);
+    if (flagged.length) return res.status(410).json({ error: 'already_used' });
+
+    const counts = await db.transaction(async (client) => {
+      const c = {};
+      const wipe = async (sql, key) => { c[key] = (await client.query(sql)).rowCount; };
+      await wipe('DELETE FROM reactions',           'reactions');
+      await wipe('DELETE FROM counter_bets',        'counter_bets');
+      await wipe('DELETE FROM bets',                'bets');
+      await wipe('DELETE FROM achievements',        'achievements');
+      await wipe('DELETE FROM bet_templates',       'bet_templates');
+      await client.query('DELETE FROM templates').catch(() => {});
+      await wipe('DELETE FROM notification_prefs',  'notification_prefs');
+      await wipe('DELETE FROM push_subscriptions',  'push_subscriptions');
+      await wipe('DELETE FROM profiles',            'profiles');
+      await wipe('DELETE FROM credits',             'credits');
+      await wipe('DELETE FROM friend_requests',     'friend_requests');
+      await wipe('DELETE FROM friendships',         'friendships');
+      await wipe('DELETE FROM password_resets',     'password_resets');
+      await wipe('DELETE FROM categories WHERE room_id IS NOT NULL', 'categories_custom');
+      await wipe('DELETE FROM user_groups',         'user_groups');
+      await client.query('UPDATE users SET room_id=NULL WHERE room_id IS NOT NULL');
+      await wipe('DELETE FROM rooms',               'rooms');
+      await wipe('DELETE FROM users WHERE is_admin IS NOT TRUE', 'users_non_admin');
+
+      // Re-seed credits at 100 for the admins that remain.
+      const { rows: admins } = await client.query('SELECT id FROM users WHERE is_admin=true');
+      for (const a of admins) {
+        await client.query(
+          `INSERT INTO credits("user",amount) VALUES($1,100)
+             ON CONFLICT("user") DO UPDATE SET amount=100`,
+          [a.id]
+        );
+      }
+      c.admins_kept = admins.length;
+
+      await client.query(
+        'INSERT INTO _system_flags(id,set_at) VALUES($1,$2)',
+        [NUKE_FLAG, Date.now()]
+      );
+      return c;
+    });
+
+    console.log('[admin:nuke] one-shot reset executed:', counts);
+    res.json({ ok: true, wiped: counts });
+  } catch (e) {
+    console.error('[admin:nuke]', e);
+    res.status(500).json({ error: 'server_error' });
+  }
+});
+
 module.exports = router;

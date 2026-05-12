@@ -13,8 +13,7 @@ import { useToast } from './Toast.jsx';
 import AuthView from './components/views/AuthView.jsx';
 import PairingView from './components/views/PairingView.jsx';
 import DashboardView from './components/views/DashboardView.jsx';
-import BetsView from './components/views/BetsView.jsx';
-import VaultView from './components/views/VaultView.jsx';
+import BetsHubView from './components/views/BetsHubView.jsx';
 import StatsView from './components/views/StatsView.jsx';
 import TrophiesView from './components/views/TrophiesView.jsx';
 import FriendsView  from './components/views/FriendsView.jsx';
@@ -281,7 +280,10 @@ export default function App() {
   const cats = [...DEF_CATS, ...customCats];
 
   const [view, setView] = useState('dashboard');
+  const [betsTab, setBetsTab] = useState('open'); // 'open' | 'vault' — inside the Bets hub
   const [vaultUnlocked, setVaultUnlocked] = useState(false);
+  // Convenience: dashboard teaser CTA → jump straight into the Vault tab
+  const goToVault = () => { setBetsTab('vault'); setView('bets'); };
   const [pinVersion, setPinVersion] = useState(0);
   const vaultPin = user ? getVaultPin(user) : null;
 
@@ -481,10 +483,9 @@ export default function App() {
   const NAV = [
     { id: 'dashboard', e: '🏠', l: t('nav.dashboard') },
     { id: 'bets', e: '🎯', l: t('nav.bets') },
-    { id: 'vault', e: '🔒', l: t('nav.vault') },
     { id: 'stats', e: '📊', l: t('nav.stats') },
-    { id: 'trophies', e: '🏆', l: t('nav.trophies') },
     { id: 'friends', e: '👥', l: t('nav.friends') },
+    { id: 'trophies', e: '🏆', l: t('nav.trophies') },
     { id: 'settings', e: '⚙️', l: t('nav.settings') },
   ];
 
@@ -549,8 +550,8 @@ export default function App() {
               <div key={n.id} data-tour={`nav-${n.id}`} onClick={() => setView(n.id)} className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: view === n.id ? 'var(--gold)' : 'var(--dim)', background: view === n.id ? 'var(--gold)11' : 'transparent', marginBottom: 4, transition: 'all .18s', userSelect: 'none', position: 'relative' }}>
                 <span style={{ fontSize: 18 }}>{n.e}</span>
                 {n.l}
-                {n.id === 'vault' && secretCount > 0 && (
-                  <div style={{ position: 'absolute', right: 10, width: 16, height: 16, borderRadius: '50%', background: 'var(--gold)', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>{secretCount}</div>
+                {n.id === 'bets' && secretCount > 0 && (
+                  <div title="Vault" style={{ position: 'absolute', right: 10, width: 16, height: 16, borderRadius: '50%', background: 'var(--gold)', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#07060f' }}>🔒</div>
                 )}
               </div>
             ))}
@@ -592,14 +593,20 @@ export default function App() {
           const dataReady = !!profiles[user];
           if (!dataReady) {
             if (view === 'dashboard') return <SkeletonDashboard />;
-            if (view === 'bets' || view === 'vault') return <SkeletonList count={4} withGoldStripe={view==='vault'} />;
+            if (view === 'bets')      return <SkeletonList count={4} withGoldStripe={betsTab==='vault'} />;
             if (view === 'stats' || view === 'trophies') return <SkeletonList count={3} />;
             return null;
           }
           return (<>
-            {view === 'dashboard' && <DashboardView user={user} profiles={profiles} groupMembers={groupMembers} credits={credits} bets={bets} cats={cats} onCreate={() => setShowCreate(true)} onResolve={b => setResolveBet(b)} onReveal={b => setRevealBet(b)} onCounter={b => setCounterTarget(b)} onFlame={handleFlame} notifSince={notifSince} isDesktop={isDesktop} reactions={reactions} onReaction={handleReaction} onReactionPhoto={handleReactionPhoto} onDelete={handleDelete} onEdit={b => setEditingBet(b)} onAccept={handleAccept} onReject={handleReject} can={can} />}
-            {view === 'bets'      && <BetsView user={user} profiles={profiles} bets={bets} cats={cats} onResolve={b => setResolveBet(b)} onCounter={b => setCounterTarget(b)} onFlame={handleFlame} isDesktop={isDesktop} reactions={reactions} onReaction={handleReaction} onReactionPhoto={handleReactionPhoto} onDelete={handleDelete} onEdit={b => setEditingBet(b)} onAccept={handleAccept} onReject={handleReject} can={can} />}
-            {view === 'vault'     && <VaultView user={user} profiles={profiles} bets={bets} cats={cats} onReveal={b => setRevealBet(b)} onFlame={handleFlame} unlocked={vaultUnlocked} onPinRequest={() => setShowPin(true)} vaultPin={vaultPin} isDesktop={isDesktop} onDelete={handleDelete} onEdit={b => setEditingBet(b)} />}
+            {view === 'dashboard' && <DashboardView user={user} profiles={profiles} groupMembers={groupMembers} credits={credits} bets={bets} cats={cats} onCreate={() => setShowCreate(true)} onResolve={b => setResolveBet(b)} onReveal={b => setRevealBet(b)} onCounter={b => setCounterTarget(b)} onFlame={handleFlame} notifSince={notifSince} isDesktop={isDesktop} reactions={reactions} onReaction={handleReaction} onReactionPhoto={handleReactionPhoto} onDelete={handleDelete} onEdit={b => setEditingBet(b)} onAccept={handleAccept} onReject={handleReject} can={can} onGoToVault={goToVault} />}
+            {view === 'bets'      && <BetsHubView
+                tab={betsTab} setTab={setBetsTab}
+                user={user} profiles={profiles} bets={bets} cats={cats} isDesktop={isDesktop}
+                onResolve={b => setResolveBet(b)} onCounter={b => setCounterTarget(b)} onFlame={handleFlame}
+                reactions={reactions} onReaction={handleReaction} onReactionPhoto={handleReactionPhoto}
+                onDelete={handleDelete} onEdit={b => setEditingBet(b)} onAccept={handleAccept} onReject={handleReject} can={can}
+                onReveal={b => setRevealBet(b)} vaultUnlocked={vaultUnlocked} onPinRequest={() => setShowPin(true)} vaultPin={vaultPin}
+              />}
             {view === 'stats'     && <StatsView user={user} profiles={profiles} groupMembers={groupMembers} credits={credits} bets={bets} cats={cats} isDesktop={isDesktop} />}
             {view === 'trophies'  && <TrophiesView bets={bets} isDesktop={isDesktop} />}
             {view === 'friends'   && <FriendsView groups={groups} user={user} onSwitchToGroup={switchGroup} isDesktop={isDesktop} />}
@@ -627,8 +634,8 @@ export default function App() {
           {NAV.map(n => (
             <div key={n.id} data-tour={`nav-${n.id}`} onClick={() => setView(n.id)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, padding: '6px 10px', cursor: 'pointer', borderRadius: 12, fontSize: 10, color: view === n.id ? 'var(--gold)' : 'var(--mut)', transition: 'all .18s', position: 'relative', userSelect: 'none' }}>
               <span style={{ fontSize: 20 }}>{n.e}</span>
-              {n.id === 'vault' && secretCount > 0 && (
-                <div style={{ position: 'absolute', top: 2, right: 6, width: 14, height: 14, borderRadius: '50%', background: 'var(--gold)', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>{secretCount}</div>
+              {n.id === 'bets' && secretCount > 0 && (
+                <div style={{ position: 'absolute', top: 2, right: 6, width: 14, height: 14, borderRadius: '50%', background: 'var(--gold)', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#07060f' }}>🔒</div>
               )}
               {n.l}
             </div>
@@ -660,7 +667,7 @@ export default function App() {
           steps={[
             { selector: '[data-tour="new-bet"]', title: t('onboarding.step1_title'),
               body: t('onboarding.step1_body'), place: isDesktop ? 'top' : 'top' },
-            { selector: '[data-tour="nav-vault"]', title: t('onboarding.step2_title'),
+            { selector: '[data-tour="nav-bets"]', title: t('onboarding.step2_title'),
               body: t('onboarding.step2_body'), place: isDesktop ? 'bottom' : 'top' },
             { selector: '[data-tour="nav-stats"]', title: t('onboarding.step3_title'),
               body: t('onboarding.step3_body'), place: isDesktop ? 'bottom' : 'top' },

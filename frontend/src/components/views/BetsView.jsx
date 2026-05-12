@@ -4,7 +4,7 @@ import BetCard from '../BetCard.jsx';
 
 const DEF_IDS=['intimo','serata','casa','cibo','gaming','altro'];
 
-export default function BetsView({user,profiles,bets,cats,onResolve,onCounter,onFlame,isDesktop,reactions,onReaction,onReactionPhoto,onDelete,onEdit,onAccept,onReject,can}){
+export default function BetsView({user,profiles,bets,cats,onResolve,onCounter,onFlame,isDesktop,reactions,onReaction,onReactionPhoto,onDelete,onEdit,onAccept,onReject,can,hideTitle=false}){
   const { t } = useLang();
   const [fStatus, setFStatus] = useState('active');
   const [fCat,    setFCat]    = useState('all');
@@ -29,8 +29,12 @@ export default function BetsView({user,profiles,bets,cats,onResolve,onCounter,on
 
   return(
     <div className="sUp">
-      <div style={{fontFamily:"'Playfair Display',serif",fontSize:24,fontWeight:700,marginBottom:4}}>{t('bets_view.title')}</div>
-      <div style={{fontSize:13,color:"var(--dim)",marginBottom:12}}>{total===1?t('bets_view.sub_one'):t('bets_view.sub_many',{n:total})}</div>
+      {!hideTitle && (
+        <>
+          <div style={{fontFamily:"'Playfair Display',serif",fontSize:24,fontWeight:700,marginBottom:4}}>{t('bets_view.title')}</div>
+          <div style={{fontSize:13,color:"var(--dim)",marginBottom:12}}>{total===1?t('bets_view.sub_one'):t('bets_view.sub_many',{n:total})}</div>
+        </>
+      )}
 
       <div style={{display:'flex',gap:6,overflowX:'auto',paddingBottom:8,marginBottom:14,
         scrollbarWidth:'none',WebkitOverflowScrolling:'touch'}}>

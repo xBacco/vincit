@@ -13,7 +13,7 @@ const Bdg=({c,bg,children})=><span style={{...S.bdg,background:bg,color:c}}>{chi
 const qToP = q=>Math.round(100/parseFloat(q));
 const DEF_IDS=['intimo','serata','casa','cibo','gaming','altro'];
 
-export default function VaultView({user,profiles,bets,cats,onReveal,onFlame,unlocked,onPinRequest,vaultPin,isDesktop,onDelete,onEdit}){
+export default function VaultView({user,profiles,bets,cats,onReveal,onFlame,unlocked,onPinRequest,vaultPin,isDesktop,onDelete,onEdit,hideTitle=false}){
   const { t, lang } = useLang();
   const catLabel = c => DEF_IDS.includes(c.id) ? t('cats.'+c.id) : c.label;
   const active=bets.filter(b=>b.creator===user&&b.isSecret&&b.status==="active");
@@ -87,8 +87,12 @@ export default function VaultView({user,profiles,bets,cats,onReveal,onFlame,unlo
 
   return(
     <div className="sUp">
-      <div style={{fontFamily:"'Playfair Display',serif",fontSize:24,fontWeight:700,marginBottom:4}}>{t('vault_view.title')}</div>
-      <div style={{fontSize:13,color:"var(--dim)",marginBottom:8}}>{t('vault_view.subtitle')}</div>
+      {!hideTitle && (
+        <>
+          <div style={{fontFamily:"'Playfair Display',serif",fontSize:24,fontWeight:700,marginBottom:4}}>{t('vault_view.title')}</div>
+          <div style={{fontSize:13,color:"var(--dim)",marginBottom:8}}>{t('vault_view.subtitle')}</div>
+        </>
+      )}
       {isDesktop?(
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20,alignItems:"start"}}>
           <div>{honestyBanner}{emptyState}{activeCards}</div>

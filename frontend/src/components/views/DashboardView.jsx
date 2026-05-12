@@ -44,7 +44,7 @@ const S = {
   row: {display:"flex",alignItems:"center",gap:10},
 };
 
-export default function DashboardView({user,profiles,groupMembers,credits,bets,cats,onCreate,onResolve,onReveal,onCounter,onFlame,notifSince,isDesktop,reactions,onReaction,onReactionPhoto,onDelete,onEdit,onAccept,onReject,can}){
+export default function DashboardView({user,profiles,groupMembers,credits,bets,cats,onCreate,onResolve,onReveal,onCounter,onFlame,notifSince,isDesktop,reactions,onReaction,onReactionPhoto,onDelete,onEdit,onAccept,onReject,can,onGoToVault}){
   const { t, lang } = useLang();
   // Multi-member ranking: include every profile in the group, sorted by wins desc
   const allMemberIds = (groupMembers && groupMembers.length
@@ -163,12 +163,23 @@ export default function DashboardView({user,profiles,groupMembers,credits,bets,c
   );
 
   const vaultTeaser=mySec.length>0&&(
-    <div style={{...S.card,marginBottom:14,border:"1px solid var(--gold)44",display:"flex",alignItems:"center",gap:10}}>
+    <div
+      onClick={onGoToVault}
+      style={{
+        ...S.card, marginBottom:14, border:"1px solid var(--gold)44",
+        display:"flex", alignItems:"center", gap:10,
+        cursor: onGoToVault ? 'pointer' : 'default',
+        transition: 'all .18s',
+      }}
+      onMouseEnter={e => { if (onGoToVault) { e.currentTarget.style.background = 'var(--gold)10'; e.currentTarget.style.borderColor = 'var(--gold)88'; } }}
+      onMouseLeave={e => { if (onGoToVault) { e.currentTarget.style.background = 'var(--card)';   e.currentTarget.style.borderColor = 'var(--gold)44'; } }}
+    >
       <div style={{width:36,height:36,borderRadius:"50%",background:"var(--gold)22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>🔒</div>
-      <div>
+      <div style={{flex:1}}>
         <div style={{fontWeight:600,fontSize:14,color:"var(--gold)"}}>{t('dashboard.vault_teaser')}</div>
         <div style={{fontSize:12,color:"var(--dim)"}}>{mySec.length===1?t('dashboard.vault_teaser_one',{n:mySec.length}):t('dashboard.vault_teaser_many',{n:mySec.length})}</div>
       </div>
+      {onGoToVault && <span style={{color:'var(--gold)',fontSize:14}}>➤</span>}
     </div>
   );
 

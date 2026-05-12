@@ -11,6 +11,7 @@ const TRANSLATIONS = {
     welcome: { private:'Privato · Solo per voi', subtitle:'Il vostro gioco privato di scommesse', iam:'Sono io', footer:'Quote decimali europee · Dati salvati sul server' },
     app:     { welcome_back:'Bentornato', credits:'Crediti', switch:'Switch', new_bet:'+ Nuova Bet', new_bet_label:'Nuova', new_group:'+ Nuovo gruppo', error_create:'Errore nella creazione della bet. Riprova.', error_cancel:"Errore durante l'annullamento. Riprova.", error_edit:'Errore durante la modifica. Riprova.', error_reset:'Errore durante il reset. Riprova.', error_accept:"Errore durante l'accettazione. Riprova.", error_reject:'Errore durante il rifiuto. Riprova.', reject_confirm:'Rifiutare questa bet?', sync_error:'Errore di sincronizzazione — tocca per riprovare', ok_created:'Bet creata!', ok_edited:'Bet modificata', ok_cancelled:'Bet annullata', ok_accepted:'Bet accettata', ok_rejected:'Bet rifiutata', ok_reset:'Stagione resettata', ok_profile_saved:'Profilo aggiornato', err_role:'Impossibile cambiare ruolo', err_perms:'Impossibile aggiornare i permessi' },
     nav:     { dashboard:'Home', bets:'Bets', vault:'Vault', stats:'Stats', trophies:'Trofei', friends:'Amici', settings:'Config' },
+    bets_hub:{ tab_open:'Aperte', tab_vault:'Vault' },
     create: {
       title:'Nuova Bet 🎲', secret_on_label:'🔒 Bet Segreta (Vault)', secret_off_label:'👁 Bet Condivisa',
       secret_on_desc:'Solo tu la vedi · Timestamp garantisce onestà', secret_off_desc:'Visibile a entrambi',
@@ -334,6 +335,7 @@ const TRANSLATIONS = {
     welcome: { private:'Private · Just the two of you', subtitle:'Your personal couples betting game', iam:"That's me", footer:'European decimal odds · Data stored on server' },
     app:     { welcome_back:'Welcome back', credits:'Credits', switch:'Switch', new_bet:'+ New Bet', new_bet_label:'New', new_group:'+ New group', error_create:'Failed to create the bet. Please try again.', error_cancel:'Failed to cancel the bet. Please try again.', error_edit:'Failed to edit the bet. Please try again.', error_reset:'Reset failed. Please try again.', error_accept:'Failed to accept the bet. Please try again.', error_reject:'Failed to reject the bet. Please try again.', reject_confirm:'Reject this bet?', sync_error:'Sync error — tap to retry', ok_created:'Bet created!', ok_edited:'Bet updated', ok_cancelled:'Bet cancelled', ok_accepted:'Bet accepted', ok_rejected:'Bet rejected', ok_reset:'Season reset', ok_profile_saved:'Profile updated', err_role:"Couldn't change role", err_perms:"Couldn't update permissions" },
     nav:     { dashboard:'Home', bets:'Bets', vault:'Vault', stats:'Stats', trophies:'Trophies', friends:'Friends', settings:'Settings' },
+    bets_hub:{ tab_open:'Open', tab_vault:'Vault' },
     create: {
       title:'New Bet 🎲', secret_on_label:'🔒 Secret Bet (Vault)', secret_off_label:'👁 Shared Bet',
       secret_on_desc:'Only you can see it · Timestamp proves honesty', secret_off_desc:'Visible to both of you',

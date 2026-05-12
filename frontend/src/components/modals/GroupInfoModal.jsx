@@ -6,15 +6,11 @@ import { useToast } from '../../Toast.jsx';
 const EMOJI_OPTIONS = ['🎲','🔥','❤️','🏆','⚡','🎯','👥','🎪','🃏','🌙',
                        '🎉','🎮','🍻','⚽','🎵','💪','🤝','🎭','🎨','🌟'];
 
-const PERMISSION_LABELS = {
-  manage_members:    { icon: '👥', label: 'Gestire membri (kick / nuovo codice)' },
-  manage_credits:    { icon: '💰', label: 'Modificare i crediti' },
-  moderate_bets:     { icon: '🛡', label: 'Moderare le bet (modificare / annullare quelle altrui)' },
-  manage_categories: { icon: '🏷', label: 'Creare ed eliminare categorie' },
-  reset_season:      { icon: '🏆', label: 'Reset stagione' },
-  manage_settings:   { icon: '⚙️', label: 'Rinominare gruppo e modificare le impostazioni' },
+const PERMS = ['manage_members','manage_credits','moderate_bets','manage_categories','reset_season','manage_settings'];
+const PERM_ICONS = {
+  manage_members:'👥', manage_credits:'💰', moderate_bets:'🛡',
+  manage_categories:'🏷', reset_season:'🏆', manage_settings:'⚙️',
 };
-const PERMS = Object.keys(PERMISSION_LABELS);
 
 export default function GroupInfoModal({ group, userId, onClose, onLeft, onDeleted, onRenamed, isAdmin=false, can }) {
   const { t } = useLang();
@@ -90,7 +86,7 @@ export default function GroupInfoModal({ group, userId, onClose, onLeft, onDelet
     try {
       await api.setMemberRole(group.id, member.id, role);
       setMembers(ms => ms.map(m => m.id === member.id ? { ...m, role, permissions: role === 'co-admin' ? (m.permissions || {}) : {} } : m));
-    } catch (e) { console.error(e); toast.error('Impossibile cambiare ruolo'); }
+    } catch (e) { console.error(e); toast.error(t('app.err_role')); }
   };
 
   const handleTogglePermission = async (member, perm, value) => {
@@ -100,7 +96,7 @@ export default function GroupInfoModal({ group, userId, onClose, onLeft, onDelet
       await api.setMemberPermissions(group.id, member.id, next);
     } catch (e) {
       console.error(e);
-      toast.error('Impossibile aggiornare i permessi');
+      toast.error(t('app.err_perms'));
       // revert
       setMembers(ms => ms.map(m => m.id === member.id ? { ...m, permissions: member.permissions || {} } : m));
     }
@@ -293,7 +289,7 @@ export default function GroupInfoModal({ group, userId, onClose, onLeft, onDelet
                   {m.role === 'co-admin' && (
                     <span style={{ fontSize:10, color:'var(--blu)',
                       border:'1px solid var(--blu)55', borderRadius:20, padding:'2px 8px' }}>
-                      🛡 co-admin
+                      {t('group_info_perms.coadmin_badge')}
                     </span>
                   )}
                   {isOwner && m.id !== userId && (
@@ -302,13 +298,13 @@ export default function GroupInfoModal({ group, userId, onClose, onLeft, onDelet
                         <button onClick={() => handleSetRole(m, 'co-admin')} style={{
                           ...S.btn, padding:'4px 10px', fontSize:11,
                           background:'transparent', border:'1px solid var(--blu)55', color:'var(--blu)',
-                        }}>+ Co-admin</button>
+                        }}>{t('group_info_perms.promote_coadmin')}</button>
                       )}
                       {m.role === 'co-admin' && (
                         <button onClick={() => handleSetRole(m, 'member')} style={{
                           ...S.btn, padding:'4px 10px', fontSize:11,
                           background:'transparent', border:'1px solid var(--mut)', color:'var(--dim)',
-                        }}>− Co-admin</button>
+                        }}>{t('group_info_perms.demote_coadmin')}</button>
                       )}
                       <button onClick={() => handlePromote(m)} style={{
                         ...S.btn, padding:'4px 10px', fontSize:11,
@@ -326,19 +322,18 @@ export default function GroupInfoModal({ group, userId, onClose, onLeft, onDelet
                   <div style={{ marginTop: 8, padding:'8px 10px', background:'var(--blu)0d',
                     border:'1px solid var(--blu)22', borderRadius:8 }}>
                     <div style={{ fontSize:10, color:'var(--dim)', textTransform:'uppercase', letterSpacing:1, marginBottom:6 }}>
-                      Permessi co-admin
+                      {t('group_info_perms.title')}
                     </div>
                     <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
                       {PERMS.map(perm => {
-                        const cfg = PERMISSION_LABELS[perm];
                         const checked = !!(m.permissions && m.permissions[perm]);
                         return (
                           <label key={perm} style={{ display:'flex', alignItems:'center', gap:8, fontSize:12, cursor:'pointer' }}>
                             <input type="checkbox" checked={checked}
                               onChange={e => handleTogglePermission(m, perm, e.target.checked)}
                               style={{ accentColor:'var(--gold)' }}/>
-                            <span>{cfg.icon}</span>
-                            <span style={{ color: checked ? 'var(--txt)' : 'var(--dim)' }}>{cfg.label}</span>
+                            <span>{PERM_ICONS[perm]}</span>
+                            <span style={{ color: checked ? 'var(--txt)' : 'var(--dim)' }}>{t('group_info_perms.'+perm)}</span>
                           </label>
                         );
                       })}

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useLang } from '../i18n.js';
 
 const CSS = `
 @keyframes handLeftIn  { 0% { transform: translateX(-60vw) rotate(-20deg) scale(.5); opacity:0 }
@@ -26,6 +27,7 @@ const CSS = `
 `;
 
 export default function SplashScreen({ onDone, brand = 'BetCouple' }) {
+  const { t } = useLang();
   // phases: 0 entering, 1 shake, 2 coin flying, 3 logo, 4 exit
   const [phase, setPhase] = useState(0);
 
@@ -123,7 +125,7 @@ export default function SplashScreen({ onDone, brand = 'BetCouple' }) {
           fontFamily:"'Syne', sans-serif", fontWeight:600,
           animation:'sublineIn .9s ease-out .4s both',
         }}>
-          Scommetti con chi vuoi
+          {t('splash.tagline')}
         </div>
       )}
 
@@ -133,7 +135,7 @@ export default function SplashScreen({ onDone, brand = 'BetCouple' }) {
         color:'#3d3a58', letterSpacing:2,
         fontFamily:"'Syne', sans-serif",
       }}>
-        TAP TO SKIP
+        {t('splash.tap_skip')}
       </div>
     </div>
   );

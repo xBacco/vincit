@@ -284,7 +284,7 @@ export default function BetCard({bet,user,profiles,cats,onResolve,onReveal,onCou
             <span style={{fontSize:22}}>{profiles[lightbox.bettor]?.avatar}</span>
             <span style={{fontWeight:600}}>{profiles[lightbox.bettor]?.name}</span>
           </div>
-          <div style={{position:"absolute",top:20,right:24,color:"#8480a0",fontSize:11,letterSpacing:2,fontFamily:"'Syne',sans-serif"}}>TAP TO CLOSE</div>
+          <div style={{position:"absolute",top:20,right:24,color:"#8480a0",fontSize:11,letterSpacing:2,fontFamily:"'Syne',sans-serif"}}>{t('bet_card.tap_close')}</div>
         </div>
       )}
     </div>

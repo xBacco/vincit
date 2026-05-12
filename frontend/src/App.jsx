@@ -254,17 +254,17 @@ export default function App() {
       await api.createBet({ ...data, id: `b${Date.now()}`, createdAt: Date.now() });
       setShowCreate(false);
       refresh();
-      toast.success(t('create.submit_shared').replace(/^[^A-Za-z]+/, '') || 'Bet creata!');
+      toast.success(t('app.ok_created'));
     } catch (e) { console.error(e); toast.error(t('app.error_create')); }
   };
 
   const handleEdit = async (id, data) => {
-    try { await api.editBet(id, data); setEditingBet(null); refresh(); toast.success('Bet modificata'); }
+    try { await api.editBet(id, data); setEditingBet(null); refresh(); toast.success(t('app.ok_edited')); }
     catch(e) { console.error(e); toast.error(t('app.error_edit')); }
   };
 
   const handleDelete = async bet => {
-    try { await api.cancelBet(bet.id); refresh(); toast.info('Bet annullata'); }
+    try { await api.cancelBet(bet.id); refresh(); toast.info(t('app.ok_cancelled')); }
     catch (e) { console.error(e); toast.error(t('app.error_cancel')); }
   };
 
@@ -294,13 +294,13 @@ export default function App() {
   };
 
   const handleAccept = async id => {
-    try { await api.acceptBet(id); refresh(); toast.success('Bet accettata'); }
+    try { await api.acceptBet(id); refresh(); toast.success(t('app.ok_accepted')); }
     catch(e) { console.error(e); toast.error(t('app.error_accept')); }
   };
 
   const handleReject = async id => {
     if (!window.confirm(t('app.reject_confirm'))) return;
-    try { await api.rejectBet(id); refresh(); toast.info('Bet rifiutata'); }
+    try { await api.rejectBet(id); refresh(); toast.info(t('app.ok_rejected')); }
     catch(e) { console.error(e); toast.error(t('app.error_reject')); }
   };
 
@@ -325,7 +325,7 @@ export default function App() {
   };
 
   const handleReset = async () => {
-    try { await api.resetAll(); refresh(); toast.success('Stagione resettata'); }
+    try { await api.resetAll(); refresh(); toast.success(t('app.ok_reset')); }
     catch(e) { console.error(e); toast.error(t('app.error_reset')); }
   };
 
@@ -530,7 +530,7 @@ export default function App() {
             {view === 'dashboard' && <DashboardView user={user} profiles={profiles} groupMembers={groupMembers} credits={credits} bets={bets} cats={cats} onCreate={() => setShowCreate(true)} onResolve={b => setResolveBet(b)} onReveal={b => setRevealBet(b)} onCounter={b => setCounterTarget(b)} onFlame={handleFlame} notifSince={notifSince} isDesktop={isDesktop} reactions={reactions} onReaction={handleReaction} onReactionPhoto={handleReactionPhoto} onDelete={handleDelete} onEdit={b => setEditingBet(b)} onAccept={handleAccept} onReject={handleReject} can={can} />}
             {view === 'bets'      && <BetsView user={user} profiles={profiles} bets={bets} cats={cats} onResolve={b => setResolveBet(b)} onCounter={b => setCounterTarget(b)} onFlame={handleFlame} isDesktop={isDesktop} reactions={reactions} onReaction={handleReaction} onReactionPhoto={handleReactionPhoto} onDelete={handleDelete} onEdit={b => setEditingBet(b)} onAccept={handleAccept} onReject={handleReject} can={can} />}
             {view === 'vault'     && <VaultView user={user} profiles={profiles} bets={bets} cats={cats} onReveal={b => setRevealBet(b)} onFlame={handleFlame} unlocked={vaultUnlocked} onPinRequest={() => setShowPin(true)} vaultPin={vaultPin} isDesktop={isDesktop} onDelete={handleDelete} onEdit={b => setEditingBet(b)} />}
-            {view === 'stats'     && <StatsView user={user} profiles={profiles} credits={credits} bets={bets} cats={cats} isDesktop={isDesktop} />}
+            {view === 'stats'     && <StatsView user={user} profiles={profiles} groupMembers={groupMembers} credits={credits} bets={bets} cats={cats} isDesktop={isDesktop} />}
             {view === 'settings'  && <SettingsView user={user} profiles={profiles} isDark={isDark} setIsDark={setIsDark} customCats={customCats} credits={credits} bets={bets} onUpdateProfile={handleUpdateProfile} onCreateCategory={handleCreateCategory} onDeleteCategory={handleDeleteCategory} vaultPin={vaultPin} onSetVaultPin={handleSetVaultPin} isDesktop={isDesktop} onReset={handleReset} onLogout={handleLogout} onProfileUpdate={u => setAuthUser(prev => ({...prev,...u}))} isAdmin={isAdmin} can={can} />}
           </>);
         })()}

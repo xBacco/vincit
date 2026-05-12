@@ -145,21 +145,21 @@ export default function SettingsView({user,profiles,isDark,setIsDark,customCats,
           </div>
 
           {/* Upload row */}
-          <div style={{fontSize:11,color:"var(--dim)",marginBottom:8}}>Foto personalizzata</div>
+          <div style={{fontSize:11,color:"var(--dim)",marginBottom:8}}>{t('settings.photo_label')}</div>
           <input ref={fileInputRef} type="file" accept="image/*" onChange={handleAvatarFile} style={{display:"none"}} />
           <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap"}}>
             <button onClick={()=>fileInputRef.current?.click()} disabled={avatarBusy} style={{...S.btn,padding:"8px 14px",fontSize:12,background:"var(--gold)22",border:"1px solid var(--gold)44",color:"var(--gold)",opacity:avatarBusy?.6:1}}>
-              📷 {profileAvatarUrl ? "Cambia foto" : "Carica foto"}
+              {profileAvatarUrl ? t('settings.photo_change') : t('settings.photo_upload')}
             </button>
             {profileAvatarUrl && (
               <button onClick={handleRemoveAvatar} disabled={avatarBusy} style={{...S.btn,padding:"8px 14px",fontSize:12,background:"transparent",border:"1px solid var(--red)44",color:"var(--red)",opacity:avatarBusy?.6:1}}>
-                ✕ Rimuovi foto
+                {t('settings.photo_remove')}
               </button>
             )}
-            {avatarBusy && <span style={{fontSize:12,color:"var(--dim)",alignSelf:"center"}}>caricamento…</span>}
+            {avatarBusy && <span style={{fontSize:12,color:"var(--dim)",alignSelf:"center"}}>{t('settings.photo_uploading')}</span>}
           </div>
 
-          <div style={{fontSize:11,color:"var(--dim)",marginBottom:8}}>{t('settings.avatar_label')}{profileAvatarUrl ? " (fallback)" : ""}</div>
+          <div style={{fontSize:11,color:"var(--dim)",marginBottom:8}}>{t('settings.avatar_label')}{profileAvatarUrl ? t('settings.photo_fallback') : ""}</div>
           <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:12, opacity: profileAvatarUrl ? .5 : 1}}>
             {AVATARS.map(a=>(
               <div key={a} onClick={()=>setProfileAvatar(a)} style={{width:36,height:36,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,cursor:"pointer",background:profileAvatar===a?"var(--gold)22":"var(--surf)",border:`1px solid ${profileAvatar===a?"var(--gold)":"var(--brd)"}`}}>{a}</div>

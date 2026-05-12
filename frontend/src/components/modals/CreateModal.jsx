@@ -101,8 +101,8 @@ function Summary({ stake, potWin, maxC, t }) {
       <div style={{borderTop:"1px solid var(--brd)"}}/>
       {row(t('create.total'), `${potWin} ₡`, "var(--gold)")}
       <div style={{borderTop:"1px dashed var(--gold)33",marginTop:4}}/>
-      {row("Saldo se vinci", `${balanceWin} ₡`, "var(--grn)")}
-      {row("Saldo se perdi", `${balanceLose} ₡`, "var(--red)")}
+      {row(t('create.balance_win'), `${balanceWin} ₡`, "var(--grn)")}
+      {row(t('create.balance_lose'), `${balanceLose} ₡`, "var(--red)")}
     </div>
   );
 }
@@ -395,7 +395,7 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
               </div>
             </div>
             <div style={{padding:"22px 24px",borderLeft:"1px solid var(--brd)",background:"linear-gradient(135deg,var(--card),var(--surf))",overflowY:"auto"}}>
-              <SecLabel>Anteprima</SecLabel>
+              <SecLabel>{t('create.preview')}</SecLabel>
               <LivePreview
                 title={title} quota={quota} stake={stake} potWin={potWin}
                 cat={selectedCat} catLabel={catLabel}
@@ -406,7 +406,7 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
                 t={t}
               />
               <div style={{height:14}}/>
-              <SecLabel>Riepilogo</SecLabel>
+              <SecLabel>{t('create.summary')}</SecLabel>
               <Summary stake={stake} potWin={potWin} maxC={maxC} t={t} />
               {needsApproval && (
                 <div style={{fontSize:12,color:"var(--gold)",marginTop:12,padding:"10px 12px",background:"var(--gold)14",borderRadius:10,border:"1px solid var(--gold)44"}}>
@@ -415,7 +415,7 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
               )}
               {!needsApproval && opponent && !isSecret && stake > 0 && threshold !== Infinity && (
                 <div style={{fontSize:12,color:"var(--grn)",marginTop:12,padding:"10px 12px",background:"var(--grn)11",borderRadius:10,border:"1px solid var(--grn)33"}}>
-                  ✓ Sotto soglia ({threshold} ₡) · accettata automaticamente
+                  {t('create.below_threshold', { threshold })}
                 </div>
               )}
             </div>

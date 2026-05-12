@@ -142,12 +142,14 @@ export default function GroupInfoModal({ group, userId, onClose, onLeft, onDelet
   };
 
   return (
-    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.85)',
+    <div style={{ position:'fixed', inset:0, background:'rgba(15,11,35,.78)',
+      backdropFilter:'blur(6px)', WebkitBackdropFilter:'blur(6px)',
       display:'flex', alignItems:'flex-end', justifyContent:'center', zIndex:100 }}>
       <div className="sUp" style={{
-        background:'var(--surf)', borderRadius:'22px 22px 0 0',
-        width:'100%', maxWidth:480, padding:'24px 20px 40px',
-        borderTop:'1px solid var(--brd)', maxHeight:'88vh', overflowY:'auto',
+        background:'var(--surf)', borderRadius:'12px 12px 0 0',
+        width:'100%', maxWidth:480, padding:'30px 26px 40px',
+        borderTop:'1px solid var(--rule)', maxHeight:'88vh', overflowY:'auto',
+        boxShadow:'0 -20px 60px rgba(0,0,0,.4)',
       }}>
         {editing ? (
           <div style={{ marginBottom:20 }}>

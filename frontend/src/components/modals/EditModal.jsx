@@ -4,10 +4,11 @@ import { useLang } from '../../i18n.js';
 import { useToast } from '../../Toast.jsx';
 
 const S = {
-  lbl: {fontSize:10,color:"var(--dim)",letterSpacing:2,textTransform:"uppercase",display:"block",marginBottom:6},
-  inp: {background:"var(--inp)",border:"1px solid var(--brd)",color:"var(--txt)",borderRadius:10,padding:"10px 14px",fontFamily:"'Manrope',sans-serif",fontSize:14,outline:"none",width:"100%"},
-  btn: {display:"inline-flex",alignItems:"center",justifyContent:"center",gap:6,padding:"10px 18px",borderRadius:10,border:"none",cursor:"pointer",fontFamily:"'Manrope',sans-serif",fontSize:13,fontWeight:600,transition:"all .18s",userSelect:"none",whiteSpace:"nowrap"},
-  card: {background:"var(--card)",border:"1px solid var(--brd)",borderRadius:16,padding:16},
+  lbl: {fontSize:9,color:"var(--dim)",letterSpacing:".3em",textTransform:"uppercase",fontWeight:600,display:"block",marginBottom:10},
+  inp: {background:"transparent",border:0,borderBottom:"1px solid var(--brd)",color:"var(--txt)",borderRadius:0,padding:"8px 2px",fontFamily:"'Manrope',sans-serif",fontSize:15,outline:"none",width:"100%"},
+  btn: {display:"inline-flex",alignItems:"center",justifyContent:"center",gap:6,padding:"8px 14px",borderRadius:999,border:"none",cursor:"pointer",fontFamily:"'Manrope',sans-serif",fontSize:11,fontWeight:600,letterSpacing:".06em",transition:"all .18s",userSelect:"none",whiteSpace:"nowrap"},
+  // "card" kept as a softly-tinted callout for the read-only stake line.
+  card: {background:"var(--soft)",border:"1px solid var(--rule)",borderRadius:4,padding:14},
 };
 
 const qNo = qY => parseFloat((parseFloat(qY)/(parseFloat(qY)-1)).toFixed(2));
@@ -37,11 +38,17 @@ export default function EditModal({bet, user, cats, onSave, onClose}){
   };
 
   return(
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.88)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:100}}>
-      <div className="sUp" style={{background:"var(--surf)",borderRadius:"22px 22px 0 0",width:"100%",maxWidth:480,padding:"24px 20px 36px",maxHeight:"92vh",overflowY:"auto",borderTop:"1px solid var(--brd)"}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:700}}>{t('edit_modal.title')}</div>
-          <Btn variant="ghost" sm onClick={onClose}>✕</Btn>
+    <div style={{position:"fixed",inset:0,background:"rgba(15,11,35,.78)",backdropFilter:"blur(6px)",WebkitBackdropFilter:"blur(6px)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:100}}>
+      <div className="sUp" style={{background:"var(--surf)",borderRadius:"12px 12px 0 0",width:"100%",maxWidth:480,padding:"30px 28px 36px",maxHeight:"92vh",overflowY:"auto",borderTop:"1px solid var(--rule)",boxShadow:"0 -20px 60px rgba(0,0,0,.4)"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:28}}>
+          <div>
+            <div className="bc-meta" style={{marginBottom:8}}>— {t('edit_modal.title').replace(' ✏️','')}</div>
+            <div style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",fontSize:28,fontWeight:600,lineHeight:1,color:"var(--txt)"}}>Edit</div>
+          </div>
+          <button onClick={onClose} style={{
+            background:"transparent",border:"none",cursor:"pointer",
+            color:"var(--dim)",fontSize:18,padding:4,
+          }}>✕</button>
         </div>
 
         {/* Title */}

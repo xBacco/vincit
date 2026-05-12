@@ -502,15 +502,18 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
   // ─── Desktop layout ───────────────────────────────────────────────────
   if (isDesktop) {
     return (
-      <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.78)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100,padding:20}}>
+      <div style={{position:"fixed",inset:0,background:"rgba(15,11,35,.78)",backdropFilter:"blur(6px)",WebkitBackdropFilter:"blur(6px)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100,padding:24}}>
         <div className="bIn" style={{
-          background:"var(--surf)", borderRadius:18, width:"100%", maxWidth:980,
+          background:"var(--surf)", borderRadius:6, width:"100%", maxWidth:980,
           maxHeight:"92vh", display:"flex", flexDirection:"column",
-          border:"1px solid var(--brd)", boxShadow:"0 24px 64px rgba(0,0,0,.5)",
+          border:"1px solid var(--rule)", boxShadow:"0 30px 80px rgba(0,0,0,.55)",
         }}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"18px 24px",borderBottom:"1px solid var(--brd)",flexShrink:0}}>
-            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:700}}>{t('create.title')}</div>
-            <Btn variant="ghost" sm onClick={onClose}>✕</Btn>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",padding:"26px 32px 20px",borderBottom:"1px solid var(--rule)",flexShrink:0}}>
+            <div>
+              <div className="bc-meta" style={{marginBottom:8}}>— Nuovo bet</div>
+              <div style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",fontSize:30,fontWeight:600,lineHeight:1,color:"var(--txt)"}}>{t('create.title')}</div>
+            </div>
+            <button onClick={onClose} style={{background:"transparent",border:"none",cursor:"pointer",color:"var(--dim)",fontSize:18,padding:4}}>✕</button>
           </div>
 
           <div style={{display:"grid",gridTemplateColumns:"1fr 360px",flex:1,minHeight:0}}>
@@ -580,11 +583,14 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
 
   // ─── Mobile layout (bottom sheet, unchanged behavior) ─────────────────
   return (
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.88)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:100}}>
-      <div className="sUp" style={{background:"var(--surf)",borderRadius:"22px 22px 0 0",width:"100%",maxWidth:480,padding:"24px 20px 36px",maxHeight:"92vh",overflowY:"auto",borderTop:"1px solid var(--brd)"}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:700}}>{t('create.title')}</div>
-          <Btn variant="ghost" sm onClick={onClose}>✕</Btn>
+    <div style={{position:"fixed",inset:0,background:"rgba(15,11,35,.78)",backdropFilter:"blur(6px)",WebkitBackdropFilter:"blur(6px)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:100}}>
+      <div className="sUp" style={{background:"var(--surf)",borderRadius:"12px 12px 0 0",width:"100%",maxWidth:480,padding:"30px 26px 40px",maxHeight:"92vh",overflowY:"auto",borderTop:"1px solid var(--rule)",boxShadow:"0 -20px 60px rgba(0,0,0,.4)"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:28}}>
+          <div>
+            <div className="bc-meta" style={{marginBottom:8}}>— Nuovo bet</div>
+            <div style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",fontSize:28,fontWeight:600,lineHeight:1,color:"var(--txt)"}}>{t('create.title')}</div>
+          </div>
+          <button onClick={onClose} style={{background:"transparent",border:"none",cursor:"pointer",color:"var(--dim)",fontSize:18,padding:4}}>✕</button>
         </div>
 
         {TemplatesBlock}

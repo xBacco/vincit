@@ -4,10 +4,15 @@ import { useLang } from '../../i18n.js';
 import * as api from '../../api.js';
 import { useToast } from '../../Toast.jsx';
 
+// Editorial section pattern: no card box, hairline separator, generous
+// vertical breathing. Components that legitimately need a raised look
+// (the credit-confirm popover, reset confirmation) still get card styling
+// inline.
 const S = {
-  card: {background:"var(--card)",border:"1px solid var(--brd)",borderRadius:16,padding:16},
-  inp: {background:"var(--inp)",border:"1px solid var(--brd)",color:"var(--txt)",borderRadius:10,padding:"10px 14px",fontFamily:"'Manrope',sans-serif",fontSize:14,outline:"none",width:"100%"},
-  btn: {display:"inline-flex",alignItems:"center",justifyContent:"center",gap:6,padding:"10px 18px",borderRadius:10,border:"none",cursor:"pointer",fontFamily:"'Manrope',sans-serif",fontSize:13,fontWeight:600,transition:"all .18s",userSelect:"none",whiteSpace:"nowrap"},
+  card: {padding:"22px 0", borderBottom:"1px solid var(--rule)"},
+  inp: {background:"transparent",border:0,borderBottom:"1px solid var(--brd)",borderRadius:0,color:"var(--txt)",padding:"8px 2px",fontFamily:"'Manrope',sans-serif",fontSize:15,outline:"none",width:"100%"},
+  btn: {display:"inline-flex",alignItems:"center",justifyContent:"center",gap:8,padding:"10px 20px",borderRadius:999,border:"none",cursor:"pointer",fontFamily:"'Manrope',sans-serif",fontSize:12,fontWeight:600,letterSpacing:".06em",transition:"all .18s",userSelect:"none",whiteSpace:"nowrap"},
+  raised: {background:"var(--card)",border:"1px solid var(--rule)",borderRadius:14,padding:16},
 };
 
 export default function SettingsView({user,profiles,groupMembers,isDark,setIsDark,customCats,credits,bets,onUpdateProfile,onCreateCategory,onDeleteCategory,vaultPin,onSetVaultPin,isDesktop,onReset,onTestReset,onLogout,onOpenProfileEdit,isAdmin=false,can}){
@@ -80,10 +85,13 @@ export default function SettingsView({user,profiles,groupMembers,isDark,setIsDar
 
   return(
     <div className="sUp">
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
-        <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:24,fontWeight:700}}>{t('settings.title')}</div>
+      <div style={{display:"flex",alignItems:"flex-end",justifyContent:"space-between",gap:20,marginBottom:32,paddingTop:isDesktop?16:8}}>
+        <div>
+          <div className="bc-meta" style={{marginBottom:10}}>— Pannello</div>
+          <div className="bc-hero" style={{fontSize:isDesktop?54:38}}>{t('settings.title')}</div>
+        </div>
         {onLogout && (
-          <button onClick={onLogout} style={{...S.btn,padding:'7px 14px',background:'transparent',border:'1px solid var(--brd)',color:'var(--dim)',fontSize:12}}>
+          <button onClick={onLogout} style={{...S.btn,background:'transparent',color:'var(--dim)',padding:'8px 16px',textTransform:'uppercase'}}>
             {t('settings.logout')}
           </button>
         )}
@@ -465,7 +473,7 @@ export default function SettingsView({user,profiles,groupMembers,isDark,setIsDar
                 debugging: localStorage.setItem('bc_dev_tools','1') + reload.   */}
             {(import.meta.env.DEV || (typeof localStorage !== 'undefined' && localStorage.getItem('bc_dev_tools') === '1')) && (
               showTestResetConfirm ? (
-                <div style={{...S.card,border:'1px solid var(--red)',background:'var(--red)0d', marginBottom:10}}>
+                <div style={{...S.raised,border:'1px solid var(--red)',background:'var(--red)0d', marginBottom:10}}>
                   <div style={{fontSize:14,fontWeight:700,color:'var(--red)',marginBottom:8}}>{t('settings.test_reset_confirm_title')}</div>
                   <div style={{fontSize:12,color:'var(--dim)',marginBottom:16}}>{t('settings.test_reset_confirm_desc')}</div>
                   <div style={{display:'flex',gap:10}}>
@@ -474,7 +482,7 @@ export default function SettingsView({user,profiles,groupMembers,isDark,setIsDar
                   </div>
                 </div>
               ) : (
-                <div style={{...S.card,border:'1px dashed var(--red)44', marginBottom:10}}>
+                <div style={{...S.raised,border:'1px dashed var(--red)44', marginBottom:10}}>
                   <div style={{fontSize:13,fontWeight:600,marginBottom:4}}>🧪 {t('settings.test_reset_title')}</div>
                   <div style={{fontSize:11,color:'var(--dim)',marginBottom:12}}>{t('settings.test_reset_desc')}</div>
                   <button onClick={()=>setShowTestResetConfirm(true)} style={{...S.btn,width:'100%',background:'transparent',border:'1px solid var(--red)44',color:'var(--red)',fontSize:12}}>
@@ -486,7 +494,7 @@ export default function SettingsView({user,profiles,groupMembers,isDark,setIsDar
 
             {/* Full season reset (preserves trophies) */}
             {showResetConfirm ? (
-              <div style={{...S.card,border:'1px solid var(--red)',background:'var(--red)0d'}}>
+              <div style={{...S.raised,border:'1px solid var(--red)',background:'var(--red)0d'}}>
                 <div style={{fontSize:14,fontWeight:700,color:'var(--red)',marginBottom:8}}>{t('settings.reset_confirm_title')}</div>
                 <div style={{fontSize:12,color:'var(--dim)',marginBottom:16}}>{t('settings.reset_confirm_desc')}</div>
                 <div style={{display:'flex',gap:10}}>
@@ -495,7 +503,7 @@ export default function SettingsView({user,profiles,groupMembers,isDark,setIsDar
                 </div>
               </div>
             ) : (
-              <div style={{...S.card,border:'1px solid var(--red)33'}}>
+              <div style={{...S.raised,border:'1px solid var(--red)33'}}>
                 <div style={{fontSize:14,fontWeight:600,marginBottom:4}}>{t('settings.reset_title')}</div>
                 <div style={{fontSize:12,color:'var(--dim)',marginBottom:14}}>{t('settings.reset_desc',{count:(bets||[]).filter(b=>b.status==='active').length,total:(bets||[]).length})}</div>
                 <button onClick={()=>setShowResetConfirm(true)} style={{...S.btn,width:'100%',background:'transparent',border:'1px solid var(--red)66',color:'var(--red)',fontSize:13}}>

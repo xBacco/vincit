@@ -63,7 +63,8 @@
       "Bash(./node_modules/.bin/vite build *)",
       "Bash(git config *)",
       "Bash(gh --version)",
-      "Bash(git init *)"
+      "Bash(git init *)",
+      "Bash(grep *)"
     ]
   }
 }

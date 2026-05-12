@@ -100,31 +100,33 @@ export default function ProfileEditModal({ profile, onClose, onSaved }) {
 
   const overlay = (
     <div onClick={onClose} style={{
-      position:'fixed', inset:0, background:'rgba(0,0,0,.85)',
+      position:'fixed', inset:0, background:'rgba(15,11,35,.78)',
+      backdropFilter:'blur(6px)', WebkitBackdropFilter:'blur(6px)',
       display:'flex', alignItems:'center', justifyContent:'center', zIndex:9100,
-      padding:16, overflow:'hidden',
+      padding:24, overflow:'hidden',
       fontFamily:"'Manrope', sans-serif",
     }}>
       <div onClick={e => e.stopPropagation()} className="bIn" style={{
-        background:'var(--surf)', border:'1px solid var(--brd)',
-        borderRadius:18, width:'100%', maxWidth:520,
-        maxHeight:'calc(100dvh - 32px)', display:'flex', flexDirection:'column',
-        boxShadow:'0 24px 64px rgba(0,0,0,.6)',
+        background:'var(--surf)', border:'1px solid var(--rule)',
+        borderRadius:6, width:'100%', maxWidth:520,
+        maxHeight:'calc(100dvh - 48px)', display:'flex', flexDirection:'column',
+        boxShadow:'0 30px 80px rgba(0,0,0,.55)',
       }}>
         {/* Header */}
         <div style={{
-          display:'flex', justifyContent:'space-between', alignItems:'center',
-          padding:'14px 18px', borderBottom:'1px solid var(--brd)',
-          background:'linear-gradient(180deg, var(--surf), var(--card))',
-          borderRadius:'18px 18px 0 0', flexShrink:0,
+          display:'flex', justifyContent:'space-between', alignItems:'flex-end',
+          padding:'24px 28px 18px', borderBottom:'1px solid var(--rule)',
+          flexShrink:0,
         }}>
-          <div style={{fontFamily:"'Cormorant Garamond',serif", fontSize:18, fontWeight:700}}>
-            {t('profile.edit_title')}
+          <div>
+            <div className="bc-meta" style={{marginBottom:8}}>— Profilo</div>
+            <div style={{fontFamily:"'Cormorant Garamond',serif", fontStyle:'italic', fontSize:24, fontWeight:600, lineHeight:1, color:'var(--txt)'}}>
+              {t('profile.edit_title')}
+            </div>
           </div>
           <button onClick={onClose} style={{
-            background:'transparent', border:'1px solid var(--brd)', borderRadius:10,
-            color:'var(--dim)', padding:'5px 11px', cursor:'pointer',
-            fontFamily:"'Manrope',sans-serif", fontSize:12, fontWeight:600,
+            background:'transparent', border:'none', cursor:'pointer',
+            color:'var(--dim)', fontSize:18, padding:4,
           }}>✕</button>
         </div>
 

@@ -5,39 +5,44 @@ import { useLang } from '../../i18n.js';
 export default function CommentModal({ bet, onSave, onSkip }) {
   const { t } = useLang();
   const [comment, setComment] = useState('');
+  const isWin = bet.status === 'won';
 
   return (
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100,padding:20}}>
-      <div style={{background:"var(--card)",border:"1px solid var(--brd)",borderRadius:20,padding:24,width:"100%",maxWidth:380}}>
-        <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontWeight:700,marginBottom:4}}>
-          {bet.status === 'won' ? t('comment.won') : t('comment.lost')}
+    <div style={{position:"fixed",inset:0,background:"rgba(15,11,35,.78)",backdropFilter:"blur(6px)",WebkitBackdropFilter:"blur(6px)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100,padding:24}} onClick={onSkip}>
+      <div className="bIn" style={{background:"var(--surf)",border:"1px solid var(--rule)",borderRadius:6,padding:"32px 30px",width:"100%",maxWidth:400,boxShadow:"0 30px 80px rgba(0,0,0,.55)"}} onClick={e=>e.stopPropagation()}>
+        <div className="bc-meta" style={{marginBottom:10, color: isWin ? 'var(--grn)' : 'var(--red)'}}>
+          — {isWin ? t('comment.won') : t('comment.lost')}
         </div>
-        <div style={{fontSize:13,color:"var(--dim)",fontStyle:"italic",marginBottom:16,lineHeight:1.4}}>"{bet.title}"</div>
-        <div style={{fontSize:13,color:"var(--dim)",marginBottom:8}}>{t('comment.prompt')}</div>
+        <div style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",fontSize:24,fontWeight:600,lineHeight:1.15,marginBottom:20,color:"var(--txt)"}}>
+          “{bet.title}”
+        </div>
+        <div style={{fontSize:13,color:"var(--dim)",marginBottom:14,lineHeight:1.5}}>{t('comment.prompt')}</div>
         <textarea
           value={comment}
           onChange={e => setComment(e.target.value.slice(0, 280))}
           placeholder={t('comment.placeholder')}
-          rows={3}
+          rows={4}
+          autoFocus
           style={{
             width:"100%",
-            background:"var(--inp)",
-            border:"1px solid var(--brd)",
+            background:"transparent",
+            border:0,
+            borderBottom:"1px solid var(--brd)",
             color:"var(--txt)",
-            borderRadius:10,
-            padding:"10px 14px",
+            borderRadius:0,
+            padding:"10px 2px",
             fontFamily:"'Manrope',sans-serif",
-            fontSize:14,
+            fontSize:15,
             outline:"none",
             resize:"none",
-            marginBottom:4,
             boxSizing:"border-box",
+            transition:"border-color .18s",
           }}
         />
-        <div style={{fontSize:11,color:"var(--mut)",textAlign:"right",marginBottom:14}}>{comment.length}/280</div>
-        <div style={{display:"flex",gap:8}}>
-          <Btn variant="gold" sm onClick={() => onSave(bet.id, comment)} disabled={!comment.trim()}>{t('comment.save')}</Btn>
-          <Btn variant="ghost" sm onClick={onSkip}>{t('comment.skip')}</Btn>
+        <div className="bc-meta" style={{textAlign:"right",marginTop:6,marginBottom:22,fontSize:8}}>{comment.length}/280</div>
+        <div style={{display:"flex",gap:10}}>
+          <Btn variant="gold" full onClick={() => onSave(bet.id, comment)} disabled={!comment.trim()}>{t('comment.save')}</Btn>
+          <Btn variant="ghost" full onClick={onSkip}>{t('comment.skip')}</Btn>
         </div>
       </div>
     </div>

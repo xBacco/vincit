@@ -5,17 +5,23 @@ import { useToast } from '../../Toast.jsx';
 import { COLORS } from '../Atoms.jsx';
 import { validatePassword } from '../../passwordPolicy.js';
 
+// Editorial style: sections separate by hairline + whitespace, not by box.
+// `raised` is reserved for genuinely raised surfaces (danger-zone, the
+// pending-nuke panel). Buttons are pills, no chunky borders.
 const S = {
-  card:    { background: 'var(--card)', border: '1px solid var(--brd)', borderRadius: 14, padding: 14, marginBottom: 12 },
-  label:   { fontSize: 10, color: 'var(--dim)', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 700 },
+  card:    { padding: '20px 0', borderBottom: '1px solid var(--rule)', marginBottom: 0 },
+  raised:  { background: 'var(--card)', border: '1px solid var(--rule)', borderRadius: 14, padding: 16, marginBottom: 12 },
+  row:     { padding: '14px 0', borderBottom: '1px solid var(--rule)' },
+  label:   { fontSize: 9, color: 'var(--dim)', letterSpacing: '.3em', textTransform: 'uppercase', fontWeight: 600 },
   small:   { fontSize: 11, color: 'var(--mut)' },
-  pre:     { background: 'var(--inp)', color: 'var(--txt)', borderRadius: 8, padding: 10, fontSize: 11, fontFamily: 'monospace', overflowX: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-all' },
+  pre:     { background: 'var(--inp)', color: 'var(--txt)', borderRadius: 4, padding: 12, fontSize: 11, fontFamily: 'monospace', overflowX: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-all' },
   btn:     (variant) => ({
-    padding: '7px 13px', borderRadius: 8, cursor: 'pointer',
-    fontFamily: "'Manrope',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: 0.5,
-    background: variant === 'danger' ? 'var(--red)1a' : variant === 'ghost' ? 'transparent' : 'var(--gold)22',
-    border: `1px solid ${variant === 'danger' ? 'var(--red)44' : variant === 'ghost' ? 'var(--brd)' : 'var(--gold)55'}`,
-    color: variant === 'danger' ? 'var(--red)' : variant === 'ghost' ? 'var(--dim)' : 'var(--gold)',
+    padding: '8px 16px', borderRadius: 999, cursor: 'pointer',
+    fontFamily: "'Manrope',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '.08em',
+    background: variant === 'danger' ? 'transparent' : variant === 'ghost' ? 'transparent' : 'var(--pur)',
+    border: `1px solid ${variant === 'danger' ? 'var(--red)66' : variant === 'ghost' ? 'transparent' : 'transparent'}`,
+    color: variant === 'danger' ? 'var(--red)' : variant === 'ghost' ? 'var(--dim)' : '#1a1530',
+    boxShadow: variant === 'danger' || variant === 'ghost' ? 'none' : '0 8px 24px -10px var(--pur)',
   }),
 };
 
@@ -118,12 +124,13 @@ export default function AdminView({ isDesktop }) {
     const active = tab === id;
     return (
       <button onClick={() => { setTab(id); setSelectedId(null); }} style={{
-        flex: 1, padding: '10px 12px',
-        background: active ? 'var(--gold)18' : 'transparent',
-        color: active ? 'var(--gold)' : 'var(--dim)',
+        padding: '6px 0 14px',
+        background: 'transparent',
+        color: active ? 'var(--txt)' : 'var(--dim)',
         border: 'none', borderBottom: `2px solid ${active ? 'var(--gold)' : 'transparent'}`,
-        cursor: 'pointer', fontFamily: "'Manrope',sans-serif",
-        fontSize: 12, fontWeight: 700, letterSpacing: 0.3,
+        marginBottom: -1, cursor: 'pointer', fontFamily: "'Manrope',sans-serif",
+        fontSize: 11, fontWeight: 600, letterSpacing: '.22em', textTransform: 'uppercase',
+        whiteSpace: 'nowrap', transition: 'all .18s',
       }}>{label}</button>
     );
   };
@@ -134,22 +141,22 @@ export default function AdminView({ isDesktop }) {
 
   return (
     <div className="sUp" style={{ paddingBottom: isDesktop ? 32 : 96 }}>
-      <div style={{ marginBottom: 16 }}>
-        <h1 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: isDesktop ? 32 : 24, fontWeight: 900, letterSpacing: -0.5, marginBottom: 4 }}>
-          🛠️ Admin
-        </h1>
-        <div style={{ fontSize: 12, color: 'var(--dim)', lineHeight: 1.5 }}>
-          Pannello di controllo riservato. Le azioni sono immediate e non recuperabili — pensaci due volte.
+      <div style={{ marginBottom: 32, paddingTop: isDesktop ? 16 : 8 }}>
+        <div className="bc-meta" style={{ marginBottom: 10 }}>— Riservato</div>
+        <div className="bc-hero" style={{ fontSize: isDesktop ? 54 : 38 }}>Admin</div>
+        <div style={{ fontSize: 13, color: 'var(--dim)', lineHeight: 1.6, marginTop: 14, maxWidth: 520 }}>
+          Pannello di controllo. Le azioni sono immediate e non recuperabili — pensaci due volte.
         </div>
       </div>
 
+      {/* Underline tabs — no boxed strip */}
       <div style={{
-        display: 'flex', background: 'var(--card)', border: '1px solid var(--brd)',
-        borderRadius: 12, overflow: 'hidden', marginBottom: 14,
+        display: 'flex', gap: 24, borderBottom: '1px solid var(--rule)',
+        marginBottom: 4, overflowX: 'auto',
       }}>
-        <TabBtn id="users"     label={`Utenti (${users.length})`}/>
-        <TabBtn id="groups"    label={`Gruppi (${groups.length})`}/>
-        <TabBtn id="integrity" label={`Integrità${integrity ? ` (${(integrity.dangling_room_ids?.length||0) + (integrity.duplicate_names?.length||0) + (integrity.orphan_user_groups?.length||0) + (integrity.duplicate_emails?.length||0)})` : ''}`}/>
+        <TabBtn id="users"     label={`Utenti · ${users.length}`}/>
+        <TabBtn id="groups"    label={`Gruppi · ${groups.length}`}/>
+        <TabBtn id="integrity" label={`Integrità${integrity ? ` · ${(integrity.dangling_room_ids?.length||0) + (integrity.duplicate_names?.length||0) + (integrity.orphan_user_groups?.length||0) + (integrity.duplicate_emails?.length||0)}` : ''}`}/>
         {nukeAvailable && <TabBtn id="nuke" label="🔥 Reset"/>}
       </div>
 
@@ -157,15 +164,14 @@ export default function AdminView({ isDesktop }) {
       {tab === 'users' && !selectedId && (
         <>
           <div style={{
-            display: 'flex', alignItems: 'center', gap: 8,
-            padding: '10px 14px', marginBottom: 14,
-            background: 'var(--card)', border: '1px solid var(--brd)',
-            borderRadius: 12,
+            display: 'flex', alignItems: 'center', gap: 10,
+            padding: '14px 2px', marginTop: 18, marginBottom: 4,
+            borderBottom: '1px solid var(--brd)',
           }}>
-            <span style={{ color: 'var(--dim)' }}>🔍</span>
+            <span style={{ color: 'var(--dim)', fontSize: 14 }}>🔍</span>
             <input value={query} onChange={e => setQuery(e.target.value)}
               placeholder="Cerca per email o nome…"
-              style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', color: 'var(--txt)', fontFamily: "'Manrope',sans-serif", fontSize: 13 }}/>
+              style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', color: 'var(--txt)', fontFamily: "'Manrope',sans-serif", fontSize: 14, letterSpacing: '.01em' }}/>
           </div>
 
           {filteredUsers.map(u => {
@@ -211,17 +217,17 @@ export default function AdminView({ isDesktop }) {
           <>
             <button onClick={() => setSelectedId(null)} style={S.btn('ghost')}>← indietro</button>
 
-            <div style={{ ...S.card, marginTop: 14, display: 'flex', alignItems: 'center', gap: 14 }}>
-              <Avatar p={u} size={56}/>
+            <div style={{ marginTop: 24, marginBottom: 12, paddingBottom: 22, borderBottom: '1px solid var(--rule)', display: 'flex', alignItems: 'center', gap: 18 }}>
+              <Avatar p={u} size={64}/>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 19, fontWeight: 700 }}>{u.name}</div>
-                <div style={{ fontSize: 12, color: 'var(--dim)' }}>{u.email}</div>
-                <div style={{ fontSize: 10, color: 'var(--mut)', marginTop: 4, fontFamily: 'monospace' }}>{u.id}</div>
+                <div style={{ fontFamily: "'Cormorant Garamond',serif", fontStyle: 'italic', fontSize: 30, fontWeight: 600, lineHeight: 1.05, letterSpacing: '-0.01em' }}>{u.name}</div>
+                <div style={{ fontSize: 13, color: 'var(--dim)', marginTop: 4 }}>{u.email}</div>
+                <div style={{ fontSize: 10, color: 'var(--mut)', marginTop: 6, fontFamily: 'monospace', letterSpacing: '.04em' }}>{u.id}</div>
               </div>
             </div>
 
             {emailSiblings.length > 0 && (
-              <div style={{ ...S.card, borderColor: 'var(--red)55', background: 'var(--red)0d' }}>
+              <div style={{ ...S.raised, borderColor: 'var(--red)55', background: 'var(--red)0d' }}>
                 <div style={{ ...S.label, color: 'var(--red)' }}>⚠ Email duplicata</div>
                 <div style={{ fontSize: 11, color: 'var(--mut)', marginTop: 4, marginBottom: 10 }}>
                   Altri {emailSiblings.length} account hanno questa stessa email. Il login va a quello che il DB restituisce per primo — potrebbe non essere quello su cui stai impostando la password. Cancella quelli sbagliati o imposta la password sul record giusto.
@@ -322,7 +328,7 @@ export default function AdminView({ isDesktop }) {
               );
             })()}
 
-            <div style={{ ...S.card, borderColor: 'var(--red)44' }}>
+            <div style={{ ...S.raised, borderColor: 'var(--red)44' }}>
               <div style={{ ...S.label, color: 'var(--red)' }}>Danger zone</div>
               <div style={{ fontSize: 11, color: 'var(--mut)', marginTop: 4, marginBottom: 10 }}>
                 Cancella l'account e ogni traccia (bet, crediti, achievements, reazioni, amicizie, gruppi).
@@ -370,7 +376,7 @@ export default function AdminView({ isDesktop }) {
       {/* ── INTEGRITÀ ──────────────────────────────────────── */}
       {tab === 'integrity' && integrity && (
         <>
-          <div style={{ ...S.card, borderColor: integrity.duplicate_emails?.length ? 'var(--red)55' : 'var(--brd)' }}>
+          <div style={{ ...S.raised, borderColor: integrity.duplicate_emails?.length ? 'var(--red)55' : 'var(--rule)' }}>
             <div style={{ ...S.label, color: integrity.duplicate_emails?.length ? 'var(--red)' : 'var(--dim)' }}>
               Email duplicate
             </div>
@@ -446,7 +452,7 @@ export default function AdminView({ isDesktop }) {
 
       {/* ── RESET TOTALE (one-shot) ─────────────────────────── */}
       {tab === 'nuke' && nukeAvailable && (
-        <div style={{ ...S.card, borderColor: 'var(--red)55', background: 'var(--red)0d' }}>
+        <div style={{ ...S.raised, borderColor: 'var(--red)55', background: 'var(--red)0d' }}>
           <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 22, fontWeight: 800, color: 'var(--red)', marginBottom: 8 }}>
             🔥 Reset totale
           </div>

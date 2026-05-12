@@ -73,7 +73,7 @@ export const deleteCategory = (id)           => req('DELETE', `/categories/${id}
 export const deltaCredits   = (user, delta)  => req('PATCH',  `/credits/${user}`, { delta });
 
 export const cancelBet      = (id)           => req('DELETE', `/bets/${id}`);
-export const acceptBet      = (id)           => req('POST',   `/bets/${id}/accept`);
+export const acceptBet      = (id, body={})   => req('POST',   `/bets/${id}/accept`, body);
 export const rejectBet      = (id)           => req('POST',   `/bets/${id}/reject`);
 export const editBet        = (id, data)     => req('PATCH',  `/bets/${id}/edit`, data);
 export const resetAll       = ()             => req('POST',   '/bets/reset');

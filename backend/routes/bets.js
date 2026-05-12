@@ -32,12 +32,17 @@ module.exports = function(broadcastUpdate) {
         'SELECT acceptance_threshold FROM rooms WHERE id=$1', [roomId]
       );
       const threshold = roomRows[0]?.acceptance_threshold ?? 20;
-      const isPending = !isSecret && opponent && stake >= threshold;
-      const status = isPending ? 'pending' : 'active';
 
       // A surprise bet requires an opponent and is never broadcasted as counterable
       const surprise = !!isSurprise && !!opponent && !isSecret;
       const counterable = isCounterable && !isSecret && !surprise;
+
+      // Pot mode: any TARGETED non-surprise bet must wait for the opponent to
+      // accept (and pick their stake). Surprise stays auto-active (otherwise
+      // the surprise would be spoiled). Open / vault never go pending.
+      const isTargetedAccept = !isSecret && !!opponent && !surprise;
+      const isPending = isTargetedAccept || (!isSecret && opponent && stake >= threshold);
+      const status = isPending ? 'pending' : 'active';
 
       // Validate target: must be in the same group, can't be creator, can't equal opponent (for clarity)
       let target = null;
@@ -163,7 +168,16 @@ module.exports = function(broadcastUpdate) {
 
         await client.query('UPDATE bets SET status = $1, resolved_at = $2 WHERE id = $3', [outcome, Date.now(), bet.id]);
 
-        if (outcome === 'won') {
+        // Pot-mode payout: winner takes both stakes (creator\'s + opponent\'s).
+        // Loser keeps their deduction. Legacy free-bet payout otherwise.
+        if (bet.opponent_stake != null) {
+          const pot = bet.stake + bet.opponent_stake;
+          const winnerId = outcome === 'won' ? bet.creator : bet.opponent;
+          await client.query(
+            'UPDATE credits SET amount = amount + $1 WHERE "user" = $2',
+            [pot, winnerId]
+          );
+        } else if (outcome === 'won') {
           await client.query(
             'UPDATE credits SET amount = amount + $1 WHERE "user" = $2',
             [bet.potential_win, bet.creator]
@@ -345,12 +359,43 @@ module.exports = function(broadcastUpdate) {
       if (bet.status !== 'pending') return res.status(400).json({ error: 'Not pending' });
       if (bet.opponent !== req.userId) return res.status(403).json({ error: 'Not the opponent' });
 
+      // Optional pot-mode stake. If absent we fall back to legacy free-bet
+      // behavior (creator-only stake, casino payout on win).
+      let opponentStake = null;
+      if (req.body && req.body.stake != null) {
+        const s = parseInt(req.body.stake, 10);
+        if (!Number.isInteger(s) || s < 1) return res.status(400).json({ error: 'stake_invalid' });
+        // Check opponent has the credits
+        const { rows: cr } = await db.query('SELECT amount FROM credits WHERE "user"=$1', [req.userId]);
+        const have = cr[0]?.amount ?? 0;
+        if (s > have) return res.status(400).json({ error: 'insufficient_credits' });
+        opponentStake = s;
+      }
+
       await db.transaction(async (client) => {
-        await client.query('UPDATE bets SET status=$1 WHERE id=$2', ['active', bet.id]);
-        await client.query(
-          'UPDATE credits SET amount = amount - $1 WHERE "user" = $2',
-          [bet.stake, bet.creator]
-        );
+        if (opponentStake != null) {
+          await client.query(
+            'UPDATE bets SET status=$1, opponent_stake=$2 WHERE id=$3',
+            ['active', opponentStake, bet.id]
+          );
+          // Deduct both stakes: creator\'s X (held now for the first time) +
+          // opponent\'s chosen Y. Winner-takes-pot at resolve time.
+          await client.query(
+            'UPDATE credits SET amount = amount - $1 WHERE "user" = $2',
+            [bet.stake, bet.creator]
+          );
+          await client.query(
+            'UPDATE credits SET amount = amount - $1 WHERE "user" = $2',
+            [opponentStake, req.userId]
+          );
+        } else {
+          // Legacy: deduct only creator stake.
+          await client.query('UPDATE bets SET status=$1 WHERE id=$2', ['active', bet.id]);
+          await client.query(
+            'UPDATE credits SET amount = amount - $1 WHERE "user" = $2',
+            [bet.stake, bet.creator]
+          );
+        }
       });
 
       broadcastUpdate(req.activeRoomId);

@@ -27,6 +27,7 @@ import CounterModal from './components/modals/CounterModal.jsx';
 import PinModal from './components/modals/PinModal.jsx';
 import CommentModal from './components/modals/CommentModal.jsx';
 import EditModal from './components/modals/EditModal.jsx';
+import AcceptModal from './components/modals/AcceptModal.jsx';
 import ProfileEditModal from './components/modals/ProfileEditModal.jsx';
 import GroupPicker from './components/GroupPicker.jsx';
 
@@ -297,6 +298,7 @@ export default function App() {
   const [winAnim, setWinAnim]             = useState(null);
   const [commentBetModal, setCommentBetModal] = useState(null);
   const [editingBet, setEditingBet]       = useState(null);
+  const [acceptingBet, setAcceptingBet]   = useState(null);
   const [showProfileEdit, setShowProfileEdit] = useState(false);
 
   useEffect(() => { if (user && groups.length > 0) registerPush(user); }, [user, groups.length]);
@@ -388,9 +390,23 @@ export default function App() {
     setCommentBetModal(null);
   };
 
-  const handleAccept = async id => {
-    try { await api.acceptBet(id); refresh(); toast.success(t('app.ok_accepted')); }
-    catch(e) { console.error(e); toast.error(t('app.error_accept')); }
+  // Targeted bets now open the AcceptModal so the opponent can choose their
+  // stake (pot-mode). The actual API call happens inside the modal\'s onAccept.
+  const handleAccept = id => {
+    const bet = bets.find(b => b.id === id);
+    if (!bet) return;
+    if (bet.opponent !== user) return; // safety
+    setAcceptingBet(bet);
+  };
+  const submitAccept = async (id, body) => {
+    try { await api.acceptBet(id, body); refresh(); toast.success(t('app.ok_accepted')); }
+    catch(e) {
+      console.error(e);
+      const msg = e?.message === 'insufficient_credits'
+        ? t('accept.err_insufficient')
+        : t('app.error_accept');
+      toast.error(msg);
+    }
   };
 
   const handleReject = async id => {
@@ -675,6 +691,15 @@ export default function App() {
       {winAnim        && <WinOverlay amount={winAnim} onDone={() => setWinAnim(null)} />}
       {commentBetModal && <CommentModal bet={commentBetModal} onSave={handleComment} onSkip={() => setCommentBetModal(null)} />}
       {editingBet && <EditModal bet={editingBet} cats={cats} user={user} onSave={handleEdit} onClose={() => setEditingBet(null)}/>}
+      {acceptingBet && (
+        <AcceptModal
+          bet={acceptingBet}
+          profiles={profiles}
+          myCredits={credits[user] ?? 0}
+          onAccept={submitAccept}
+          onClose={() => setAcceptingBet(null)}
+        />
+      )}
       {showGroupModal && <CreateGroupModal onCreated={handleGroupCreated} onClose={() => setShowGroupModal(false)} />}
       {showProfileEdit && (
         <ProfileEditModal

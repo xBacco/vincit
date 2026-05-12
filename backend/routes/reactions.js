@@ -50,7 +50,8 @@ module.exports = function(broadcastUpdate) {
       if (!cldReady()) return res.status(503).json({ error: 'image_upload_unavailable' });
       const bettor = req.userId;
       const { dataUrl } = req.body;
-      if (typeof dataUrl !== 'string' || !/^data:image\/(jpeg|png|webp|jpg);base64,/i.test(dataUrl))
+      // Same set of formats as avatar upload — Cloudinary transcodes HEIC.
+      if (typeof dataUrl !== 'string' || !/^data:image\/(jpeg|jpg|png|webp|heic|heif);base64,/i.test(dataUrl))
         return res.status(400).json({ error: 'invalid_image' });
 
       const approxBytes = Math.floor(dataUrl.length * 0.75);

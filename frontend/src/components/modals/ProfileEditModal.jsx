@@ -30,15 +30,31 @@ export default function ProfileEditModal({ profile, onClose, onSaved }) {
       const dataUrl = await fileToSquareDataUrl(f, 512, 0.85);
       const { avatar_url } = await api.uploadAvatar(dataUrl);
       setAvatarUrl(avatar_url);
-    } catch { toast.error(t('app.error_create')); }
-    finally { setPhotoBusy(false); }
+      toast.success(t('profile.ok_uploaded'));
+    } catch (err) {
+      console.error('[profile-avatar-upload]', err);
+      const code = err?.message || '';
+      const key = (code === 'decode_failed' || code === 'not_an_image' || code === 'invalid_image')
+        ? 'profile.err_format'
+        : (code === 'file_too_large' || code === 'image_too_large')
+          ? 'profile.err_too_big'
+          : (code === 'image_upload_unavailable')
+            ? 'profile.err_unavailable'
+            : 'profile.err_upload';
+      toast.error(t(key));
+    } finally { setPhotoBusy(false); }
   };
 
   const removePhoto = async () => {
     setPhotoBusy(true);
-    try { await api.deleteAvatar(); setAvatarUrl(null); }
-    catch { toast.error(t('app.error_cancel')); }
-    finally { setPhotoBusy(false); }
+    try {
+      await api.deleteAvatar();
+      setAvatarUrl(null);
+      toast.success(t('profile.ok_removed'));
+    } catch (err) {
+      console.error('[profile-avatar-remove]', err);
+      toast.error(t('profile.err_remove'));
+    } finally { setPhotoBusy(false); }
   };
 
   const save = async () => {

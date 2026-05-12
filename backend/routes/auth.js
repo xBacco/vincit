@@ -148,7 +148,9 @@ router.post('/avatar', async (req, res) => {
     if (!cldReady()) return res.status(503).json({ error: 'image_upload_unavailable' });
 
     const { dataUrl } = req.body;
-    if (typeof dataUrl !== 'string' || !/^data:image\/(jpeg|png|webp|jpg);base64,/i.test(dataUrl))
+    // Accept JPEG/PNG/WebP from canvas + HEIC/HEIF raw uploads from iPhone
+    // (Cloudinary will transcode HEIC during the avatar upload).
+    if (typeof dataUrl !== 'string' || !/^data:image\/(jpeg|jpg|png|webp|heic|heif);base64,/i.test(dataUrl))
       return res.status(400).json({ error: 'invalid_image' });
 
     // base64 size cap (after stripping prefix): ~5MB

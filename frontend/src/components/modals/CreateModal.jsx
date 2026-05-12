@@ -209,12 +209,16 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
   const needsApproval=needsOpponent && stake>=threshold;
   const selectedCat = cats.find(c=>c.id===cat) || cats[0];
 
-  const submit=()=>{
-    if(!title.trim()){toast.error(t('create.err_title'));return;}
-    if(stake<=0||stake>maxStake){toast.error(t('create.err_stake',{max:Math.round(maxStake)}));return;}
-    if(needsOpponent && !opponentId){toast.error(t('create.opponent_pick'));return;}
-    // Subset only makes sense for OPEN bets, and only if the user actually
-    // picked specific members (non-empty AND not the whole group).
+  // Easter egg #3: JACKPOT titles trigger a slot-machine overlay BEFORE the
+  // bet is actually submitted. After the reels stop, the bet is created
+  // normally so it survives as a memento in the user's bet history.
+  const [jackpot, setJackpot] = useState(false);
+  const isMagicTitle = (s) => {
+    const v = s.trim().toLowerCase();
+    return v === '777' || v === 'jackpot' || v === '💎💎💎';
+  };
+
+  const doActualSubmit = () => {
     let allowedMembers;
     if (betType === 'open' && allowedSet.size > 0 && allowedSet.size < others.length) {
       allowedMembers = Array.from(allowedSet);
@@ -229,6 +233,24 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
       targetUser: betType !== 'vault' && targetId ? targetId : undefined,
       allowedMembers,
     });
+  };
+
+  const submit=()=>{
+    if(!title.trim()){toast.error(t('create.err_title'));return;}
+    if(stake<=0||stake>maxStake){toast.error(t('create.err_stake',{max:Math.round(maxStake)}));return;}
+    if(needsOpponent && !opponentId){toast.error(t('create.opponent_pick'));return;}
+
+    if (isMagicTitle(title)) {
+      setJackpot(true);
+      api.unlockSecretAchievement('egg_jackpot').catch(() => {});
+      // Slot machine plays for 1.8s, then submit + close.
+      setTimeout(() => {
+        setJackpot(false);
+        doActualSubmit();
+      }, 1800);
+      return;
+    }
+    doActualSubmit();
   };
 
   // ─── Form blocks (shared mobile/desktop) ──────────────────────────────
@@ -651,9 +673,61 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
     </div>
   );
 
+  // Easter egg #3 — slot machine overlay. Spinning reels of 🎰 symbols
+  // for ~1.8s, ending on 7-7-7. Rendered over both desktop and mobile
+  // layouts, takes over the screen while it plays.
+  const SlotMachine = jackpot && (
+    <div style={{
+      position:'fixed', inset:0, zIndex:9600,
+      background:'radial-gradient(circle at 50% 45%, rgba(43,34,71,.96) 0%, rgba(15,11,35,.98) 70%)',
+      backdropFilter:'blur(8px)', WebkitBackdropFilter:'blur(8px)',
+      display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:24,
+    }}>
+      <div className="bc-meta" style={{marginBottom:18, color:'var(--gold)'}}>— Jackpot</div>
+      <div style={{
+        display:'flex', gap:'clamp(8px, 3vw, 22px)',
+        padding:'clamp(18px, 5vw, 36px) clamp(20px, 6vw, 48px)',
+        border:'2px solid var(--gold)', borderRadius:6,
+        background:'rgba(15,11,35,.6)',
+        boxShadow:'0 0 50px rgba(196,168,120,.45), inset 0 0 20px rgba(196,168,120,.15)',
+      }}>
+        {[0, 1, 2].map(i => (
+          <div key={i} style={{
+            width:'clamp(60px, 16vw, 110px)', height:'clamp(90px, 22vw, 160px)',
+            overflow:'hidden', position:'relative',
+            background:'rgba(0,0,0,.35)', borderRadius:4,
+            border:'1px solid var(--gold)55',
+          }}>
+            <div style={{
+              display:'flex', flexDirection:'column',
+              animation: `slotReel ${1.0 + i * 0.25}s cubic-bezier(.45,.05,.55,.95) forwards`,
+              fontFamily:"'Playfair Display',serif",
+              fontSize:'clamp(56px, 14vw, 100px)', fontWeight:900,
+              color:'var(--gold)', lineHeight:1.4, textAlign:'center',
+              filter:'drop-shadow(0 0 6px rgba(196,168,120,.6))',
+            }}>
+              {['🍒','🍋','💎','🔔','⭐','🍀','🎰','7'].map((s, j) => (
+                <div key={j} style={{padding:'0 0 12px'}}>{s}</div>
+              ))}
+              <div style={{padding:'0 0 12px', color:'var(--gold)'}}>7</div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div style={{
+        marginTop:32,
+        fontFamily:"'Cormorant Garamond',serif", fontStyle:'italic',
+        fontSize:'clamp(36px, 8vw, 72px)', fontWeight:600,
+        color:'var(--gold)', letterSpacing:'-0.02em',
+        animation:'bIn .5s ease both 1.4s',
+      }}>JACKPOT!</div>
+    </div>
+  );
+
   // ─── Desktop layout ───────────────────────────────────────────────────
   if (isDesktop) {
-    return (
+    return (<>
+      {SlotMachine}
       <div style={{position:"fixed",inset:0,background:"rgba(15,11,35,.78)",backdropFilter:"blur(6px)",WebkitBackdropFilter:"blur(6px)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100,padding:24}}>
         <div className="bIn" style={{
           background:"var(--surf)", borderRadius:6, width:"100%", maxWidth:980,
@@ -730,11 +804,12 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
           )}
         </div>
       </div>
-    );
+    </>);
   }
 
   // ─── Mobile layout (bottom sheet, unchanged behavior) ─────────────────
-  return (
+  return (<>
+    {SlotMachine}
     <div style={{position:"fixed",inset:0,background:"rgba(15,11,35,.78)",backdropFilter:"blur(6px)",WebkitBackdropFilter:"blur(6px)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:100}}>
       <div className="sUp" style={{background:"var(--surf)",borderRadius:"12px 12px 0 0",width:"100%",maxWidth:480,padding:"30px 26px 40px",maxHeight:"92vh",overflowY:"auto",borderTop:"1px solid var(--rule)",boxShadow:"0 -20px 60px rgba(0,0,0,.4)"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:28}}>
@@ -769,7 +844,7 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
         )}
       </div>
     </div>
-  );
+  </>);
 }
 
 function SaveTemplateDialog({ name, setName, onCancel, onSave, t }) {

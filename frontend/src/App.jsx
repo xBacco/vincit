@@ -105,6 +105,31 @@ const CSS_BASE = `
   0%, 100% { transform: translate(0,0) scale(1);   opacity:1; }
   50%      { transform: translate(2%, -1%) scale(1.06); opacity:.85; }
 }
+/* Easter-egg die roll: tumble + scale + rotate so each click feels physical. */
+@keyframes dieTumble {
+  0%   { transform: rotate(0deg) scale(1);     }
+  30%  { transform: rotate(180deg) scale(1.3); }
+  60%  { transform: rotate(420deg) scale(.9);  }
+  100% { transform: rotate(720deg) scale(1);   }
+}
+/* Easter-egg coin flip: spin around X-axis with vertical hop. */
+@keyframes coinFlip {
+  0%   { transform: translateY(0)    rotateX(0deg) scale(.6); opacity:0; }
+  15%  { transform: translateY(-30px) rotateX(360deg)  scale(1); opacity:1; }
+  50%  { transform: translateY(-60px) rotateX(1800deg) scale(1.1); }
+  85%  { transform: translateY(-30px) rotateX(3240deg) scale(1); }
+  100% { transform: translateY(0)    rotateX(3600deg) scale(1); }
+}
+@keyframes coinSettle {
+  0%   { transform: scale(1)   rotate(0deg);    }
+  50%  { transform: scale(1.1) rotate(8deg);    }
+  100% { transform: scale(1)   rotate(0deg);    }
+}
+/* Easter-egg slot machine — reels spinning fast then easing to a stop. */
+@keyframes slotReel {
+  0%   { transform: translateY(0); }
+  100% { transform: translateY(-720px); }
+}
 .bc h1,.bc h2{letter-spacing:-0.02em}
 
 /* Focus ring (keyboard nav) — uses lavender now; gold is reserved for accents. */
@@ -128,6 +153,64 @@ const CSS_BASE = `
   .bc input:hover,.bc textarea:hover,.bc select:hover{border-color:var(--pur)66 !important;}
 }
 `;
+
+// Easter egg #2: fullscreen coin flip. Triggered from the ₡ symbol next to
+// the credit balance (mobile header + desktop sidebar). First flip ever
+// unlocks the secret trophy `egg_coin`; subsequent flips are pure fun.
+const COIN_LS_KEY = 'bc_egg_coin_flipped';
+
+function CoinFlipOverlay({ open, onClose }) {
+  const [phase, setPhase] = React.useState('flipping'); // 'flipping' | 'settled'
+  const [side, setSide]   = React.useState(null);       // 'testa' | 'croce'
+  React.useEffect(() => {
+    if (!open) return;
+    setPhase('flipping');
+    setSide(null);
+    const result = Math.random() < .5 ? 'testa' : 'croce';
+    const t1 = setTimeout(() => {
+      setSide(result);
+      setPhase('settled');
+    }, 2200);
+    // First flip ever → claim the trophy.
+    try {
+      if (!localStorage.getItem(COIN_LS_KEY)) {
+        localStorage.setItem(COIN_LS_KEY, '1');
+        api.unlockSecretAchievement('egg_coin').catch(() => {});
+      }
+    } catch {}
+    const t2 = setTimeout(() => onClose?.(), 4400);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  return (
+    <div onClick={onClose} style={{
+      position:'fixed', inset:0, zIndex:9500,
+      background:'radial-gradient(circle at 50% 45%, rgba(43,34,71,.95) 0%, rgba(15,11,35,.96) 70%)',
+      backdropFilter:'blur(8px)', WebkitBackdropFilter:'blur(8px)',
+      display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
+      padding:24, cursor:'pointer',
+    }}>
+      <div style={{
+        fontSize:'clamp(120px, 30vw, 220px)', lineHeight:1, marginBottom:32,
+        animation: phase==='flipping' ? 'coinFlip 2.2s cubic-bezier(.34,1.1,.64,1) forwards' : 'coinSettle .5s ease',
+        filter:'drop-shadow(0 12px 32px rgba(196,168,120,.55))',
+        transformStyle:'preserve-3d',
+      }}>🪙</div>
+      {phase === 'settled' && side && (
+        <div className="bIn" style={{textAlign:'center'}}>
+          <div className="bc-meta" style={{marginBottom:10, color:'var(--gold)'}}>— Esito</div>
+          <div style={{
+            fontFamily:"'Cormorant Garamond',serif", fontStyle:'italic',
+            fontSize:'clamp(48px, 12vw, 92px)', fontWeight:600,
+            color:'var(--gold)', letterSpacing:'-0.02em', textTransform:'capitalize',
+          }}>{side}</div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 const lsGet  = (k, fallback) => { try { const v = localStorage.getItem(k); return v !== null ? JSON.parse(v) : fallback; } catch { return fallback; } };
 const lsSet  = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
@@ -314,6 +397,7 @@ export default function App() {
   const [editingBet, setEditingBet]       = useState(null);
   const [acceptingBet, setAcceptingBet]   = useState(null);
   const [showProfileEdit, setShowProfileEdit] = useState(false);
+  const [coinFlipOpen,    setCoinFlipOpen]    = useState(false); // easter egg #2
   const [pendingFriendCount, setPendingFriendCount] = useState(0);
 
   useEffect(() => { if (user && groups.length > 0) registerPush(user); }, [user, groups.length]);
@@ -676,7 +760,13 @@ export default function App() {
               </div>
               <div style={{ minWidth:0, flex:1 }}>
                 <div style={{ fontFamily: "'Cormorant Garamond',serif", fontStyle: 'italic', fontSize: 18, fontWeight: 600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', lineHeight:1.05 }}>{myProfile.name}</div>
-                <div className="bc-num" style={{ fontSize: 14, color: 'var(--gold)', marginTop:2 }}>{Math.round(credits[user] ?? 0)}<span style={{fontSize:'0.7em',opacity:.6,marginLeft:3}}>₡</span></div>
+                <div className="bc-num" style={{ fontSize: 14, color: 'var(--gold)', marginTop:2 }}>{Math.round(credits[user] ?? 0)}<span
+                  onClick={e => { e.stopPropagation(); setCoinFlipOpen(true); }}
+                  title="🪙"
+                  style={{fontSize:'0.7em', opacity:.6, marginLeft:3, cursor:'pointer', transition:'opacity .15s, text-shadow .15s'}}
+                  onMouseEnter={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.textShadow = '0 0 8px var(--gold)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.opacity = '.6'; e.currentTarget.style.textShadow = 'none'; }}
+                >₡</span></div>
               </div>
             </div>
           </div>
@@ -756,7 +846,13 @@ export default function App() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{ textAlign:'right', lineHeight:1.1 }}>
                 <div style={{ fontSize: 9, color:'var(--dim)', letterSpacing:1.5, textTransform:'uppercase' }}>{t('app.credits')}</div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--gold)' }}>{Math.round(credits[user] ?? 0)} ₡</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--gold)' }}>{Math.round(credits[user] ?? 0)} <span
+                  onClick={() => setCoinFlipOpen(true)}
+                  title="🪙"
+                  style={{cursor:'pointer', transition:'text-shadow .15s, transform .15s', display:'inline-block'}}
+                  onMouseEnter={e => { e.currentTarget.style.textShadow = '0 0 8px var(--gold)'; e.currentTarget.style.transform = 'scale(1.1)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.textShadow = 'none'; e.currentTarget.style.transform = 'scale(1)'; }}
+                >₡</span></div>
               </div>
               <div
                 onClick={() => setShowProfileEdit(true)}
@@ -890,6 +986,9 @@ export default function App() {
           onClose={() => setShowProfileEdit(false)}
         />
       )}
+      {/* Easter egg #2: coin flip overlay */}
+      <CoinFlipOverlay open={coinFlipOpen} onClose={() => setCoinFlipOpen(false)} />
+
       {/* Trophy unlock animation — small banner top-center, ~3s per unlock */}
       <TrophyUnlockOverlay queue={trophyQueue} onDone={consumeTrophy} />
 

@@ -3,7 +3,7 @@ import { SecLabel } from './Atoms.jsx';
 import { useLang } from '../i18n.js';
 import * as api from '../api.js';
 
-const CAT_ORDER = ['unique', 'positive', 'challenge', 'mission', 'shadow', 'social'];
+const CAT_ORDER = ['unique', 'positive', 'challenge', 'mission', 'shadow', 'social', 'secret'];
 
 // Tier color by current level reached (0 = locked)
 function tierFor(level) {
@@ -32,20 +32,32 @@ export default function TrophiesSection({ embedded = false, betsTick = 0 }) {
     if (!cur || row.level > cur.level) unlockedByAch[row.achievement_id] = row;
   }
 
+  // Secret achievements are computed via DB unlock (not via computeProgressFor),
+  // so we read their level straight off the unlocked rows.
   const list = data.catalog.map(a => {
-    const p = data.progress[a.id] || { current: 0, level: 0, max_level: a.levels?.length || 5, target_next: a.levels?.[0] || 0 };
+    const dbRow = unlockedByAch[a.id];
+    const computed = data.progress[a.id];
+    const p = a.secret
+      ? { current: dbRow ? 1 : 0, level: dbRow?.level || 0, max_level: 1, target_next: 1 }
+      : (computed || { current: 0, level: 0, max_level: a.levels?.length || 5, target_next: a.levels?.[0] || 0 });
     return {
       ...a,
       progress: p,
       unlocked: p.level >= 1,
-      unlockedAt: unlockedByAch[a.id]?.unlocked_at || null,
+      unlockedAt: dbRow?.unlocked_at || null,
     };
   });
 
-  const filtered = filter === 'unlocked' ? list.filter(a => a.unlocked)
-                : filter === 'locked'    ? list.filter(a => !a.unlocked)
-                : filter === 'max'       ? list.filter(a => a.progress.level >= a.progress.max_level)
-                : list;
+  // Secret-trophy visibility: completely hidden until the user unlocks at
+  // least one of them. After the first unlock, the remaining secrets appear
+  // as anonymous "???" placeholders so the player knows there's more.
+  const secretsUnlocked = list.some(a => a.secret && a.unlocked);
+  const visibleList = list.filter(a => !a.secret || secretsUnlocked);
+
+  const filtered = filter === 'unlocked' ? visibleList.filter(a => a.unlocked)
+                : filter === 'locked'    ? visibleList.filter(a => !a.unlocked)
+                : filter === 'max'       ? visibleList.filter(a => a.progress.level >= a.progress.max_level)
+                : visibleList;
 
   const byCat = {};
   for (const a of filtered) {
@@ -158,6 +170,12 @@ function TrophyTile({ a, t, fmtDate }) {
   const unlocked = level >= 1;
   const isMax = level >= max_level;
   const tierC = tierFor(level);
+  // Secret-trophy anonymization: when the player has unlocked at least one
+  // secret, the remaining secrets show up here but with no name/icon hint.
+  const masked = a.secret && !unlocked;
+  const labelName = masked ? t('trophies.secret_locked')      : t('trophies.'+a.id);
+  const labelDesc = masked ? t('trophies.secret_locked_desc') : t('trophies.'+a.id+'_desc');
+  const displayIcon = masked ? '?' : a.icon;
 
   // Build progress text & fill ratio for the current-level segment
   const prevTarget = level > 0 ? a.levels[level - 1] : 0;
@@ -198,8 +216,11 @@ function TrophyTile({ a, t, fmtDate }) {
         <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:4}}>
           <div style={{
             fontSize:30, lineHeight:1,
-            filter: unlocked ? `drop-shadow(0 0 10px ${tierC}77)` : 'grayscale(1) opacity(.55)',
-          }}>{a.icon}</div>
+            fontFamily: masked ? "'Playfair Display',serif" : undefined,
+            fontWeight: masked ? 900 : undefined,
+            color: masked ? 'var(--mut)' : undefined,
+            filter: masked ? 'none' : unlocked ? `drop-shadow(0 0 10px ${tierC}77)` : 'grayscale(1) opacity(.55)',
+          }}>{displayIcon}</div>
           <div style={{
             fontSize:9, fontWeight:800, color: unlocked ? tierC : 'var(--mut)',
             letterSpacing:1, padding:'2px 6px', borderRadius:8,
@@ -213,11 +234,14 @@ function TrophyTile({ a, t, fmtDate }) {
           fontSize:13, fontWeight:700, lineHeight:1.2,
           color: unlocked ? 'var(--txt)' : 'var(--dim)',
           marginTop:2,
-        }}>{t('trophies.'+a.id)}</div>
+          fontFamily: masked ? "'Playfair Display',serif" : undefined,
+          letterSpacing: masked ? '.15em' : undefined,
+        }}>{labelName}</div>
         <div style={{
           fontSize:10, lineHeight:1.35, color:'var(--mut)',
           minHeight:26, marginTop:2,
-        }}>{t('trophies.'+a.id+'_desc')}</div>
+          fontStyle: masked ? 'italic' : undefined,
+        }}>{labelDesc}</div>
 
         {/* Variants: 1-level "milestone" vs N-level "ladder" */}
         {max_level === 1 ? (

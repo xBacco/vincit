@@ -59,7 +59,49 @@ const CATALOG = [
   { id: 'social_butterfly',icon:'🦋', category: 'unique',    levels: [1] }, // counters from 5 distinct people
   { id: 'loaded',         icon: '👑', category: 'unique',    levels: [1] }, // balance ≥ 1000
   { id: 'half_marathon',  icon: '🏅', category: 'unique',    levels: [1] }, // a single bet with stake ≥ 200 won
+
+  // ─── Secret (easter-egg) ────────────────────────────────────────────
+  // Hidden from the trophy list until the user unlocks AT LEAST one of
+  // them; after the first unlock the remaining two appear as "???"
+  // placeholders so the player knows there's more to find.
+  { id: 'egg_dice',       icon: '🎲', category: 'secret',    levels: [1], secret: true }, // all 6 faces rolled on the empty-state die
+  { id: 'egg_coin',       icon: '🪙', category: 'secret',    levels: [1], secret: true }, // first toss of the header credit-symbol coin
+  { id: 'egg_jackpot',    icon: '🎰', category: 'secret',    levels: [1], secret: true }, // create a bet titled "777" / "JACKPOT" / "💎💎💎"
 ];
+
+// Whitelist of secret achievement IDs that the easter-egg endpoint accepts.
+const SECRET_IDS = new Set(CATALOG.filter(e => e.secret).map(e => e.id));
+
+async function unlockSecret(userId, achievementId) {
+  if (!SECRET_IDS.has(achievementId)) {
+    throw new Error('unknown_secret');
+  }
+  // Was it already unlocked? If so, this call is a no-op.
+  const { rows: existing } = await db.query(
+    'SELECT 1 FROM achievements WHERE user_id=$1 AND achievement_id=$2 AND level=1',
+    [userId, achievementId]
+  );
+  if (existing.length) return { ok: true, alreadyUnlocked: true };
+
+  await db.query(
+    `INSERT INTO achievements(user_id, achievement_id, level, unlocked_at)
+     VALUES($1,$2,1,$3) ON CONFLICT DO NOTHING`,
+    [userId, achievementId, Date.now()]
+  );
+
+  // Friendly push notification — opt-in via the resolved-pref toggle.
+  try {
+    if (await isPrefEnabled(userId, 'on_resolved')) {
+      sendPushToUser(userId, {
+        title: '🏆 Trofeo segreto sbloccato!',
+        body:  'Hai trovato un easter egg — controlla la collezione',
+        url:   '/',
+      });
+    }
+  } catch (e) { console.error('[secret-unlock notify]', e); }
+
+  return { ok: true, alreadyUnlocked: false };
+}
 
 // Returns map { id → { current, level, max_level, target_next, max_target } }
 async function computeProgressFor(userId) {
@@ -344,5 +386,5 @@ async function listForUser(userId) {
 }
 
 module.exports = {
-  CATALOG, refreshAchievements, listForUser, computeProgressFor,
+  CATALOG, refreshAchievements, listForUser, computeProgressFor, unlockSecret, SECRET_IDS,
 };

@@ -111,6 +111,7 @@ export const adminNukeStatus     = ()                       => req('GET',  '/adm
 export const adminNuke           = ()                       => req('POST', '/admin/nuke', { confirm: 'NUKE' });
 
 export const getAchievements = ()           => req('GET',  '/achievements');
+export const unlockSecretAchievement = (id) => req('POST', `/achievements/secret/${id}/unlock`);
 
 export const listTemplates   = ()           => req('GET',    '/templates');
 export const createTemplate  = (data)       => req('POST',   '/templates', data);

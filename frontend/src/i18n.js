@@ -204,7 +204,7 @@ const TRANSLATIONS = {
       max_reached:'MASSIMO RAGGIUNTO', unlocked_header:'Trofeo sbloccato',
       counter_trophies:'Trofei completati', counter_levels:'Livelli sbloccati',
       filter_all:'Tutti', filter_unlocked:'Sbloccati', filter_locked:'Da sbloccare', filter_max:'MAX',
-      cat_positive:'Vittorie', cat_challenge:'Sfide', cat_mission:'Missioni', cat_shadow:'Lato oscuro', cat_social:'Sociale', cat_unique:'Pietre miliari',
+      cat_positive:'Vittorie', cat_challenge:'Sfide', cat_mission:'Missioni', cat_shadow:'Lato oscuro', cat_social:'Sociale', cat_unique:'Pietre miliari', cat_secret:'Segreti',
 
       // Positive
       first_bet:'Creatore',           first_bet_desc:'Bet che hai creato in totale.',
@@ -257,6 +257,13 @@ const TRANSLATIONS = {
       social_butterfly:'Farfalla',      social_butterfly_desc:'5 persone diverse hanno counter-bet su tue bet',
       loaded:'Cassa forte',             loaded_desc:'Saldo ≥ 1000 ₡ in un singolo momento',
       half_marathon:'Mezza maratona',   half_marathon_desc:'Vinto una bet con stake ≥ 200 ₡',
+      // Secret easter-egg trophies — placeholder label shown when other
+      // secrets are still locked; full label revealed only on unlock.
+      egg_dice:'Tutti i lati del dado', egg_dice_desc:'Hai tirato il dado e visto tutte e sei le facce',
+      egg_coin:'Testa o croce',         egg_coin_desc:'Hai lanciato la prima moneta dal simbolo crediti',
+      egg_jackpot:'Jackpot',            egg_jackpot_desc:'Hai creato una bet col titolo magico',
+      secret_locked:'???',              secret_locked_desc:'Trofeo segreto · ancora da scoprire',
+      secret_category:'Segreti',
     },
     templates: {
       title_settings:'I miei template', title_picker:'Template salvati',
@@ -632,7 +639,7 @@ const TRANSLATIONS = {
       max_reached:'MAX REACHED', unlocked_header:'Trophy unlocked',
       counter_trophies:'Completed trophies', counter_levels:'Levels unlocked',
       filter_all:'All', filter_unlocked:'Unlocked', filter_locked:'Locked', filter_max:'Maxed',
-      cat_positive:'Wins', cat_challenge:'Challenges', cat_mission:'Missions', cat_shadow:'Dark side', cat_social:'Social', cat_unique:'Milestones',
+      cat_positive:'Wins', cat_challenge:'Challenges', cat_mission:'Missions', cat_shadow:'Dark side', cat_social:'Social', cat_unique:'Milestones', cat_secret:'Secrets',
 
       first_bet:'Creator',            first_bet_desc:'Total bets you have created.',
       wins:'Wins',                    wins_desc:'Total bets won.',
@@ -680,6 +687,11 @@ const TRANSLATIONS = {
       social_butterfly:'Butterfly',      social_butterfly_desc:'5 different people counter-bet your bets',
       loaded:'Vault stuffed',            loaded_desc:'Balance ≥ 1000 ₡ at a single moment',
       half_marathon:'Half marathon',     half_marathon_desc:'Won a bet with stake ≥ 200 ₡',
+      egg_dice:'All six faces',          egg_dice_desc:"You rolled the die and saw all six numbers",
+      egg_coin:'Heads or tails',         egg_coin_desc:'You flipped the first coin from the credits symbol',
+      egg_jackpot:'Jackpot',             egg_jackpot_desc:'You created a bet with the magic title',
+      secret_locked:'???',               secret_locked_desc:'Secret trophy · still to discover',
+      secret_category:'Secrets',
     },
     templates: {
       title_settings:'My templates', title_picker:'Saved templates',

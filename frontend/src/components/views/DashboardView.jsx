@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
+import * as api from '../../api.js';
 
 function computeStreak(bets, user) {
   const days = new Set();
@@ -43,6 +44,60 @@ const S = {
   card: {background:"var(--card)",border:"1px solid var(--brd)",borderRadius:16,padding:16},
   row: {display:"flex",alignItems:"center",gap:10},
 };
+
+// Easter egg #1: the empty-state die. Click it and it rolls (CSS tumble),
+// stops on a random face. localStorage tracks which faces have been rolled
+// across sessions; when all 6 have been seen, fires the secret-achievement
+// unlock. Idempotent — the server side no-ops on duplicate unlocks.
+const DIE_FACES = ['⚀','⚁','⚂','⚃','⚄','⚅']; // unicode dice 1→6
+const DIE_LS_KEY = 'bc_egg_dice_faces';
+
+function RollingDie({ initial = '🎲', sizeDesktop, sizeMobile, isDesktop, style = {} }) {
+  const [face, setFace] = useState(initial);
+  const [rolling, setRolling] = useState(false);
+  const claimedRef = useRef(false);
+
+  const roll = () => {
+    if (rolling) return;
+    setRolling(true);
+    // Settle on a new face. Avoid repeating the previous one so each click
+    // feels different.
+    const prevIdx = DIE_FACES.indexOf(face);
+    const choices = DIE_FACES.filter((_, i) => i !== prevIdx);
+    const next = choices[Math.floor(Math.random() * choices.length)];
+    const nextIdx = DIE_FACES.indexOf(next);
+
+    setTimeout(() => {
+      setFace(next);
+      setRolling(false);
+      // Record this face in localStorage. If we now have all 6, claim the egg.
+      try {
+        const raw = localStorage.getItem(DIE_LS_KEY);
+        const seen = new Set(raw ? JSON.parse(raw) : []);
+        seen.add(nextIdx);
+        localStorage.setItem(DIE_LS_KEY, JSON.stringify(Array.from(seen)));
+        if (seen.size >= 6 && !claimedRef.current) {
+          claimedRef.current = true;
+          api.unlockSecretAchievement('egg_dice').catch(() => {});
+        }
+      } catch {}
+    }, 750);
+  };
+
+  return (
+    <div onClick={roll} title="🎲" style={{
+      cursor: rolling ? 'wait' : 'pointer',
+      display:'inline-block', userSelect:'none',
+      fontSize: isDesktop ? sizeDesktop : sizeMobile,
+      transition:'transform .15s ease',
+      transform: rolling ? 'rotate(-360deg) scale(1.18)' : (style.transform || 'none'),
+      filter: rolling ? 'drop-shadow(0 0 12px var(--gold))' : 'none',
+      ...style,
+      // Override conflicting overrides
+      animation: rolling ? 'dieTumble .75s cubic-bezier(.34,1.2,.64,1)' : style.animation,
+    }}>{face}</div>
+  );
+}
 
 export default function DashboardView({user,profiles,groupMembers,credits,bets,cats,onCreate,onResolve,onReveal,onCounter,onFlame,notifSince,isDesktop,reactions,onReaction,onReactionPhoto,onDelete,onEdit,onAccept,onReject,can,onGoToVault,onConfirmOutcome,onWithdrawResolve,onOvertime}){
   const { t, lang } = useLang();
@@ -223,17 +278,18 @@ export default function DashboardView({user,profiles,groupMembers,credits,bets,c
       // Hide any overflow from the floating dice/banner.
       overflow:'hidden',
     }}>
-      {/* Dice — small, rotated, floats top-right with a soft drift */}
+      {/* Dice — small, rotated, floats top-right. Easter egg #1: clicking
+          rolls it; all 6 faces seen unlocks the secret trophy. */}
       <div style={{
         position:'absolute',
         top: isDesktop ? 8 : -6,
         right: isDesktop ? '14%' : '8%',
-        fontSize: isDesktop ? 56 : 38,
-        transform: 'rotate(-14deg)',
         opacity: .85,
-        pointerEvents:'none',
+        transform: 'rotate(-14deg)',
         animation: 'sUp .6s ease both .1s',
-      }}>🎲</div>
+      }}>
+        <RollingDie isDesktop={isDesktop} sizeDesktop={56} sizeMobile={38}/>
+      </div>
 
       {/* Gigantic banner — italic Cormorant, italic, breaks into two lines
           intentionally with the second line indented for a magazine pull-quote

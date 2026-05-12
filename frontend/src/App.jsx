@@ -530,19 +530,17 @@ export default function App() {
             <div style={{ fontFamily:"'Playfair Display',serif", fontSize:18, fontWeight:900, letterSpacing:-0.5, marginBottom:14 }}>
               <span className="shim">BetCouple</span>
             </div>
-            <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:10 }}>
               <div style={{ width: 38, height: 38, borderRadius: '50%', background: `${COLORS[myProfile.colorKey] || '#5b8af0'}33`, border: `2px solid ${COLORS[myProfile.colorKey] || '#5b8af0'}66`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink:0, overflow:'hidden' }}>
                 {myProfile.avatarUrl
                   ? <img src={myProfile.avatarUrl} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
                   : myProfile.avatar}
               </div>
-              <div style={{ minWidth:0 }}>
-                <div style={{ fontSize: 9, color: 'var(--dim)', letterSpacing: 2, textTransform: 'uppercase' }}>{t('app.welcome_back')}</div>
-                <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 14, fontWeight: 700, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{myProfile.name}</div>
+              <div style={{ minWidth:0, flex:1 }}>
+                <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 14, fontWeight: 700, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', lineHeight:1.1 }}>{myProfile.name}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--gold)', marginTop:2 }}>{Math.round(credits[user] ?? 0)} ₡</div>
               </div>
             </div>
-            <div style={{ fontSize: 9, color: 'var(--dim)', letterSpacing: 2, textTransform: 'uppercase' }}>{t('app.credits')}</div>
-            <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--gold)' }}>{Math.round(credits[user] ?? 0)} ₡</div>
           </div>
           {groups.length > 0 && (
             <div style={{ padding:'8px 12px', borderBottom:'1px solid var(--brd)', marginBottom:4 }}>
@@ -569,22 +567,19 @@ export default function App() {
       {/* Header: mobile only */}
       {!isDesktop && (
         <div style={{ position: 'sticky', top: 0, background: C.bg, zIndex: 10, borderBottom: `1px solid ${C.brd}22` }}>
-          <div style={{ padding: '18px 20px 4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ width: 38, height: 38, borderRadius: '50%', background: `${COLORS[myProfile.colorKey] || '#5b8af0'}33`, border: `2px solid ${COLORS[myProfile.colorKey] || '#5b8af0'}66`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 38 * 0.42, flexShrink: 0, overflow:'hidden' }}>
+          <div style={{ padding: '14px 20px 6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap:10 }}>
+            <div style={{ fontFamily:"'Playfair Display',serif", fontSize: 16, fontWeight: 900, letterSpacing: -0.5 }}>
+              <span className="shim">BetCouple</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ textAlign:'right', lineHeight:1.1 }}>
+                <div style={{ fontSize: 9, color:'var(--dim)', letterSpacing:1.5, textTransform:'uppercase' }}>{t('app.credits')}</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--gold)' }}>{Math.round(credits[user] ?? 0)} ₡</div>
+              </div>
+              <div style={{ width: 36, height: 36, borderRadius: '50%', background: `${COLORS[myProfile.colorKey] || '#5b8af0'}33`, border: `2px solid ${COLORS[myProfile.colorKey] || '#5b8af0'}66`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0, overflow:'hidden' }}>
                 {myProfile.avatarUrl
                   ? <img src={myProfile.avatarUrl} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
                   : myProfile.avatar}
-              </div>
-              <div>
-                <div style={{ fontSize: 10, color: 'var(--dim)', letterSpacing: 2, textTransform: 'uppercase' }}>{t('app.welcome_back')}</div>
-                <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, fontWeight: 700 }}>{myProfile.name}</div>
-              </div>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: 10, color: 'var(--dim)' }}>{t('app.credits')}</div>
-                <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--gold)' }}>{Math.round(credits[user] ?? 0)} ₡</div>
               </div>
             </div>
           </div>
@@ -610,7 +605,7 @@ export default function App() {
             {view === 'vault'     && <VaultView user={user} profiles={profiles} bets={bets} cats={cats} onReveal={b => setRevealBet(b)} onFlame={handleFlame} unlocked={vaultUnlocked} onPinRequest={() => setShowPin(true)} vaultPin={vaultPin} isDesktop={isDesktop} onDelete={handleDelete} onEdit={b => setEditingBet(b)} />}
             {view === 'stats'     && <StatsView user={user} profiles={profiles} groupMembers={groupMembers} credits={credits} bets={bets} cats={cats} isDesktop={isDesktop} />}
             {view === 'trophies'  && <TrophiesView bets={bets} isDesktop={isDesktop} />}
-            {view === 'settings'  && <SettingsView user={user} profiles={profiles} isDark={isDark} setIsDark={setIsDark} customCats={customCats} credits={credits} bets={bets} onUpdateProfile={handleUpdateProfile} onCreateCategory={handleCreateCategory} onDeleteCategory={handleDeleteCategory} vaultPin={vaultPin} onSetVaultPin={handleSetVaultPin} isDesktop={isDesktop} onReset={handleReset} onTestReset={handleTestReset} onLogout={handleLogout} onProfileUpdate={u => setAuthUser(prev => ({...prev,...u}))} isAdmin={isAdmin} can={can} />}
+            {view === 'settings'  && <SettingsView user={user} profiles={profiles} groupMembers={groupMembers} isDark={isDark} setIsDark={setIsDark} customCats={customCats} credits={credits} bets={bets} onUpdateProfile={handleUpdateProfile} onCreateCategory={handleCreateCategory} onDeleteCategory={handleDeleteCategory} vaultPin={vaultPin} onSetVaultPin={handleSetVaultPin} isDesktop={isDesktop} onReset={handleReset} onTestReset={handleTestReset} onLogout={handleLogout} onProfileUpdate={u => setAuthUser(prev => ({...prev,...u}))} isAdmin={isAdmin} can={can} />}
           </>);
         })()}
       </div>

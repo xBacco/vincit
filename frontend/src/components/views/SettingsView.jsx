@@ -11,7 +11,7 @@ const S = {
   btn: {display:"inline-flex",alignItems:"center",justifyContent:"center",gap:6,padding:"10px 18px",borderRadius:10,border:"none",cursor:"pointer",fontFamily:"'Syne',sans-serif",fontSize:13,fontWeight:600,transition:"all .18s",userSelect:"none",whiteSpace:"nowrap"},
 };
 
-export default function SettingsView({user,profiles,isDark,setIsDark,customCats,credits,bets,onUpdateProfile,onCreateCategory,onDeleteCategory,vaultPin,onSetVaultPin,isDesktop,onReset,onTestReset,onLogout,onProfileUpdate,isAdmin=false,can}){
+export default function SettingsView({user,profiles,groupMembers,isDark,setIsDark,customCats,credits,bets,onUpdateProfile,onCreateCategory,onDeleteCategory,vaultPin,onSetVaultPin,isDesktop,onReset,onTestReset,onLogout,onProfileUpdate,isAdmin=false,can}){
   const { t, lang, setLang } = useLang();
   // Backward-compat: if `can` is missing, fall back to isAdmin gating
   const allow = perm => typeof can === 'function' ? can(perm) : !!isAdmin;
@@ -313,12 +313,29 @@ export default function SettingsView({user,profiles,isDark,setIsDark,customCats,
             <div style={{fontSize:13,color:'var(--dim)',textAlign:'center'}}>{t('settings.loading')}</div>
           </div>
         ) : (
+          (() => {
+            // Order: me first, then group members in join order, then any other profiles still in state
+            const ordered = (() => {
+              const known = new Set();
+              const out = [];
+              if (profiles[user]) { out.push(user); known.add(user); }
+              if (groupMembers?.length) {
+                for (const m of groupMembers) {
+                  if (!known.has(m.id) && profiles[m.id]) { out.push(m.id); known.add(m.id); }
+                }
+              }
+              for (const k of Object.keys(profiles)) {
+                if (!known.has(k)) { out.push(k); known.add(k); }
+              }
+              return out;
+            })();
+            return (
           <div style={{...S.card}}>
-            {Object.keys(profiles).map((k, i) => {
+            {ordered.map((k, i) => {
               const p=profiles[k]; const amt=parseFloat(creditAmounts[k])||0;
               const isMe = k === user;
               return(
-                <div key={k} style={{marginBottom:i<Object.keys(profiles).length-1?14:0}}>
+                <div key={k} style={{marginBottom:i<ordered.length-1?14:0}}>
                   <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
                     <div style={{fontSize:24}}>{p.avatar}</div>
                     <div style={{flex:1}}>
@@ -361,6 +378,8 @@ export default function SettingsView({user,profiles,isDark,setIsDark,customCats,
               );
             })}
           </div>
+            );
+          })()
         )
       )}
 

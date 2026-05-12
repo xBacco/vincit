@@ -133,7 +133,7 @@ export default function AdminView({ isDesktop }) {
     <div className="sUp" style={{ paddingBottom: isDesktop ? 32 : 96 }}>
       <div style={{ marginBottom: 16 }}>
         <h1 style={{ fontFamily: "'Playfair Display',serif", fontSize: isDesktop ? 32 : 24, fontWeight: 900, letterSpacing: -0.5, marginBottom: 4 }}>
-          🛠 Admin
+          🛠️ Admin
         </h1>
         <div style={{ fontSize: 12, color: 'var(--dim)', lineHeight: 1.5 }}>
           Pannello di controllo riservato. Le azioni sono immediate e non recuperabili — pensaci due volte.

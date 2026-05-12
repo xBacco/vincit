@@ -555,7 +555,7 @@ export default function App() {
     { id: 'stats', e: '📊', l: t('nav.stats') },
     { id: 'friends', e: '👥', l: t('nav.friends') },
     { id: 'trophies', e: '🏆', l: t('nav.trophies') },
-    ...(authUser?.is_admin ? [{ id: 'admin', e: '🛠', l: 'Admin' }] : []),
+    ...(authUser?.is_admin ? [{ id: 'admin', e: '🛠️', l: 'Admin' }] : []),
     { id: 'settings', e: '⚙️', l: t('nav.settings') },
   ];
 

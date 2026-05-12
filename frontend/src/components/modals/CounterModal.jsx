@@ -4,7 +4,7 @@ import { useLang } from '../../i18n.js';
 
 const S = {
   card: {background:"var(--card)",border:"1px solid var(--brd)",borderRadius:16,padding:16},
-  btn: {display:"inline-flex",alignItems:"center",justifyContent:"center",gap:6,padding:"10px 18px",borderRadius:10,border:"none",cursor:"pointer",fontFamily:"'Syne',sans-serif",fontSize:13,fontWeight:600,transition:"all .18s",userSelect:"none",whiteSpace:"nowrap"},
+  btn: {display:"inline-flex",alignItems:"center",justifyContent:"center",gap:6,padding:"10px 18px",borderRadius:10,border:"none",cursor:"pointer",fontFamily:"'Manrope',sans-serif",fontSize:13,fontWeight:600,transition:"all .18s",userSelect:"none",whiteSpace:"nowrap"},
 };
 
 export default function CounterModal({bet,user,profiles,credits,cats,onPlace,onClose}){
@@ -21,14 +21,14 @@ export default function CounterModal({bet,user,profiles,credits,cats,onPlace,onC
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.88)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100,padding:20}}>
       <div className="bIn" style={{...S.card,width:"100%",maxWidth:380,padding:24}}>
-        <div style={{fontFamily:"'Playfair Display',serif",fontSize:18,fontWeight:700,marginBottom:6}}>{t('counter.title')}</div>
+        <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontWeight:700,marginBottom:6}}>{t('counter.title')}</div>
         <div style={{fontSize:13,color:"var(--dim)",fontStyle:"italic",marginBottom:4,lineHeight:1.4}}>"{bet.title}"</div>
         <div style={{fontSize:11,color:"var(--dim)",marginBottom:20}}>{cat.e} {catLabel(cat)} · {t('counter.by')} {profiles[bet.creator]?.name}</div>
         <div style={{display:"flex",gap:10,marginBottom:20}}>
           {[{s:"yes",l:t('counter.yes_label'),q:qY,c:"var(--grn)"},{s:"no",l:t('counter.no_label'),q:qN,c:"var(--red)"}].map(o=>(
             <div key={o.s} onClick={()=>setSide(o.s)} style={{flex:1,padding:"14px 10px",borderRadius:14,border:`2px solid ${side===o.s?o.c:"var(--brd)"}`,cursor:"pointer",textAlign:"center",background:side===o.s?`${o.c}18`.replace("var(--grn)","#2ecc7f").replace("var(--red)","#e05555"):"var(--surf)",transition:"all .18s"}}>
               <div style={{fontSize:12,fontWeight:600,color:o.c,marginBottom:4}}>{o.l}</div>
-              <div style={{fontFamily:"'Playfair Display',serif",fontSize:22,fontWeight:700,color:"var(--gold)"}}>{fmtQ(o.q)}×</div>
+              <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:700,color:"var(--gold)"}}>{fmtQ(o.q)}×</div>
               <div style={{fontSize:10,color:"var(--dim)"}}>{qToP(o.q)}%</div>
             </div>
           ))}

@@ -5,8 +5,8 @@ import { useToast } from '../../Toast.jsx';
 
 const S = {
   lbl: {fontSize:10,color:"var(--dim)",letterSpacing:2,textTransform:"uppercase",display:"block",marginBottom:6},
-  inp: {background:"var(--inp)",border:"1px solid var(--brd)",color:"var(--txt)",borderRadius:10,padding:"10px 14px",fontFamily:"'Syne',sans-serif",fontSize:14,outline:"none",width:"100%"},
-  btn: {display:"inline-flex",alignItems:"center",justifyContent:"center",gap:6,padding:"10px 18px",borderRadius:10,border:"none",cursor:"pointer",fontFamily:"'Syne',sans-serif",fontSize:13,fontWeight:600,transition:"all .18s",userSelect:"none",whiteSpace:"nowrap"},
+  inp: {background:"var(--inp)",border:"1px solid var(--brd)",color:"var(--txt)",borderRadius:10,padding:"10px 14px",fontFamily:"'Manrope',sans-serif",fontSize:14,outline:"none",width:"100%"},
+  btn: {display:"inline-flex",alignItems:"center",justifyContent:"center",gap:6,padding:"10px 18px",borderRadius:10,border:"none",cursor:"pointer",fontFamily:"'Manrope',sans-serif",fontSize:13,fontWeight:600,transition:"all .18s",userSelect:"none",whiteSpace:"nowrap"},
   card: {background:"var(--card)",border:"1px solid var(--brd)",borderRadius:16,padding:16},
 };
 
@@ -40,7 +40,7 @@ export default function EditModal({bet, user, cats, onSave, onClose}){
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.88)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:100}}>
       <div className="sUp" style={{background:"var(--surf)",borderRadius:"22px 22px 0 0",width:"100%",maxWidth:480,padding:"24px 20px 36px",maxHeight:"92vh",overflowY:"auto",borderTop:"1px solid var(--brd)"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-          <div style={{fontFamily:"'Playfair Display',serif",fontSize:20,fontWeight:700}}>{t('edit_modal.title')}</div>
+          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:700}}>{t('edit_modal.title')}</div>
           <Btn variant="ghost" sm onClick={onClose}>✕</Btn>
         </div>
 
@@ -60,7 +60,7 @@ export default function EditModal({bet, user, cats, onSave, onClose}){
           </div>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
             <div style={{fontSize:12,color:"var(--dim)"}}>{t('create.prob_label')}</div>
-            <div style={{fontFamily:"'Playfair Display',serif",fontSize:24,fontWeight:700,color:probC}}>{prob}%</div>
+            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:24,fontWeight:700,color:probC}}>{prob}%</div>
           </div>
           <input type="range" min="5" max="95" step="1" className="bc" value={clamp(prob,5,95)} onChange={e=>setQuota(pToQ(parseInt(e.target.value)))} style={{marginBottom:4,width:"100%",height:5,borderRadius:3,outline:"none",cursor:"pointer",accentColor:"var(--gold)"}}/>
           <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--mut)",marginBottom:12}}><span>{t('create.impossible')}</span><span>{t('create.certain')}</span></div>

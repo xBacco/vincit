@@ -49,7 +49,7 @@ export default function SplashScreen({ onDone, brand = 'BetCouple' }) {
       onClick={skip}
       style={{
         position:'fixed', inset:0, zIndex:9999,
-        background:'radial-gradient(circle at 50% 45%, #14112a 0%, #07060f 70%)',
+        background:'radial-gradient(circle at 50% 45%, #2b2247 0%, #1a1530 70%)',
         display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
         cursor:'pointer', userSelect:'none',
         animation: phase >= 4 ? 'splashFade .6s ease forwards' : 'none',
@@ -63,7 +63,7 @@ export default function SplashScreen({ onDone, brand = 'BetCouple' }) {
           position:'absolute', top:'42%', left:'50%',
           transform:'translate(-50%,-50%)',
           width:160, height:160, borderRadius:'50%',
-          background:'radial-gradient(circle, rgba(200,151,63,.45) 0%, rgba(200,151,63,0) 70%)',
+          background:'radial-gradient(circle, rgba(196,168,120,.45) 0%, rgba(196,168,120,0) 70%)',
           animation:'ringPulse 1.2s ease-out forwards',
           pointerEvents:'none',
         }}/>
@@ -97,10 +97,11 @@ export default function SplashScreen({ onDone, brand = 'BetCouple' }) {
 
       {/* logo */}
       <div style={{
-        fontFamily:"'Playfair Display', serif",
-        fontSize:46, fontWeight:900, letterSpacing:-0.5,
+        fontFamily:"'Cormorant Garamond', serif",
+        fontStyle:'italic',
+        fontSize:54, fontWeight:600, letterSpacing:-0.5,
         display:'flex', gap:0,
-        background:'linear-gradient(90deg,#c8973f 0%,#e8b84b 50%,#c8973f 100%)',
+        background:'linear-gradient(90deg,#c4a878 0%,#d6bf94 50%,#c4a878 100%)',
         backgroundSize:'200% 100%',
         WebkitBackgroundClip:'text', backgroundClip:'text',
         WebkitTextFillColor:'transparent',
@@ -122,7 +123,7 @@ export default function SplashScreen({ onDone, brand = 'BetCouple' }) {
         <div style={{
           marginTop:14, fontSize:11, color:'#8480a0',
           letterSpacing:'.35em', textTransform:'uppercase',
-          fontFamily:"'Syne', sans-serif", fontWeight:600,
+          fontFamily:"'Manrope', sans-serif", fontWeight:600,
           animation:'sublineIn .9s ease-out .4s both',
         }}>
           {t('splash.tagline')}
@@ -133,7 +134,7 @@ export default function SplashScreen({ onDone, brand = 'BetCouple' }) {
       <div style={{
         position:'absolute', bottom:24, fontSize:10,
         color:'#3d3a58', letterSpacing:2,
-        fontFamily:"'Syne', sans-serif",
+        fontFamily:"'Manrope', sans-serif",
       }}>
         {t('splash.tap_skip')}
       </div>

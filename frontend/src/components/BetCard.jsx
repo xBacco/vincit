@@ -6,7 +6,7 @@ import SubsetEditModal from './modals/SubsetEditModal.jsx';
 
 const S = {
   card: {background:"var(--card)",border:"1px solid var(--brd)",borderRadius:16,padding:16},
-  btn: {display:"inline-flex",alignItems:"center",justifyContent:"center",gap:6,padding:"10px 18px",borderRadius:10,border:"none",cursor:"pointer",fontFamily:"'Syne',sans-serif",fontSize:13,fontWeight:600,transition:"all .18s",userSelect:"none",whiteSpace:"nowrap"},
+  btn: {display:"inline-flex",alignItems:"center",justifyContent:"center",gap:6,padding:"10px 18px",borderRadius:10,border:"none",cursor:"pointer",fontFamily:"'Manrope',sans-serif",fontSize:13,fontWeight:600,transition:"all .18s",userSelect:"none",whiteSpace:"nowrap"},
   row: {display:"flex",alignItems:"center",gap:10},
 };
 
@@ -313,7 +313,7 @@ export default function BetCard({bet,user,profiles,cats,onResolve,onReveal,onCou
                   const count=emojiReactions.filter(r=>r.emoji===e).length;
                   const isMe=myReaction?.emoji===e;
                   return(
-                    <button key={e} onClick={()=>onReaction(bet.id,e)} style={{display:"inline-flex",alignItems:"center",gap:3,padding:"4px 8px",borderRadius:20,border:`1px solid ${isMe?"var(--gold)":"var(--brd)"}`,background:isMe?"var(--gold)22":"transparent",cursor:"pointer",fontSize:13,color:isMe?"var(--gold)":"var(--dim)",fontFamily:"'Syne',sans-serif",fontWeight:600,transition:"all .15s"}}>
+                    <button key={e} onClick={()=>onReaction(bet.id,e)} style={{display:"inline-flex",alignItems:"center",gap:3,padding:"4px 8px",borderRadius:20,border:`1px solid ${isMe?"var(--gold)":"var(--brd)"}`,background:isMe?"var(--gold)22":"transparent",cursor:"pointer",fontSize:13,color:isMe?"var(--gold)":"var(--dim)",fontFamily:"'Manrope',sans-serif",fontWeight:600,transition:"all .15s"}}>
                       {e}{count>0&&<span style={{fontSize:11}}>{count}</span>}
                     </button>
                   );
@@ -327,7 +327,7 @@ export default function BetCard({bet,user,profiles,cats,onResolve,onReveal,onCou
                         ? 'linear-gradient(90deg, var(--gold)33, var(--gold)22)'
                         : 'linear-gradient(90deg, var(--gold)18, var(--gold)10)',
                       cursor:'pointer', fontSize:11, color:'var(--gold)',
-                      fontFamily:"'Syne',sans-serif", fontWeight:800, letterSpacing:1,
+                      fontFamily:"'Manrope',sans-serif", fontWeight:800, letterSpacing:1,
                       boxShadow:'0 0 10px var(--glow), inset 0 1px 0 rgba(255,255,255,.06)',
                       transition:'all .15s', opacity: photoBusy ? .5 : 1,
                       flexShrink:0}}>
@@ -469,11 +469,11 @@ export default function BetCard({bet,user,profiles,cats,onResolve,onReveal,onCou
           padding:20,cursor:"pointer",
         }}>
           <img src={lightbox.image_url} alt="" style={{maxWidth:"90vw",maxHeight:"80vh",borderRadius:14,boxShadow:"0 20px 60px rgba(0,0,0,.7)"}}/>
-          <div style={{marginTop:14,color:"#ede8fd",fontFamily:"'Syne',sans-serif",fontSize:14,display:"flex",alignItems:"center",gap:10}}>
+          <div style={{marginTop:14,color:"#ede8fd",fontFamily:"'Manrope',sans-serif",fontSize:14,display:"flex",alignItems:"center",gap:10}}>
             <span style={{fontSize:22}}>{profiles[lightbox.bettor]?.avatar}</span>
             <span style={{fontWeight:600}}>{profiles[lightbox.bettor]?.name}</span>
           </div>
-          <div style={{position:"absolute",top:20,right:24,color:"#8480a0",fontSize:11,letterSpacing:2,fontFamily:"'Syne',sans-serif"}}>{t('bet_card.tap_close')}</div>
+          <div style={{position:"absolute",top:20,right:24,color:"#8480a0",fontSize:11,letterSpacing:2,fontFamily:"'Manrope',sans-serif"}}>{t('bet_card.tap_close')}</div>
         </div>
       )}
     </div>

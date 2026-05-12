@@ -6,8 +6,8 @@ import * as api from '../../api.js';
 
 const S = {
   lbl: {fontSize:10,color:"var(--dim)",letterSpacing:2,textTransform:"uppercase",display:"block",marginBottom:6},
-  inp: {background:"var(--inp)",border:"1px solid var(--brd)",color:"var(--txt)",borderRadius:10,padding:"10px 14px",fontFamily:"'Syne',sans-serif",fontSize:14,outline:"none",width:"100%"},
-  btn: {display:"inline-flex",alignItems:"center",justifyContent:"center",gap:6,padding:"10px 18px",borderRadius:10,border:"none",cursor:"pointer",fontFamily:"'Syne',sans-serif",fontSize:13,fontWeight:600,transition:"all .18s",userSelect:"none",whiteSpace:"nowrap"},
+  inp: {background:"var(--inp)",border:"1px solid var(--brd)",color:"var(--txt)",borderRadius:10,padding:"10px 14px",fontFamily:"'Manrope',sans-serif",fontSize:14,outline:"none",width:"100%"},
+  btn: {display:"inline-flex",alignItems:"center",justifyContent:"center",gap:6,padding:"10px 18px",borderRadius:10,border:"none",cursor:"pointer",fontFamily:"'Manrope',sans-serif",fontSize:13,fontWeight:600,transition:"all .18s",userSelect:"none",whiteSpace:"nowrap"},
   card: {background:"var(--card)",border:"1px solid var(--brd)",borderRadius:16,padding:16},
   bdg: {display:"inline-flex",alignItems:"center",gap:3,padding:"3px 9px",borderRadius:20,fontSize:11,fontWeight:600},
 };
@@ -55,7 +55,7 @@ function LivePreview({ title, quota, stake, potWin, cat, catLabel, isSecret, isC
           </div>
           {!isSecret && (
             <div style={{textAlign:"right",flexShrink:0}}>
-              <div style={{fontFamily:"'Playfair Display',serif",fontSize:18,fontWeight:700,color:"var(--gold)"}}>{fmtQ(quota)}×</div>
+              <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontWeight:700,color:"var(--gold)"}}>{fmtQ(quota)}×</div>
               <div style={{fontSize:10,color:"var(--dim)"}}>{qToP(quota)}%</div>
             </div>
           )}
@@ -231,7 +231,7 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
               padding:'6px 12px', borderRadius:20,
               border:'1px solid var(--gold)44',
               background:'var(--gold)0d', color:'var(--gold)',
-              cursor:'pointer', fontFamily:"'Syne',sans-serif", fontSize:12, fontWeight:600,
+              cursor:'pointer', fontFamily:"'Manrope',sans-serif", fontSize:12, fontWeight:600,
             }}>
             <span style={{fontSize:13}}>💾</span>
             <span>{tpl.name}</span>
@@ -249,7 +249,7 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
         padding:'6px 12px', borderRadius:20,
         border:'1px solid var(--brd)', background:'transparent',
         color:'var(--dim)', cursor:'pointer',
-        fontFamily:"'Syne',sans-serif", fontSize:11, fontWeight:600,
+        fontFamily:"'Manrope',sans-serif", fontSize:11, fontWeight:600,
         marginTop:10,
       }}>
       {t('templates.save_as_btn')}
@@ -313,7 +313,7 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
                 border:`1px solid ${active ? 'var(--gold)' : 'var(--brd)'}`,
                 background: active ? 'var(--gold)1a' : 'transparent',
                 color: active ? 'var(--gold)' : 'var(--dim)',
-                cursor:'pointer', fontFamily:"'Syne',sans-serif", fontSize:13, fontWeight:600,
+                cursor:'pointer', fontFamily:"'Manrope',sans-serif", fontSize:13, fontWeight:600,
                 transition:'all .15s',
               }}>
               {m.avatarUrl
@@ -340,7 +340,7 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
             border:`1px solid ${allowedSet.size === 0 ? 'var(--gold)' : 'var(--brd)'}`,
             background: allowedSet.size === 0 ? 'var(--gold)1a' : 'transparent',
             color: allowedSet.size === 0 ? 'var(--gold)' : 'var(--dim)',
-            cursor:'pointer', fontFamily:"'Syne',sans-serif", fontSize:13, fontWeight:600,
+            cursor:'pointer', fontFamily:"'Manrope',sans-serif", fontSize:13, fontWeight:600,
           }}>{t('create.subset_all')}</button>
         {others.map(m => {
           const active = allowedSet.has(m.id);
@@ -352,7 +352,7 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
                 border:`1px solid ${active ? 'var(--gold)' : 'var(--brd)'}`,
                 background: active ? 'var(--gold)1a' : 'transparent',
                 color: active ? 'var(--gold)' : 'var(--dim)',
-                cursor:'pointer', fontFamily:"'Syne',sans-serif", fontSize:13, fontWeight:600,
+                cursor:'pointer', fontFamily:"'Manrope',sans-serif", fontSize:13, fontWeight:600,
               }}>
               {m.avatarUrl
                 ? <img src={m.avatarUrl} alt="" style={{width:24,height:24,borderRadius:'50%',objectFit:'cover'}}/>
@@ -384,7 +384,7 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
             border:`1px solid ${!targetId ? 'var(--gold)' : 'var(--brd)'}`,
             background: !targetId ? 'var(--gold)1a' : 'transparent',
             color: !targetId ? 'var(--gold)' : 'var(--dim)',
-            cursor:'pointer', fontFamily:"'Syne',sans-serif", fontSize:13, fontWeight:600,
+            cursor:'pointer', fontFamily:"'Manrope',sans-serif", fontSize:13, fontWeight:600,
           }}>—  {t('create.target_none')}</button>
         {targetCandidates.map(m => {
           const active = targetId === m.id;
@@ -396,7 +396,7 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
                 border:`1px solid ${active ? 'var(--pur)' : 'var(--brd)'}`,
                 background: active ? 'var(--pur)1a' : 'transparent',
                 color: active ? 'var(--pur)' : 'var(--dim)',
-                cursor:'pointer', fontFamily:"'Syne',sans-serif", fontSize:13, fontWeight:600,
+                cursor:'pointer', fontFamily:"'Manrope',sans-serif", fontSize:13, fontWeight:600,
               }}>
               {m.avatarUrl
                 ? <img src={m.avatarUrl} alt="" style={{width:24,height:24,borderRadius:'50%',objectFit:'cover'}}/>
@@ -429,7 +429,7 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
       </div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
         <div style={{fontSize:12,color:"var(--dim)"}}>{t('create.prob_label')}</div>
-        <div style={{fontFamily:"'Playfair Display',serif",fontSize:24,fontWeight:700,color:probC}}>{prob}%</div>
+        <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:24,fontWeight:700,color:probC}}>{prob}%</div>
       </div>
       <input type="range" min="5" max="95" step="1" className="bc" value={clamp(prob,5,95)} onChange={e=>setQuota(pToQ(parseInt(e.target.value)))} style={{marginBottom:4,width:"100%",height:5,borderRadius:3,outline:"none",cursor:"pointer",accentColor:"var(--gold)"}}/>
       <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--mut)",marginBottom:12}}><span>{t('create.impossible')}</span><span>{t('create.certain')}</span></div>
@@ -509,7 +509,7 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
           border:"1px solid var(--brd)", boxShadow:"0 24px 64px rgba(0,0,0,.5)",
         }}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"18px 24px",borderBottom:"1px solid var(--brd)",flexShrink:0}}>
-            <div style={{fontFamily:"'Playfair Display',serif",fontSize:22,fontWeight:700}}>{t('create.title')}</div>
+            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:700}}>{t('create.title')}</div>
             <Btn variant="ghost" sm onClick={onClose}>✕</Btn>
           </div>
 
@@ -583,7 +583,7 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.88)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:100}}>
       <div className="sUp" style={{background:"var(--surf)",borderRadius:"22px 22px 0 0",width:"100%",maxWidth:480,padding:"24px 20px 36px",maxHeight:"92vh",overflowY:"auto",borderTop:"1px solid var(--brd)"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-          <div style={{fontFamily:"'Playfair Display',serif",fontSize:20,fontWeight:700}}>{t('create.title')}</div>
+          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:700}}>{t('create.title')}</div>
           <Btn variant="ghost" sm onClick={onClose}>✕</Btn>
         </div>
 
@@ -622,7 +622,7 @@ function SaveTemplateDialog({ name, setName, onCancel, onSave, t }) {
         background:'var(--surf)', border:'1px solid var(--gold)44', borderRadius:14,
         padding:20, width:'100%', maxWidth:360,
       }}>
-        <div style={{fontFamily:"'Playfair Display', serif", fontSize:18, fontWeight:700, marginBottom:10}}>
+        <div style={{fontFamily:"'Cormorant Garamond', serif", fontSize:22, fontWeight:600, marginBottom:10}}>
           💾 {t('templates.save_as_btn').replace('💾 ', '')}
         </div>
         <label style={{fontSize:10,color:'var(--dim)',letterSpacing:2,textTransform:'uppercase'}}>

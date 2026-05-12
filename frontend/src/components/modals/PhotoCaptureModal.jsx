@@ -166,13 +166,13 @@ export default function PhotoCaptureModal({ onCapture, onClose, size = 1080, qua
         {/* Header */}
         <div style={{display:'flex', justifyContent:'space-between', alignItems:'center',
           padding:'14px 18px', borderBottom:'1px solid var(--brd)', flexShrink:0}}>
-          <div style={{fontFamily:"'Playfair Display',serif", fontSize:18, fontWeight:700}}>
+          <div style={{fontFamily:"'Cormorant Garamond',serif", fontSize:18, fontWeight:700}}>
             📸 {t('photo.title')}
           </div>
           <button onClick={onClose} style={{
             background:'transparent', border:'1px solid var(--brd)', borderRadius:10,
             color:'var(--dim)', padding:'5px 11px', cursor:'pointer',
-            fontFamily:"'Syne',sans-serif", fontSize:12, fontWeight:600,
+            fontFamily:"'Manrope',sans-serif", fontSize:12, fontWeight:600,
           }}>✕</button>
         </div>
 
@@ -215,7 +215,7 @@ export default function PhotoCaptureModal({ onCapture, onClose, size = 1080, qua
                       marginTop:8, padding:'7px 14px', borderRadius:10,
                       background:'var(--gold)22', border:'1px solid var(--gold)44',
                       color:'var(--gold)', cursor:'pointer',
-                      fontFamily:"'Syne',sans-serif", fontSize:12, fontWeight:700,
+                      fontFamily:"'Manrope',sans-serif", fontSize:12, fontWeight:700,
                     }}>{t('photo.retry')}</button>
                   </>
                 ) : null}
@@ -227,7 +227,7 @@ export default function PhotoCaptureModal({ onCapture, onClose, size = 1080, qua
                 position:'absolute', top:8, right:8,
                 padding:'3px 8px', borderRadius:12, background:'rgba(0,0,0,.55)',
                 color:'#fff', fontSize:10, fontWeight:700, letterSpacing:1,
-                fontFamily:"'Syne',sans-serif",
+                fontFamily:"'Manrope',sans-serif",
               }}>
                 CAM {camIdx + 1}/{cameras.length}
               </div>
@@ -258,7 +258,7 @@ export default function PhotoCaptureModal({ onCapture, onClose, size = 1080, qua
                 flex:1, height:56, borderRadius:14, border:'none',
                 background: streamLive ? 'var(--gold)' : 'var(--mut)44',
                 color: streamLive ? '#07060f' : 'var(--dim)',
-                fontFamily:"'Syne',sans-serif", fontSize:14, fontWeight:800,
+                fontFamily:"'Manrope',sans-serif", fontSize:14, fontWeight:800,
                 cursor: streamLive && !busy ? 'pointer' : 'not-allowed',
                 boxShadow: streamLive ? '0 4px 16px var(--glow)' : 'none',
                 letterSpacing:1,

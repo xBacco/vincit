@@ -4,7 +4,7 @@ import { useLang } from '../../i18n.js';
 import * as api from '../../api.js';
 
 const S = {
-  btn: { display:'inline-flex', alignItems:'center', justifyContent:'center', gap:6, padding:'10px 18px', borderRadius:10, border:'none', cursor:'pointer', fontFamily:"'Syne',sans-serif", fontSize:13, fontWeight:600, transition:'all .18s', userSelect:'none', whiteSpace:'nowrap' },
+  btn: { display:'inline-flex', alignItems:'center', justifyContent:'center', gap:6, padding:'10px 18px', borderRadius:10, border:'none', cursor:'pointer', fontFamily:"'Manrope',sans-serif", fontSize:13, fontWeight:600, transition:'all .18s', userSelect:'none', whiteSpace:'nowrap' },
 };
 
 const EMOJIS = ['🎲','⚡','🎯','🔥','💜','🌙','🏆','🎮','🍕','🎸'];
@@ -45,7 +45,7 @@ export default function PairingView({ user, onGroupCreated }) {
     <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', padding:24, background:'var(--bg)' }}>
       <div style={{ width:'100%', maxWidth:400 }}>
         <div style={{ textAlign:'center', marginBottom:36 }}>
-          <div style={{ fontFamily:"'Playfair Display',serif", fontSize:34, fontWeight:900, marginBottom:6 }}>
+          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:34, fontWeight:900, marginBottom:6 }}>
             <span className="shim">BetCouple</span>
           </div>
           <div style={{ fontSize:22, marginTop:4 }}>👋 {user.name}</div>

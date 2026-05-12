@@ -12,7 +12,7 @@ const S = {
   pre:     { background: 'var(--inp)', color: 'var(--txt)', borderRadius: 8, padding: 10, fontSize: 11, fontFamily: 'monospace', overflowX: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-all' },
   btn:     (variant) => ({
     padding: '7px 13px', borderRadius: 8, cursor: 'pointer',
-    fontFamily: "'Syne',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: 0.5,
+    fontFamily: "'Manrope',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: 0.5,
     background: variant === 'danger' ? 'var(--red)1a' : variant === 'ghost' ? 'transparent' : 'var(--gold)22',
     border: `1px solid ${variant === 'danger' ? 'var(--red)44' : variant === 'ghost' ? 'var(--brd)' : 'var(--gold)55'}`,
     color: variant === 'danger' ? 'var(--red)' : variant === 'ghost' ? 'var(--dim)' : 'var(--gold)',
@@ -122,7 +122,7 @@ export default function AdminView({ isDesktop }) {
         background: active ? 'var(--gold)18' : 'transparent',
         color: active ? 'var(--gold)' : 'var(--dim)',
         border: 'none', borderBottom: `2px solid ${active ? 'var(--gold)' : 'transparent'}`,
-        cursor: 'pointer', fontFamily: "'Syne',sans-serif",
+        cursor: 'pointer', fontFamily: "'Manrope',sans-serif",
         fontSize: 12, fontWeight: 700, letterSpacing: 0.3,
       }}>{label}</button>
     );
@@ -135,7 +135,7 @@ export default function AdminView({ isDesktop }) {
   return (
     <div className="sUp" style={{ paddingBottom: isDesktop ? 32 : 96 }}>
       <div style={{ marginBottom: 16 }}>
-        <h1 style={{ fontFamily: "'Playfair Display',serif", fontSize: isDesktop ? 32 : 24, fontWeight: 900, letterSpacing: -0.5, marginBottom: 4 }}>
+        <h1 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: isDesktop ? 32 : 24, fontWeight: 900, letterSpacing: -0.5, marginBottom: 4 }}>
           🛠️ Admin
         </h1>
         <div style={{ fontSize: 12, color: 'var(--dim)', lineHeight: 1.5 }}>
@@ -165,7 +165,7 @@ export default function AdminView({ isDesktop }) {
             <span style={{ color: 'var(--dim)' }}>🔍</span>
             <input value={query} onChange={e => setQuery(e.target.value)}
               placeholder="Cerca per email o nome…"
-              style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', color: 'var(--txt)', fontFamily: "'Syne',sans-serif", fontSize: 13 }}/>
+              style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', color: 'var(--txt)', fontFamily: "'Manrope',sans-serif", fontSize: 13 }}/>
           </div>
 
           {filteredUsers.map(u => {
@@ -214,7 +214,7 @@ export default function AdminView({ isDesktop }) {
             <div style={{ ...S.card, marginTop: 14, display: 'flex', alignItems: 'center', gap: 14 }}>
               <Avatar p={u} size={56}/>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 19, fontWeight: 700 }}>{u.name}</div>
+                <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 19, fontWeight: 700 }}>{u.name}</div>
                 <div style={{ fontSize: 12, color: 'var(--dim)' }}>{u.email}</div>
                 <div style={{ fontSize: 10, color: 'var(--mut)', marginTop: 4, fontFamily: 'monospace' }}>{u.id}</div>
               </div>
@@ -305,7 +305,7 @@ export default function AdminView({ isDesktop }) {
                   <div style={{ display: 'flex', gap: 8 }}>
                     <input value={pwNew} onChange={e => setPwNew(e.target.value)} type="text"
                       placeholder="nuova password"
-                      style={{ flex: 1, background: 'var(--inp)', border: `1px solid ${hasInput && pwErr ? 'var(--red)55' : hasInput ? 'var(--grn)55' : 'var(--brd)'}`, borderRadius: 8, color: 'var(--txt)', padding: '8px 10px', fontFamily: "'Syne',sans-serif", fontSize: 13, outline: 'none' }}/>
+                      style={{ flex: 1, background: 'var(--inp)', border: `1px solid ${hasInput && pwErr ? 'var(--red)55' : hasInput ? 'var(--grn)55' : 'var(--brd)'}`, borderRadius: 8, color: 'var(--txt)', padding: '8px 10px', fontFamily: "'Manrope',sans-serif", fontSize: 13, outline: 'none' }}/>
                     <button onClick={() => setPassword(u.id, pwNew)} disabled={busy || !!pwErr} style={S.btn()}>
                       Applica
                     </button>
@@ -447,7 +447,7 @@ export default function AdminView({ isDesktop }) {
       {/* ── RESET TOTALE (one-shot) ─────────────────────────── */}
       {tab === 'nuke' && nukeAvailable && (
         <div style={{ ...S.card, borderColor: 'var(--red)55', background: 'var(--red)0d' }}>
-          <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 800, color: 'var(--red)', marginBottom: 8 }}>
+          <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 22, fontWeight: 800, color: 'var(--red)', marginBottom: 8 }}>
             🔥 Reset totale
           </div>
           <div style={{ fontSize: 12, color: 'var(--mut)', lineHeight: 1.6, marginBottom: 14 }}>
@@ -476,7 +476,7 @@ export default function AdminView({ isDesktop }) {
             style={{
               width: '100%', padding: '14px 0', borderRadius: 12, border: '1px solid var(--red)',
               background: 'var(--red)', color: '#fff',
-              fontFamily: "'Syne',sans-serif", fontSize: 15, fontWeight: 800, letterSpacing: 0.5,
+              fontFamily: "'Manrope',sans-serif", fontSize: 15, fontWeight: 800, letterSpacing: 0.5,
               cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.7 : 1,
             }}>
             {busy ? '…' : '🔥 RESET TOTALE'}

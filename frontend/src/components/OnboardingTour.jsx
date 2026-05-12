@@ -80,7 +80,7 @@ export default function OnboardingTour({ steps, onDone }) {
         padding: '6px 12px', borderRadius: 16,
         background: 'rgba(0,0,0,.5)', border: '1px solid rgba(255,255,255,.18)',
         color: 'rgba(255,255,255,.85)', fontSize: 11, fontWeight: 600,
-        letterSpacing: 1, cursor: 'pointer', fontFamily: "'Syne',sans-serif",
+        letterSpacing: 1, cursor: 'pointer', fontFamily: "'Manrope',sans-serif",
       }}>
         {t('onboarding.skip')}
       </button>
@@ -96,13 +96,13 @@ export default function OnboardingTour({ steps, onDone }) {
         <div style={{
           fontSize: 10, color: 'var(--gold)',
           letterSpacing: 2, textTransform: 'uppercase',
-          fontFamily: "'Syne',sans-serif", marginBottom: 4, fontWeight: 700,
+          fontFamily: "'Manrope',sans-serif", marginBottom: 4, fontWeight: 700,
         }}>
           {i + 1} / {steps.length} · {step.kicker || t('onboarding.kicker')}
         </div>
         <div style={{
-          fontFamily: "'Playfair Display', serif",
-          fontSize: 18, fontWeight: 700, color: 'var(--txt)', marginBottom: 6,
+          fontFamily: "'Cormorant Garamond', serif",
+          fontSize: 22, fontWeight: 600, color: 'var(--txt)', marginBottom: 6,
         }}>{step.title}</div>
         <div style={{ fontSize: 13, color: 'var(--dim)', lineHeight: 1.5 }}>
           {step.body}
@@ -112,14 +112,14 @@ export default function OnboardingTour({ steps, onDone }) {
             <button onClick={() => setI(i + 1)} style={{
               padding: '8px 18px', borderRadius: 10, border: 'none',
               background: 'var(--gold)', color: '#07060f',
-              fontFamily: "'Syne',sans-serif", fontSize: 13, fontWeight: 700, cursor: 'pointer',
+              fontFamily: "'Manrope',sans-serif", fontSize: 13, fontWeight: 700, cursor: 'pointer',
             }}>{t('onboarding.next')} →</button>
           )}
           {last && (
             <button onClick={() => onDone?.()} style={{
               padding: '8px 18px', borderRadius: 10, border: 'none',
               background: 'var(--gold)', color: '#07060f',
-              fontFamily: "'Syne',sans-serif", fontSize: 13, fontWeight: 700, cursor: 'pointer',
+              fontFamily: "'Manrope',sans-serif", fontSize: 13, fontWeight: 700, cursor: 'pointer',
             }}>{t('onboarding.done')} ✓</button>
           )}
         </div>

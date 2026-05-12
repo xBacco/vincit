@@ -100,13 +100,13 @@ export default function TrophyUnlockOverlay({ queue, onDone }) {
 
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{
-            fontSize: 9, letterSpacing: 2, fontWeight: 800, fontFamily: "'Syne',sans-serif",
+            fontSize: 9, letterSpacing: 2, fontWeight: 800, fontFamily: "'Manrope',sans-serif",
             textTransform: 'uppercase', marginBottom: 2,
           }}>
             <span className="tr-shim">🏆 {isMax ? t('trophies.max_reached') : `${t('trophies.unlocked_header')} · Lv ${current.level}`}</span>
           </div>
           <div style={{
-            fontFamily: "'Playfair Display',serif", fontSize: 16, fontWeight: 700,
+            fontFamily: "'Cormorant Garamond',serif", fontSize: 20, fontWeight: 600,
             color: 'var(--txt)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
             lineHeight: 1.2,
           }}>{t('trophies.' + current.id)}</div>

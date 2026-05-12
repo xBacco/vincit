@@ -6,8 +6,8 @@ import { useToast } from '../../Toast.jsx';
 
 const S = {
   card: {background:"var(--card)",border:"1px solid var(--brd)",borderRadius:16,padding:16},
-  inp: {background:"var(--inp)",border:"1px solid var(--brd)",color:"var(--txt)",borderRadius:10,padding:"10px 14px",fontFamily:"'Syne',sans-serif",fontSize:14,outline:"none",width:"100%"},
-  btn: {display:"inline-flex",alignItems:"center",justifyContent:"center",gap:6,padding:"10px 18px",borderRadius:10,border:"none",cursor:"pointer",fontFamily:"'Syne',sans-serif",fontSize:13,fontWeight:600,transition:"all .18s",userSelect:"none",whiteSpace:"nowrap"},
+  inp: {background:"var(--inp)",border:"1px solid var(--brd)",color:"var(--txt)",borderRadius:10,padding:"10px 14px",fontFamily:"'Manrope',sans-serif",fontSize:14,outline:"none",width:"100%"},
+  btn: {display:"inline-flex",alignItems:"center",justifyContent:"center",gap:6,padding:"10px 18px",borderRadius:10,border:"none",cursor:"pointer",fontFamily:"'Manrope',sans-serif",fontSize:13,fontWeight:600,transition:"all .18s",userSelect:"none",whiteSpace:"nowrap"},
 };
 
 export default function SettingsView({user,profiles,groupMembers,isDark,setIsDark,customCats,credits,bets,onUpdateProfile,onCreateCategory,onDeleteCategory,vaultPin,onSetVaultPin,isDesktop,onReset,onTestReset,onLogout,onOpenProfileEdit,isAdmin=false,can}){
@@ -81,7 +81,7 @@ export default function SettingsView({user,profiles,groupMembers,isDark,setIsDar
   return(
     <div className="sUp">
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
-        <div style={{fontFamily:"'Playfair Display',serif",fontSize:24,fontWeight:700}}>{t('settings.title')}</div>
+        <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:24,fontWeight:700}}>{t('settings.title')}</div>
         {onLogout && (
           <button onClick={onLogout} style={{...S.btn,padding:'7px 14px',background:'transparent',border:'1px solid var(--brd)',color:'var(--dim)',fontSize:12}}>
             {t('settings.logout')}
@@ -121,7 +121,7 @@ export default function SettingsView({user,profiles,groupMembers,isDark,setIsDar
                 : (myProfile.avatar || '🃏')}
             </div>
             <div style={{flex:1, minWidth:0}}>
-              <div style={{fontFamily:"'Playfair Display',serif", fontSize:17, fontWeight:700, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
+              <div style={{fontFamily:"'Cormorant Garamond',serif", fontSize:17, fontWeight:700, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
                 {myProfile.name}
               </div>
               <div style={{fontSize:11, color:'var(--dim)', marginTop:2}}>
@@ -129,7 +129,7 @@ export default function SettingsView({user,profiles,groupMembers,isDark,setIsDar
               </div>
             </div>
             <div style={{
-              fontSize:14, color:'var(--gold)', fontFamily:"'Syne',sans-serif", fontWeight:700,
+              fontSize:14, color:'var(--gold)', fontFamily:"'Manrope',sans-serif", fontWeight:700,
               padding:'6px 12px', borderRadius:20,
               border:'1px solid var(--gold)44', background:'var(--gold)0d',
               flexShrink:0,
@@ -163,7 +163,7 @@ export default function SettingsView({user,profiles,groupMembers,isDark,setIsDar
                   padding: '12px 14px',
                   background: 'transparent', border: 'none', cursor: 'pointer',
                   color: 'var(--txt)', textAlign: 'left',
-                  fontFamily: "'Syne',sans-serif",
+                  fontFamily: "'Manrope',sans-serif",
                 }}
               >
                 <div style={{

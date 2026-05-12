@@ -67,7 +67,7 @@ export default function TrophiesSection({ embedded = false, betsTick = 0 }) {
 
   const pill = active => ({
     padding:'5px 12px', borderRadius:20, flexShrink:0, cursor:'pointer', whiteSpace:'nowrap',
-    fontFamily:"'Syne',sans-serif", fontSize:11, fontWeight:600,
+    fontFamily:"'Manrope',sans-serif", fontSize:11, fontWeight:600,
     border:`1px solid ${active ? 'var(--gold)' : 'var(--brd)'}`,
     background: active ? 'var(--gold)22' : 'transparent',
     color: active ? 'var(--gold)' : 'var(--dim)',

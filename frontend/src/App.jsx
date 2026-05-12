@@ -55,7 +55,7 @@ async function registerPush(user) {
 }
 
 const CSS_BASE = `
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Syne:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,700&family=Playfair+Display:wght@700;900&display=swap');
 @keyframes sUp{from{transform:translateY(18px);opacity:0}to{transform:translateY(0);opacity:1}}
 @keyframes fIn{from{opacity:0}to{opacity:1}}
 @keyframes bIn{0%{transform:scale(.3);opacity:0}60%{transform:scale(1.1)}80%{transform:scale(.95)}100%{transform:scale(1);opacity:1}}
@@ -65,7 +65,9 @@ const CSS_BASE = `
 @keyframes confA{0%{transform:translateY(0) rotate(0deg);opacity:1}100%{transform:translateY(90px) rotate(720deg);opacity:0}}
 @keyframes confB{0%{transform:translate(0,0) rotate(0deg) scale(1);opacity:1}100%{transform:translate(var(--ex),var(--ey)) rotate(var(--rot,720deg)) scale(.4);opacity:0}}
 .bc *{box-sizing:border-box;margin:0;padding:0}
-.bc{font-family:'Syne',sans-serif;transition:background .25s,color .25s}
+.bc{font-family:'Manrope',sans-serif;transition:background .25s,color .25s}
+.bc-head{font-family:'Cormorant Garamond',serif;letter-spacing:-0.01em;font-weight:600}
+.bc-num{font-family:'Playfair Display',serif;font-feature-settings:'lnum';letter-spacing:-0.01em}
 .sUp{animation:sUp .3s ease both}
 .fIn{animation:fIn .25s ease both}
 .bIn{animation:bIn .45s cubic-bezier(.34,1.56,.64,1) both}
@@ -74,7 +76,7 @@ const CSS_BASE = `
 .spinC{animation:spinC 1.4s ease-in-out forwards}
 
 .bc input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:5px;border-radius:3px;background:var(--mut);outline:none;cursor:pointer}
-.bc input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--gold);cursor:pointer;box-shadow:0 0 8px var(--glow)}
+.bc input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--pur);cursor:pointer;box-shadow:0 0 8px var(--glow)}
 ::-webkit-scrollbar{width:4px}
 ::-webkit-scrollbar-thumb{background:var(--mut);border-radius:2px}
 .bc{letter-spacing:-0.005em;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;position:relative;isolation:isolate}
@@ -82,9 +84,9 @@ const CSS_BASE = `
   content:'';
   position:fixed; inset:0; z-index:-1;
   background:
-    radial-gradient(60vmax 40vmax at 12% 18%,  rgba(200,151,63,.10) 0%, transparent 55%),
-    radial-gradient(70vmax 50vmax at 88% 82%,  rgba(91,138,240,.07) 0%, transparent 60%),
-    radial-gradient(40vmax 30vmax at 50% 95%,  rgba(160,126,245,.06) 0%, transparent 60%);
+    radial-gradient(60vmax 40vmax at 12% 18%,  rgba(183,148,244,.10) 0%, transparent 55%),
+    radial-gradient(70vmax 50vmax at 88% 82%,  rgba(196,168,120,.07) 0%, transparent 60%),
+    radial-gradient(40vmax 30vmax at 50% 95%,  rgba(122,162,255,.05) 0%, transparent 60%);
   filter: blur(4px);
   animation: ambientDrift 38s ease-in-out infinite;
   pointer-events:none;
@@ -95,12 +97,12 @@ const CSS_BASE = `
 }
 .bc h1,.bc h2{letter-spacing:-0.02em}
 
-/* Focus ring (keyboard nav) */
+/* Focus ring (keyboard nav) — uses lavender now; gold is reserved for accents. */
 .bc button:focus-visible,
 .bc input:focus-visible,
 .bc textarea:focus-visible,
 .bc select:focus-visible{
-  outline:2px solid var(--gold);
+  outline:2px solid var(--pur);
   outline-offset:2px;
   border-radius:8px;
 }
@@ -112,8 +114,8 @@ const CSS_BASE = `
   .bc button:not(:disabled):active{filter:brightness(.95); transform:translateY(0);}
   .bc .card-hover{transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;}
   .bc .card-hover:hover{transform:translateY(-2px); box-shadow:0 10px 28px rgba(0,0,0,.32);}
-  .bc .nav-item:hover{background:var(--gold)0d !important;}
-  .bc input:hover,.bc textarea:hover,.bc select:hover{border-color:var(--gold)55 !important;}
+  .bc .nav-item:hover{background:var(--pur)14 !important;}
+  .bc input:hover,.bc textarea:hover,.bc select:hover{border-color:var(--pur)66 !important;}
 }
 `;
 
@@ -629,7 +631,7 @@ export default function App() {
       {isDesktop && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: 240, height: '100vh', background: 'var(--surf)', borderRight: '1px solid var(--brd)', display: 'flex', flexDirection: 'column', zIndex: 50, padding: '24px 0' }}>
           <div style={{ padding: '0 20px 16px', borderBottom: '1px solid var(--brd)', marginBottom: 8 }}>
-            <div style={{ fontFamily:"'Playfair Display',serif", fontSize:18, fontWeight:900, letterSpacing:-0.5, marginBottom:14 }}>
+            <div style={{ fontFamily:"'Cormorant Garamond',serif", fontStyle:'italic', fontSize:24, fontWeight:600, letterSpacing:-0.5, marginBottom:14 }}>
               <span className="shim">BetCouple</span>
             </div>
             <div
@@ -645,7 +647,7 @@ export default function App() {
                   : myProfile.avatar}
               </div>
               <div style={{ minWidth:0, flex:1 }}>
-                <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 14, fontWeight: 700, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', lineHeight:1.1 }}>{myProfile.name}</div>
+                <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 17, fontWeight: 700, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', lineHeight:1.1 }}>{myProfile.name}</div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--gold)', marginTop:2 }}>{Math.round(credits[user] ?? 0)} ₡</div>
               </div>
             </div>
@@ -670,7 +672,7 @@ export default function App() {
             ))}
           </div>
           <div style={{ padding: '12px 16px 0' }}>
-            <button data-tour="new-bet" onClick={() => setShowCreate(true)} style={{ width: '100%', padding: '11px 0', borderRadius: 12, border: 'none', background: 'var(--gold)', color: '#07060f', fontFamily: "'Syne',sans-serif", fontSize: 14, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 16px var(--glow)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>{t('app.new_bet')}</button>
+            <button data-tour="new-bet" onClick={() => setShowCreate(true)} style={{ width: '100%', padding: '11px 0', borderRadius: 12, border: 'none', background: 'var(--gold)', color: '#07060f', fontFamily: "'Manrope',sans-serif", fontSize: 14, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 16px var(--glow)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>{t('app.new_bet')}</button>
           </div>
         </div>
       )}
@@ -679,7 +681,7 @@ export default function App() {
       {!isDesktop && (
         <div style={{ position: 'sticky', top: 0, background: C.bg, zIndex: 10, borderBottom: `1px solid ${C.brd}22` }}>
           <div style={{ padding: '14px 20px 6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap:10 }}>
-            <div style={{ fontFamily:"'Playfair Display',serif", fontSize: 16, fontWeight: 900, letterSpacing: -0.5 }}>
+            <div style={{ fontFamily:"'Cormorant Garamond',serif", fontStyle:'italic', fontSize: 22, fontWeight: 600, letterSpacing: -0.5 }}>
               <span className="shim">BetCouple</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

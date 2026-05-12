@@ -99,7 +99,7 @@ export default function AuthView({ onAuth }) {
     <div style={S.wrap}>
       <div style={S.card}>
         <div style={{ textAlign:'center', marginBottom:28 }}>
-          <div style={{ fontFamily:"'Playfair Display',serif", fontSize:34, fontWeight:900, marginBottom:6 }}>
+          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:34, fontWeight:900, marginBottom:6 }}>
             <span className="shim">BetCouple</span>
           </div>
           <div style={{ fontSize:12, color:'var(--dim)' }}>{t('welcome.subtitle')}</div>
@@ -110,7 +110,7 @@ export default function AuthView({ onAuth }) {
           {['login','register'].map(t2 => (
             <button key={t2} onClick={() => { setTab(t2); setError(''); }}
               style={{ flex:1, padding:'8px 0', borderRadius:8, border:'none', cursor:'pointer',
-                fontFamily:"'Syne',sans-serif", fontSize:13, fontWeight:600,
+                fontFamily:"'Manrope',sans-serif", fontSize:13, fontWeight:600,
                 background: tab===t2 ? 'var(--gold)' : 'transparent',
                 color: tab===t2 ? '#fff' : 'var(--dim)', transition:'all .18s' }}>
               {t2 === 'register' ? t('auth.tab_register') : t('auth.tab_login')}
@@ -199,7 +199,7 @@ export default function AuthView({ onAuth }) {
                 style={{
                   background: 'transparent', border: 'none', cursor: 'pointer',
                   color: 'var(--dim)', fontSize: 12, padding: 0, textDecoration: 'underline',
-                  fontFamily: "'Syne',sans-serif",
+                  fontFamily: "'Manrope',sans-serif",
                 }}>
                 {t('auth.forgot_link')}
               </button>
@@ -208,7 +208,7 @@ export default function AuthView({ onAuth }) {
 
           <button type="submit" disabled={loading}
             style={{ width:'100%', marginTop:16, padding:'13px 0', borderRadius:12, border:'none',
-              background:'var(--gold)', color:'#07060f', fontFamily:"'Syne',sans-serif",
+              background:'var(--gold)', color:'#07060f', fontFamily:"'Manrope',sans-serif",
               fontSize:15, fontWeight:700, cursor: loading ? 'not-allowed' : 'pointer',
               opacity: loading ? 0.7 : 1, boxShadow:'0 4px 16px var(--glow)' }}>
             {loading ? '…' : tab === 'register' ? t('auth.register_btn') : t('auth.login_btn')}
@@ -227,7 +227,7 @@ export default function AuthView({ onAuth }) {
             borderRadius: 18, width: '100%', maxWidth: 380, padding: 22,
             boxShadow: '0 24px 64px rgba(0,0,0,.6)',
           }}>
-            <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 19, fontWeight: 700, marginBottom: 8 }}>
+            <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 19, fontWeight: 700, marginBottom: 8 }}>
               🔑 {t('auth.forgot_title')}
             </div>
             <div style={{ fontSize: 12, color: 'var(--dim)', lineHeight: 1.5, marginBottom: 16 }}>
@@ -255,12 +255,12 @@ export default function AuthView({ onAuth }) {
                   padding: '8px 14px', borderRadius: 10,
                   background: 'transparent', border: '1px solid var(--brd)',
                   color: 'var(--dim)', cursor: 'pointer',
-                  fontFamily: "'Syne',sans-serif", fontSize: 13, fontWeight: 600,
+                  fontFamily: "'Manrope',sans-serif", fontSize: 13, fontWeight: 600,
                 }}>{t('reveal.cancel')}</button>
                 <button type="submit" disabled={forgotBusy} style={{
                   padding: '10px 18px', borderRadius: 10, border: 'none',
                   background: 'var(--gold)', color: '#07060f',
-                  fontFamily: "'Syne',sans-serif", fontSize: 13, fontWeight: 800,
+                  fontFamily: "'Manrope',sans-serif", fontSize: 13, fontWeight: 800,
                   cursor: forgotBusy ? 'wait' : 'pointer', opacity: forgotBusy ? 0.7 : 1,
                 }}>{forgotBusy ? '…' : t('auth.forgot_send')}</button>
               </div>

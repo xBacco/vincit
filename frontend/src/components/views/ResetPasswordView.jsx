@@ -43,7 +43,7 @@ export default function ResetPasswordView({ token, onDone }) {
     <div style={S.wrap}>
       <div style={S.card}>
         <div style={{ textAlign: 'center', marginBottom: 22 }}>
-          <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 28, fontWeight: 900, marginBottom: 6 }}>
+          <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 28, fontWeight: 900, marginBottom: 6 }}>
             <span className="shim">BetCouple</span>
           </div>
           <div style={{ fontSize: 13, color: 'var(--dim)' }}>{t('reset.subtitle')}</div>
@@ -61,7 +61,7 @@ export default function ResetPasswordView({ token, onDone }) {
             </div>
             <button onClick={onDone} style={{
               width: '100%', padding: '13px 0', borderRadius: 12, border: 'none',
-              background: 'var(--gold)', color: '#07060f', fontFamily: "'Syne',sans-serif",
+              background: 'var(--gold)', color: '#07060f', fontFamily: "'Manrope',sans-serif",
               fontSize: 15, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 16px var(--glow)',
             }}>
               {t('reset.go_login')}
@@ -88,7 +88,7 @@ export default function ResetPasswordView({ token, onDone }) {
             )}
             <button type="submit" disabled={busy} style={{
               width: '100%', marginTop: 8, padding: '13px 0', borderRadius: 12, border: 'none',
-              background: 'var(--gold)', color: '#07060f', fontFamily: "'Syne',sans-serif",
+              background: 'var(--gold)', color: '#07060f', fontFamily: "'Manrope',sans-serif",
               fontSize: 15, fontWeight: 700, cursor: busy ? 'wait' : 'pointer',
               opacity: busy ? 0.7 : 1, boxShadow: '0 4px 16px var(--glow)',
             }}>{busy ? '…' : t('reset.confirm_btn')}</button>

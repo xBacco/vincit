@@ -5,7 +5,7 @@ import BetCard from '../BetCard.jsx';
 
 const S = {
   card: {background:"var(--card)",border:"1px solid var(--brd)",borderRadius:16,padding:16},
-  btn: {display:"inline-flex",alignItems:"center",justifyContent:"center",gap:6,padding:"10px 18px",borderRadius:10,border:"none",cursor:"pointer",fontFamily:"'Syne',sans-serif",fontSize:13,fontWeight:600,transition:"all .18s",userSelect:"none",whiteSpace:"nowrap"},
+  btn: {display:"inline-flex",alignItems:"center",justifyContent:"center",gap:6,padding:"10px 18px",borderRadius:10,border:"none",cursor:"pointer",fontFamily:"'Manrope',sans-serif",fontSize:13,fontWeight:600,transition:"all .18s",userSelect:"none",whiteSpace:"nowrap"},
   bdg: {display:"inline-flex",alignItems:"center",gap:3,padding:"3px 9px",borderRadius:20,fontSize:11,fontWeight:600},
 };
 
@@ -24,7 +24,7 @@ export default function VaultView({user,profiles,bets,cats,onReveal,onFlame,unlo
     return(
       <div className="sUp" style={{textAlign:"center",padding:"80px 20px"}}>
         <div style={{fontSize:52,marginBottom:16}}>🔒</div>
-        <div style={{fontFamily:"'Playfair Display',serif",fontSize:22,fontWeight:700,marginBottom:8}}>{t('vault_view.locked_title')}</div>
+        <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:700,marginBottom:8}}>{t('vault_view.locked_title')}</div>
         <div style={{fontSize:13,color:"var(--dim)",marginBottom:28}}>{t('vault_view.locked_sub')}</div>
         <Btn variant="gold" style={{padding:"12px 32px",fontSize:15}} onClick={onPinRequest}>{t('vault_view.unlock_btn')}</Btn>
       </div>
@@ -40,7 +40,7 @@ export default function VaultView({user,profiles,bets,cats,onReveal,onFlame,unlo
   const emptyState=active.length===0&&resolved.length===0&&(
     <div style={{textAlign:"center",padding:"52px 0",color:"var(--dim)"}}>
       <div style={{fontSize:48,marginBottom:12}}>🔒</div>
-      <div style={{fontFamily:"'Playfair Display',serif",fontSize:17,marginBottom:6}}>{t('vault_view.empty_title')}</div>
+      <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:17,marginBottom:6}}>{t('vault_view.empty_title')}</div>
       <div style={{fontSize:13}}>{t('vault_view.empty_sub')}</div>
     </div>
   );
@@ -58,7 +58,7 @@ export default function VaultView({user,profiles,bets,cats,onReveal,onFlame,unlo
                   {b.expiresAt&&<div style={{fontSize:11,color:isSoon(b.expiresAt)?"var(--red)":"var(--gold)",marginTop:2}}>⏱ {tLeft(b.expiresAt,lang)}</div>}
                 </div>
                 <div style={{textAlign:"right",flexShrink:0}}>
-                  <div style={{fontFamily:"'Playfair Display',serif",fontSize:20,color:"var(--gold)",fontWeight:700}}>{fmtQ(b.quota)}×</div>
+                  <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,color:"var(--gold)",fontWeight:700}}>{fmtQ(b.quota)}×</div>
                   <div style={{fontSize:10,color:"var(--dim)"}}>{qToP(b.quota)}%</div>
                 </div>
               </div>
@@ -88,7 +88,7 @@ export default function VaultView({user,profiles,bets,cats,onReveal,onFlame,unlo
     <div className="sUp">
       {!hideTitle && (
         <>
-          <div style={{fontFamily:"'Playfair Display',serif",fontSize:24,fontWeight:700,marginBottom:4}}>{t('vault_view.title')}</div>
+          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:24,fontWeight:700,marginBottom:4}}>{t('vault_view.title')}</div>
           <div style={{fontSize:13,color:"var(--dim)",marginBottom:8}}>{t('vault_view.subtitle')}</div>
         </>
       )}

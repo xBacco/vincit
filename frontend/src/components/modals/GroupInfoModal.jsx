@@ -137,7 +137,7 @@ export default function GroupInfoModal({ group, userId, onClose, onLeft, onDelet
   };
 
   const S = {
-    btn: { fontFamily:"'Syne',sans-serif", fontSize:13, fontWeight:600,
+    btn: { fontFamily:"'Manrope',sans-serif", fontSize:13, fontWeight:600,
            cursor:'pointer', transition:'all .18s', borderRadius:10, border:'none' },
   };
 
@@ -170,7 +170,7 @@ export default function GroupInfoModal({ group, userId, onClose, onLeft, onDelet
               maxLength={40}
               style={{ width:'100%', background:'var(--inp)', border:'1px solid var(--brd)',
                 color:'var(--txt)', borderRadius:10, padding:'10px 14px',
-                fontFamily:"'Syne',sans-serif", fontSize:14, outline:'none', marginBottom:12,
+                fontFamily:"'Manrope',sans-serif", fontSize:14, outline:'none', marginBottom:12,
                 boxSizing:'border-box' }}
             />
             {isOwner && (
@@ -186,7 +186,7 @@ export default function GroupInfoModal({ group, userId, onClose, onLeft, onDelet
                   onChange={e => setEditThreshold(e.target.value)}
                   style={{ width:'100%', background:'var(--inp)', border:'1px solid var(--brd)',
                     color:'var(--txt)', borderRadius:10, padding:'10px 14px',
-                    fontFamily:"'Syne',sans-serif", fontSize:14, outline:'none', marginBottom:4,
+                    fontFamily:"'Manrope',sans-serif", fontSize:14, outline:'none', marginBottom:4,
                     boxSizing:'border-box' }}
                 />
                 <div style={{ fontSize:11, color:'var(--dim)' }}>
@@ -213,7 +213,7 @@ export default function GroupInfoModal({ group, userId, onClose, onLeft, onDelet
           <>
             <div style={{ display:'flex', justifyContent:'space-between',
               alignItems:'center', marginBottom:20 }}>
-              <div style={{ fontFamily:"'Playfair Display',serif", fontSize:20, fontWeight:700 }}>
+              <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:20, fontWeight:700 }}>
                 {group.emoji} {group.name}
               </div>
               <div style={{ display:'flex', gap:8, alignItems:'center' }}>

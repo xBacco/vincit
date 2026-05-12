@@ -17,7 +17,7 @@ export default function BetsView({user,profiles,bets,cats,onResolve,onCounter,on
 
   const pill = active => ({
     padding:'5px 12px', borderRadius:20, flexShrink:0, cursor:'pointer', whiteSpace:'nowrap',
-    fontFamily:"'Syne',sans-serif", fontSize:11, fontWeight:600,
+    fontFamily:"'Manrope',sans-serif", fontSize:11, fontWeight:600,
     border:`1px solid ${active ? 'var(--gold)' : 'var(--brd)'}`,
     background: active ? 'var(--gold)22' : 'transparent',
     color: active ? 'var(--gold)' : 'var(--dim)',
@@ -30,7 +30,7 @@ export default function BetsView({user,profiles,bets,cats,onResolve,onCounter,on
     <div className="sUp">
       {!hideTitle && (
         <>
-          <div style={{fontFamily:"'Playfair Display',serif",fontSize:24,fontWeight:700,marginBottom:4}}>{t('bets_view.title')}</div>
+          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:24,fontWeight:700,marginBottom:4}}>{t('bets_view.title')}</div>
           <div style={{fontSize:13,color:"var(--dim)",marginBottom:12}}>{total===1?t('bets_view.sub_one'):t('bets_view.sub_many',{n:total})}</div>
         </>
       )}
@@ -53,7 +53,7 @@ export default function BetsView({user,profiles,bets,cats,onResolve,onCounter,on
       {visible.length === 0
         ? <div style={{textAlign:'center',padding:'52px 0',color:'var(--dim)'}}>
             <div style={{fontSize:48,marginBottom:12}}>🎯</div>
-            <div style={{fontFamily:"'Playfair Display',serif",fontSize:17}}>{t('bets_view.empty')}</div>
+            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:17}}>{t('bets_view.empty')}</div>
           </div>
         : <div style={isDesktop?{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,alignItems:'start'}:{}}>
             {visible.map(b => <BetCard key={b.id} bet={b} user={user} profiles={profiles} cats={cats}

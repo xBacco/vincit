@@ -123,10 +123,10 @@ export default function DashboardView({user,profiles,groupMembers,credits,bets,c
                 </div>
               );
             })()}
-            <div style={{fontFamily:"'Playfair Display',serif",fontSize:13,fontWeight:700,marginTop:6,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
+            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:13,fontWeight:700,marginTop:6,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
               {s.p?.name}{s.isMe && <span style={{color:"var(--gold)",marginLeft:3}}>·</span>}
             </div>
-            <div style={{fontFamily:"'Playfair Display',serif",fontSize:24,fontWeight:900,color:i===0?"var(--gold)":s.c,lineHeight:1.1}}>{s.w}</div>
+            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:24,fontWeight:900,color:i===0?"var(--gold)":s.c,lineHeight:1.1}}>{s.w}</div>
             <div style={{fontSize:10,color:"var(--dim)"}}>{t('dashboard.wins')}</div>
           </div>
         ))}
@@ -147,7 +147,7 @@ export default function DashboardView({user,profiles,groupMembers,credits,bets,c
             {[{u:user,s:myStreak},{u:other,s:thStreak}].map(({u,s})=>(
               <div key={u} style={{textAlign:'center'}}>
                 <div style={{fontSize:18}}>🔥</div>
-                <div style={{fontFamily:"'Playfair Display',serif",fontSize:20,fontWeight:700,color:s>=7?'var(--red)':s>=3?'var(--gold)':'var(--txt)'}}>{s}</div>
+                <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:700,color:s>=7?'var(--red)':s>=3?'var(--gold)':'var(--txt)'}}>{s}</div>
                 <div style={{fontSize:10,color:'var(--dim)',letterSpacing:1}}>{t('dashboard.streak')}</div>
               </div>
             ))}
@@ -215,7 +215,7 @@ export default function DashboardView({user,profiles,groupMembers,credits,bets,c
   const emptyState=myAct.length+thAct.length+mySec.length===0&&(
     <div style={{textAlign:"center",padding:"52px 20px"}}>
       <div style={{fontSize:52,marginBottom:14}}>🎲</div>
-      <div style={{fontFamily:"'Playfair Display',serif",fontSize:20,marginBottom:8}}>{t('dashboard.no_active')}</div>
+      <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,marginBottom:8}}>{t('dashboard.no_active')}</div>
       <div style={{fontSize:13,color:"var(--dim)",marginBottom:24}}>{t('dashboard.no_active_sub')}</div>
       <Btn variant="gold" onClick={onCreate} style={{padding:"12px 28px",fontSize:15}}>{t('dashboard.cta')}</Btn>
     </div>
@@ -266,7 +266,7 @@ export default function DashboardView({user,profiles,groupMembers,credits,bets,c
           <div style={{fontSize:11, color:'var(--dim)', letterSpacing:2, textTransform:'uppercase', fontWeight:700}}>
             {greeting} {t('app.welcome_back')}
           </div>
-          <div style={{fontFamily:"'Playfair Display',serif", fontSize:isDesktop ? 26 : 20, fontWeight:700, lineHeight:1.1, marginTop:2, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
+          <div style={{fontFamily:"'Cormorant Garamond',serif", fontSize:isDesktop ? 26 : 20, fontWeight:700, lineHeight:1.1, marginTop:2, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
             {myProfile.name}
           </div>
         </div>
@@ -274,7 +274,7 @@ export default function DashboardView({user,profiles,groupMembers,credits,bets,c
           <div style={{fontSize:10, color:'var(--dim)', letterSpacing:2, textTransform:'uppercase', fontWeight:700}}>
             {t('app.credits')}
           </div>
-          <div style={{fontFamily:"'Playfair Display',serif", fontSize:isDesktop ? 28 : 22, fontWeight:900, color:'var(--gold)', lineHeight:1.05}}>
+          <div style={{fontFamily:"'Cormorant Garamond',serif", fontSize:isDesktop ? 28 : 22, fontWeight:900, color:'var(--gold)', lineHeight:1.05}}>
             {Math.round(credits[user] ?? 0)} ₡
           </div>
         </div>
@@ -289,7 +289,7 @@ export default function DashboardView({user,profiles,groupMembers,credits,bets,c
             {l:t('dashboard.total_bets'), v:totalMy + myAct.length + mySec.length, c:'var(--gold)'},
           ].map(s => (
             <div key={s.l} style={{flex:1, textAlign:'center'}}>
-              <div style={{fontFamily:"'Playfair Display',serif", fontSize:18, fontWeight:700, color:s.c}}>{s.v}</div>
+              <div style={{fontFamily:"'Cormorant Garamond',serif", fontSize:18, fontWeight:700, color:s.c}}>{s.v}</div>
               <div style={{fontSize:9, color:'var(--dim)', letterSpacing:1, textTransform:'uppercase', marginTop:2}}>{s.l}</div>
             </div>
           ))}

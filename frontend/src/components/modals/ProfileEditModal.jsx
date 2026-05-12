@@ -103,7 +103,7 @@ export default function ProfileEditModal({ profile, onClose, onSaved }) {
       position:'fixed', inset:0, background:'rgba(0,0,0,.85)',
       display:'flex', alignItems:'center', justifyContent:'center', zIndex:9100,
       padding:16, overflow:'hidden',
-      fontFamily:"'Syne', sans-serif",
+      fontFamily:"'Manrope', sans-serif",
     }}>
       <div onClick={e => e.stopPropagation()} className="bIn" style={{
         background:'var(--surf)', border:'1px solid var(--brd)',
@@ -118,13 +118,13 @@ export default function ProfileEditModal({ profile, onClose, onSaved }) {
           background:'linear-gradient(180deg, var(--surf), var(--card))',
           borderRadius:'18px 18px 0 0', flexShrink:0,
         }}>
-          <div style={{fontFamily:"'Playfair Display',serif", fontSize:18, fontWeight:700}}>
+          <div style={{fontFamily:"'Cormorant Garamond',serif", fontSize:18, fontWeight:700}}>
             {t('profile.edit_title')}
           </div>
           <button onClick={onClose} style={{
             background:'transparent', border:'1px solid var(--brd)', borderRadius:10,
             color:'var(--dim)', padding:'5px 11px', cursor:'pointer',
-            fontFamily:"'Syne',sans-serif", fontSize:12, fontWeight:600,
+            fontFamily:"'Manrope',sans-serif", fontSize:12, fontWeight:600,
           }}>✕</button>
         </div>
 
@@ -148,7 +148,7 @@ export default function ProfileEditModal({ profile, onClose, onSaved }) {
               <button onClick={() => fileRef.current?.click()} disabled={photoBusy} style={{
                 display:'block', width:'100%', padding:'8px 12px', borderRadius:10,
                 background:'var(--gold)22', border:'1px solid var(--gold)44',
-                color:'var(--gold)', cursor:'pointer', fontFamily:"'Syne',sans-serif",
+                color:'var(--gold)', cursor:'pointer', fontFamily:"'Manrope',sans-serif",
                 fontSize:12, fontWeight:600, marginBottom:6,
                 opacity: photoBusy ? .6 : 1,
               }}>{avatarUrl ? t('settings.photo_change') : t('settings.photo_upload')}</button>
@@ -156,7 +156,7 @@ export default function ProfileEditModal({ profile, onClose, onSaved }) {
                 <button onClick={removePhoto} disabled={photoBusy} style={{
                   display:'block', width:'100%', padding:'6px 12px', borderRadius:10,
                   background:'transparent', border:'1px solid var(--red)44', color:'var(--red)',
-                  cursor:'pointer', fontFamily:"'Syne',sans-serif", fontSize:11, fontWeight:600,
+                  cursor:'pointer', fontFamily:"'Manrope',sans-serif", fontSize:11, fontWeight:600,
                   opacity: photoBusy ? .6 : 1,
                 }}>{t('settings.photo_remove')}</button>
               )}

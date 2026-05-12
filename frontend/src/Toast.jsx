@@ -81,7 +81,7 @@ function ToastItem({ toast, onDismiss }) {
       boxShadow: '0 10px 28px rgba(0,0,0,.45)',
       cursor: 'pointer',
       display: 'flex', alignItems: 'center', gap: 10,
-      fontFamily: "'Syne', sans-serif", fontSize: 13,
+      fontFamily: "'Manrope', sans-serif", fontSize: 13,
       color: 'var(--txt)',
       animation: 'toastIn .25s cubic-bezier(.34,1.56,.64,1) both',
       position: 'relative', overflow: 'hidden',

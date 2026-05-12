@@ -7,7 +7,7 @@ export default function TrophiesView({ bets = [], isDesktop }) {
   return (
     <div className="sUp">
       <div style={{
-        fontFamily:"'Playfair Display',serif",
+        fontFamily:"'Cormorant Garamond',serif",
         fontSize: isDesktop ? 28 : 24,
         fontWeight: 700, marginBottom: 18,
       }}>{t('trophies.title')}</div>

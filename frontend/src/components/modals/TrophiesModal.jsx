@@ -30,13 +30,13 @@ export default function TrophiesModal({ onClose, betsTick = 0 }) {
           background:'linear-gradient(180deg, var(--surf), var(--card))',
           borderRadius:'18px 18px 0 0',
         }}>
-          <div style={{fontFamily:"'Playfair Display',serif", fontSize:20, fontWeight:700}}>
+          <div style={{fontFamily:"'Cormorant Garamond',serif", fontSize:20, fontWeight:700}}>
             {t('trophies.title')}
           </div>
           <button onClick={onClose} style={{
             background:'transparent', border:'1px solid var(--brd)', borderRadius:10,
             color:'var(--dim)', padding:'6px 12px', cursor:'pointer',
-            fontFamily:"'Syne',sans-serif", fontSize:12, fontWeight:600,
+            fontFamily:"'Manrope',sans-serif", fontSize:12, fontWeight:600,
           }}>✕</button>
         </div>
 

@@ -41,7 +41,7 @@ export default function AcceptModal({ bet, profiles, myCredits, onAccept, onClos
           padding: '14px 18px', borderBottom: '1px solid var(--brd)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
-          <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 17, fontWeight: 700 }}>
+          <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 17, fontWeight: 700 }}>
             🎯 {t('accept.title')}
           </div>
           <button onClick={onClose} style={{
@@ -104,7 +104,7 @@ export default function AcceptModal({ bet, profiles, myCredits, onAccept, onClos
               <button onClick={() => setStake(Math.min(suggested, maxStake))} style={{
                 background: 'transparent', border: '1px solid var(--brd)', borderRadius: 8,
                 padding: '4px 10px', fontSize: 11, color: 'var(--dim)', cursor: 'pointer',
-                fontFamily: "'Syne',sans-serif",
+                fontFamily: "'Manrope',sans-serif",
               }}>= {suggested} ₡ ({t('accept.match')})</button>
               <input
                 type="number"
@@ -115,7 +115,7 @@ export default function AcceptModal({ bet, profiles, myCredits, onAccept, onClos
                   width: 100, textAlign: 'right',
                   background: 'var(--inp)', border: '1px solid var(--brd)', borderRadius: 8,
                   color: 'var(--gold)', padding: '6px 10px', fontWeight: 700,
-                  fontFamily: "'Syne',sans-serif", fontSize: 14, outline: 'none',
+                  fontFamily: "'Manrope',sans-serif", fontSize: 14, outline: 'none',
                 }}
               />
             </div>

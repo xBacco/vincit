@@ -99,7 +99,7 @@ function InviteToGroupModal({ friend, groups, onInvite, onClose }) {
             <div style={{ fontSize: 11, color: 'var(--dim)', letterSpacing: 1.5, textTransform: 'uppercase' }}>
               {t('friends.invite_title')}
             </div>
-            <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 17, fontWeight: 700,
+            <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 17, fontWeight: 700,
               whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {friend.name}
             </div>
@@ -276,7 +276,7 @@ export default function FriendsView({ groups, user, onSwitchToGroup, isDesktop }
         background: active ? 'var(--gold)18' : 'transparent',
         color: active ? 'var(--gold)' : 'var(--dim)',
         border: 'none', borderBottom: `2px solid ${active ? 'var(--gold)' : 'transparent'}`,
-        cursor: 'pointer', fontFamily: "'Syne',sans-serif",
+        cursor: 'pointer', fontFamily: "'Manrope',sans-serif",
         fontSize: 12, fontWeight: 700, letterSpacing: 0.3,
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
         transition: 'all .18s',
@@ -305,7 +305,7 @@ export default function FriendsView({ groups, user, onSwitchToGroup, isDesktop }
       <Avatar p={p} size={48}/>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{
-          fontFamily: "'Playfair Display',serif", fontSize: 16, fontWeight: 700,
+          fontFamily: "'Cormorant Garamond',serif", fontSize: 16, fontWeight: 700,
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}>{p.name}</div>
         <SharedGroupsChips groups={p.shared_groups} onClick={onSwitchToGroup}/>
@@ -328,7 +328,7 @@ export default function FriendsView({ groups, user, onSwitchToGroup, isDesktop }
       border: `1px solid ${kind === 'primary' ? 'var(--gold)55' : kind === 'danger' ? 'var(--red)44' : 'var(--brd)'}`,
       color: kind === 'primary' ? 'var(--gold)' : kind === 'danger' ? 'var(--red)' : 'var(--dim)',
       cursor: disabled ? 'wait' : 'pointer',
-      fontFamily: "'Syne',sans-serif", fontSize: 11, fontWeight: 700,
+      fontFamily: "'Manrope',sans-serif", fontSize: 11, fontWeight: 700,
       letterSpacing: 0.5, whiteSpace: 'nowrap',
       opacity: disabled ? 0.6 : 1,
     }}>{label}</button>
@@ -338,7 +338,7 @@ export default function FriendsView({ groups, user, onSwitchToGroup, isDesktop }
     <div className="sUp" style={{ paddingBottom: isDesktop ? 32 : 96 }}>
       <div style={{ marginBottom: 16 }}>
         <h1 style={{
-          fontFamily: "'Playfair Display',serif", fontSize: isDesktop ? 32 : 24,
+          fontFamily: "'Cormorant Garamond',serif", fontSize: isDesktop ? 32 : 24,
           fontWeight: 900, letterSpacing: -0.5, marginBottom: 4,
         }}>👥 {t('friends.title')}</h1>
         <div style={{ fontSize: 12, color: 'var(--dim)', lineHeight: 1.5 }}>
@@ -370,7 +370,7 @@ export default function FriendsView({ groups, user, onSwitchToGroup, isDesktop }
             style={{
               flex: 1, border: 'none', outline: 'none',
               background: 'transparent', color: 'var(--txt)',
-              fontFamily: "'Syne',sans-serif", fontSize: 13,
+              fontFamily: "'Manrope',sans-serif", fontSize: 13,
             }}
           />
         </div>
@@ -415,7 +415,7 @@ export default function FriendsView({ groups, user, onSwitchToGroup, isDesktop }
                 marginTop: 16, padding: '8px 18px', borderRadius: 10,
                 background: 'var(--gold)22', border: '1px solid var(--gold)55',
                 color: 'var(--gold)', cursor: 'pointer',
-                fontFamily: "'Syne',sans-serif", fontSize: 12, fontWeight: 700,
+                fontFamily: "'Manrope',sans-serif", fontSize: 12, fontWeight: 700,
               }}>{t('friends.empty_cta')}</button>
             </div>
           )}

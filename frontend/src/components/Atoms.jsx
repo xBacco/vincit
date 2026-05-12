@@ -1,16 +1,25 @@
 import { TRANSLATIONS } from '../i18n.js';
 import React from 'react';
 
-export const DARK  = {bg:"#07060f",surf:"#0f0d1f",card:"#131128",brd:"#1e1b36",gold:"#c8973f",goldL:"#e8b84b",glow:"rgba(200,151,63,0.18)",grn:"#2ecc7f",red:"#e05555",blu:"#5b8af0",pur:"#a07ef5",txt:"#ede8fd",dim:"#8480a0",mut:"#3d3a58",inp:"#0f0d1f"};
-export const LIGHT = {bg:"#f0eeff",surf:"#ffffff",card:"#fafafe",brd:"#dbd6f0",gold:"#9a6820",goldL:"#b8801e",glow:"rgba(154,104,32,0.15)",grn:"#1a8f5c",red:"#c03040",blu:"#2a5fcc",pur:"#6b48cc",txt:"#1a1630",dim:"#5a5478",mut:"#d0cce8",inp:"#f8f6ff"};
+// Palette "Lavanda & Ottone" — viola lavanda dominante, ottone spazzolato come accento.
+// In light mode bg = farina d'avena (beige sporco), niente bianco puro.
+export const DARK  = {bg:"#1a1530",surf:"#221c40",card:"#2b2247",brd:"#3a3260",gold:"#c4a878",goldL:"#d6bf94",glow:"rgba(196,168,120,0.18)",grn:"#3dd494",red:"#e26666",blu:"#7aa2ff",pur:"#b794f4",txt:"#ebe5ff",dim:"#9089b8",mut:"#403868",inp:"#1d1838"};
+export const LIGHT = {bg:"#ede8d8",surf:"#f5f0e0",card:"#faf5e5",brd:"#c4bca0",gold:"#7a5e30",goldL:"#946f33",glow:"rgba(122,94,48,0.16)",grn:"#1f9560",red:"#b73a4a",blu:"#3556bb",pur:"#5b3fc4",txt:"#2a2545",dim:"#5f5878",mut:"#bcb39a",inp:"#f0eadc"};
 
 export const rootVars = C => ({
   "--bg":C.bg,"--surf":C.surf,"--card":C.card,"--brd":C.brd,
   "--gold":C.gold,"--goldL":C.goldL,"--glow":C.glow,
   "--grn":C.grn,"--red":C.red,"--blu":C.blu,"--pur":C.pur,
   "--txt":C.txt,"--dim":C.dim,"--mut":C.mut,"--inp":C.inp,
+  // Font roles. Numbers stay Playfair (editorial weight on the credit
+  // counters & quotas), headings move to Cormorant Garamond, UI body is
+  // Manrope so the dashboard reads as a clean modern app rather than a
+  // shiny casino skin.
+  "--f-num":  "'Playfair Display', serif",
+  "--f-head": "'Cormorant Garamond', serif",
+  "--f-ui":   "'Manrope', sans-serif",
   background:C.bg, color:C.txt,
-  fontFamily:"'Syne',sans-serif", minHeight:"100vh",
+  fontFamily:"'Manrope',sans-serif", minHeight:"100vh",
 });
 
 // Avatar emojis grouped by category. Order matters: items appear in this exact order in the picker.
@@ -75,11 +84,11 @@ export const getC  = (profiles,user)=>COLORS[profiles[user]?.colorKey]||"#5b8af0
 const S = {
   card: {background:"var(--card)",border:"1px solid var(--brd)",borderRadius:16,padding:16},
   bdg: {display:"inline-flex",alignItems:"center",gap:3,padding:"3px 9px",borderRadius:20,fontSize:11,fontWeight:600},
-  btn: {display:"inline-flex",alignItems:"center",justifyContent:"center",gap:6,padding:"10px 18px",borderRadius:10,border:"none",cursor:"pointer",fontFamily:"'Syne',sans-serif",fontSize:13,fontWeight:600,transition:"all .18s",userSelect:"none",whiteSpace:"nowrap"},
+  btn: {display:"inline-flex",alignItems:"center",justifyContent:"center",gap:6,padding:"10px 18px",borderRadius:10,border:"none",cursor:"pointer",fontFamily:"'Manrope',sans-serif",fontSize:13,fontWeight:600,transition:"all .18s",userSelect:"none",whiteSpace:"nowrap"},
   row: {display:"flex",alignItems:"center",gap:10},
   col: {display:"flex",flexDirection:"column",gap:6},
   lbl: {fontSize:10,color:"var(--dim)",letterSpacing:2,textTransform:"uppercase",display:"block",marginBottom:6},
-  inp: {background:"var(--inp)",border:"1px solid var(--brd)",color:"var(--txt)",borderRadius:10,padding:"10px 14px",fontFamily:"'Syne',sans-serif",fontSize:14,outline:"none",width:"100%"},
+  inp: {background:"var(--inp)",border:"1px solid var(--brd)",color:"var(--txt)",borderRadius:10,padding:"10px 14px",fontFamily:"'Manrope',sans-serif",fontSize:14,outline:"none",width:"100%"},
 };
 export const Bdg=({c,bg,children})=><span style={{...S.bdg,background:bg,color:c}}>{children}</span>;
 export const Btn=({variant="ghost",sm,full,onClick,disabled,children,style={}})=>{

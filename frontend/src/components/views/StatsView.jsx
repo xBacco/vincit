@@ -103,7 +103,7 @@ export default function StatsView({user,profiles,groupMembers,credits,bets,cats,
   const balanceCard=(
     <div className="pGold" style={{...S.card,marginBottom:12,textAlign:"center",background:"linear-gradient(135deg,var(--card),var(--surf))"}}>
       <SecLabel>{t('stats_view.balance')}</SecLabel>
-      <div className="shim" style={{fontFamily:"'Playfair Display',serif",fontSize:44,fontWeight:900}}>{Math.round(credits[user] ?? 0)} ₡</div>
+      <div className="shim" style={{fontFamily:"'Cormorant Garamond',serif",fontSize:44,fontWeight:900}}>{Math.round(credits[user] ?? 0)} ₡</div>
       <div style={{fontSize:13,color:net>=0?"var(--grn)":"var(--red)",marginTop:6,fontWeight:600}}>{net>=0?t('stats_view.net_pos',{n:Math.abs(net)}):t('stats_view.net_neg',{n:Math.abs(net)})}</div>
       {balanceSeries.length >= 2 && (
         <div ref={sparkRef} style={{marginTop:14, paddingTop:12, borderTop:"1px solid var(--brd)"}}>
@@ -132,7 +132,7 @@ export default function StatsView({user,profiles,groupMembers,credits,bets,cats,
       ].map(s=>(
         <div key={s.l} style={{...S.card,textAlign:"center"}}>
           <div style={{fontSize:20,marginBottom:4}}>{s.e}</div>
-          <div style={{fontFamily:"'Playfair Display',serif",fontSize:26,fontWeight:700,color:s.c}}>{s.v}</div>
+          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:26,fontWeight:700,color:s.c}}>{s.v}</div>
           <div style={{fontSize:11,color:"var(--dim)"}}>{s.l}</div>
         </div>
       ))}
@@ -237,7 +237,7 @@ export default function StatsView({user,profiles,groupMembers,credits,bets,cats,
         </div>
 
         <div style={{textAlign:'center', flex:'0 0 auto'}}>
-          <div style={{fontFamily:"'Playfair Display',serif", fontSize:30, fontWeight:900, lineHeight:1, color: winnerSide==='me'?'var(--gold)':'var(--txt)'}}>
+          <div style={{fontFamily:"'Cormorant Garamond',serif", fontSize:30, fontWeight:900, lineHeight:1, color: winnerSide==='me'?'var(--gold)':'var(--txt)'}}>
             {myWinsVsThem}
             <span style={{margin:'0 8px', color:'var(--mut)', fontSize:18, fontWeight:600}}>VS</span>
             <span style={{color: winnerSide==='them'?'var(--gold)':'var(--txt)'}}>{theirWinsVsMe}</span>
@@ -271,7 +271,7 @@ export default function StatsView({user,profiles,groupMembers,credits,bets,cats,
                   border:`1px solid ${active ? 'var(--gold)' : 'var(--brd)'}`,
                   background: active ? 'var(--gold)1a' : 'transparent',
                   color: active ? 'var(--gold)' : 'var(--dim)',
-                  cursor:'pointer', fontFamily:"'Syne',sans-serif", fontSize:11, fontWeight:600,
+                  cursor:'pointer', fontFamily:"'Manrope',sans-serif", fontSize:11, fontWeight:600,
                 }}>
                 {m.avatarUrl
                   ? <img src={m.avatarUrl} alt="" style={{width:20,height:20,borderRadius:'50%',objectFit:'cover'}}/>
@@ -338,7 +338,7 @@ export default function StatsView({user,profiles,groupMembers,credits,bets,cats,
                     : (r.p?.avatar ?? '')}
                 </div>
                 <div style={{flex:1, minWidth:0}}>
-                  <div style={{fontFamily:"'Playfair Display',serif", fontSize:14, fontWeight:700, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
+                  <div style={{fontFamily:"'Cormorant Garamond',serif", fontSize:14, fontWeight:700, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
                     {r.p?.name}
                   </div>
                   <div style={{fontSize:11, color:'var(--dim)', marginTop:1}}>
@@ -348,7 +348,7 @@ export default function StatsView({user,profiles,groupMembers,credits,bets,cats,
                   </div>
                 </div>
                 <div style={{textAlign:'right', flexShrink:0}}>
-                  <div style={{fontFamily:"'Playfair Display',serif", fontSize:16, fontWeight:700, color:'var(--gold)'}}>{r.bal} ₡</div>
+                  <div style={{fontFamily:"'Cormorant Garamond',serif", fontSize:16, fontWeight:700, color:'var(--gold)'}}>{r.bal} ₡</div>
                   <div style={{fontSize:10, color: r.net >= 0 ? 'var(--grn)' : 'var(--red)', fontWeight:600}}>
                     {r.net >= 0 ? '+' : ''}{r.net} {t('stats_group.net')}
                   </div>
@@ -363,7 +363,7 @@ export default function StatsView({user,profiles,groupMembers,credits,bets,cats,
 
   return(
     <div className="sUp">
-      <div style={{fontFamily:"'Playfair Display',serif",fontSize:24,fontWeight:700,marginBottom:20}}>{t('stats_view.title')}</div>
+      <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:24,fontWeight:700,marginBottom:20}}>{t('stats_view.title')}</div>
       {isDesktop?(
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,alignItems:"start"}}>
           <div style={{display:'flex', flexDirection:'column', gap:10}}>{balanceCard}{statsGrid}{bestCard}{h2hCard}{emptyMsg}</div>

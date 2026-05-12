@@ -29,7 +29,7 @@ export default function BetsHubView({
         background: active ? 'var(--gold)18' : 'transparent',
         color: active ? 'var(--gold)' : 'var(--dim)',
         border: 'none', borderBottom: `2px solid ${active ? 'var(--gold)' : 'transparent'}`,
-        cursor: 'pointer', fontFamily: "'Syne',sans-serif",
+        cursor: 'pointer', fontFamily: "'Manrope',sans-serif",
         fontSize: 13, fontWeight: 700, letterSpacing: 0.3,
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
         transition: 'all .18s',
@@ -53,7 +53,7 @@ export default function BetsHubView({
     <div className="sUp">
       {/* Header (title only — sub-text comes from each child) */}
       <div style={{
-        fontFamily: "'Playfair Display',serif", fontSize: 24, fontWeight: 700,
+        fontFamily: "'Cormorant Garamond',serif", fontSize: 24, fontWeight: 700,
         marginBottom: 12,
       }}>
         {tab === 'vault' ? t('vault_view.title') : t('bets_view.title')}

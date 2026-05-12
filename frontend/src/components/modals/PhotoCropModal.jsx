@@ -145,7 +145,7 @@ export default function PhotoCropModal({ img, dataUrl, size = 512, quality = 0.8
           padding: '14px 18px', borderBottom: '1px solid var(--brd)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
-          <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 17, fontWeight: 700 }}>
+          <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 17, fontWeight: 700 }}>
             🖼 {t('crop.title')}
           </div>
           <button onClick={onCancel} style={{
@@ -223,13 +223,13 @@ export default function PhotoCropModal({ img, dataUrl, size = 512, quality = 0.8
             padding: '8px 16px', borderRadius: 10,
             background: 'transparent', border: '1px solid var(--brd)',
             color: 'var(--dim)', cursor: 'pointer',
-            fontFamily: "'Syne',sans-serif", fontSize: 13, fontWeight: 600,
+            fontFamily: "'Manrope',sans-serif", fontSize: 13, fontWeight: 600,
           }}>{t('crop.cancel')}</button>
           <button onClick={handleConfirm} style={{
             padding: '10px 22px', borderRadius: 10,
             background: 'var(--gold)', border: 'none',
             color: '#07060f', cursor: 'pointer',
-            fontFamily: "'Syne',sans-serif", fontSize: 13, fontWeight: 800,
+            fontFamily: "'Manrope',sans-serif", fontSize: 13, fontWeight: 800,
             boxShadow: '0 4px 16px var(--glow)',
           }}>{t('crop.confirm')}</button>
         </div>

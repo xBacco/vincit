@@ -58,7 +58,7 @@ export default function SubsetEditModal({ bet, groupMembers, onSaved, onClose })
       }}>
         <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--brd)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 17, fontWeight: 700 }}>
+          <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 17, fontWeight: 700 }}>
             👥 {t('subset_edit.title')}
           </div>
           <button onClick={onClose} style={{
@@ -81,7 +81,7 @@ export default function SubsetEditModal({ bet, groupMembers, onSaved, onClose })
               border: `1px solid ${picked.size === 0 ? 'var(--gold)' : 'var(--brd)'}`,
               background: picked.size === 0 ? 'var(--gold)1a' : 'transparent',
               color: picked.size === 0 ? 'var(--gold)' : 'var(--dim)',
-              cursor: 'pointer', fontFamily: "'Syne',sans-serif", fontSize: 13, fontWeight: 600,
+              cursor: 'pointer', fontFamily: "'Manrope',sans-serif", fontSize: 13, fontWeight: 600,
               textAlign: 'left',
             }}>
             🌐 {t('subset_edit.everyone')}
@@ -102,7 +102,7 @@ export default function SubsetEditModal({ bet, groupMembers, onSaved, onClose })
                   color: isPicked ? 'var(--gold)' : 'var(--txt)',
                   cursor: isLocked ? 'not-allowed' : 'pointer',
                   opacity: isLocked ? .5 : 1,
-                  fontFamily: "'Syne',sans-serif", fontSize: 13, fontWeight: 600,
+                  fontFamily: "'Manrope',sans-serif", fontSize: 13, fontWeight: 600,
                   textAlign: 'left',
                 }}>
                 <div style={{

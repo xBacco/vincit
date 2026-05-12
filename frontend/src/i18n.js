@@ -475,6 +475,12 @@ const TRANSLATIONS = {
     streak: {
       hot:'Win streak', cold:'Loss streak',
     },
+    profile: {
+      edit_title:'Edit profile', tap_to_edit:'Tap to edit',
+      cat_game:'Game', cat_animals:'Animals', cat_elements:'Elements',
+      cat_objects:'Objects', cat_arts:'Arts', cat_nature:'Nature', cat_food:'Food',
+      fallback_hint:'The emoji avatar will show if you remove the custom photo.',
+    },
     pairing: {
       your_code:'Your code', share_hint:'Share with your partner',
       copy_btn:'Copy', copied:'Copied! ✓', or:'or',

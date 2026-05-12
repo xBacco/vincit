@@ -13,7 +13,20 @@ export const rootVars = C => ({
   fontFamily:"'Syne',sans-serif", minHeight:"100vh",
 });
 
-export const AVATARS=["🃏","♥️","🎲","🦁","🐺","🔥","⚡","🌙","🎭","🦊","🐉","💎","⭐","🏆","🎯","🍷","🎸","🦋","🐬","🦅","🌺","🐻","🎪","🎠"];
+// Avatar emojis grouped by category. Order matters: items appear in this exact order in the picker.
+export const AVATAR_CATEGORIES = [
+  { id: 'game',     icon: '🃏', items: ['🃏','🎲','🎯','🎰','♥️','♠️','♦️','♣️','🎱','🪅'] },
+  { id: 'animals',  icon: '🦊', items: ['🦊','🦁','🐺','🐉','🐻','🐯','🦌','🦄','🐰','🐼','🐶','🐱','🦅','🦉','🐬','🐢','🐸','🦋','🐝','🦂'] },
+  { id: 'elements', icon: '🔥', items: ['🔥','⚡','🌙','☀️','⭐','🌟','❄️','🌊','🌈','💧','💥','☄️'] },
+  { id: 'objects',  icon: '💎', items: ['💎','🏆','👑','🎁','🔮','⚜️','⚓','⚔️','🛡','🗝','💍','💀'] },
+  { id: 'arts',     icon: '🎭', items: ['🎭','🎪','🎠','🎨','🎸','🎺','🎤','🎻','🥁','🎷','🎬','🎼'] },
+  { id: 'nature',   icon: '🌺', items: ['🌺','🌹','🌸','🌻','🌷','🌵','🌴','🍀','🪴','🌲','🌳','🌾'] },
+  { id: 'food',     icon: '🍷', items: ['🍷','🍻','🍕','🍔','🍩','🍰','🍣','🌮','☕','🍦','🍓','🍑'] },
+];
+
+// Flat list — kept for backward compatibility (AuthView and any other place
+// that just wants the full list)
+export const AVATARS = AVATAR_CATEGORIES.flatMap(c => c.items);
 export const COLORS={blue:"#5b8af0",purple:"#a07ef5",green:"#2ecc7f",red:"#e05555",gold:"#c8973f",pink:"#e878a8",teal:"#2ec8c8",orange:"#e8903f"};
 export const CAT_COLS=["#e05555","#a07ef5","#5b8af0","#e8903f","#2ecc7f","#e878a8","#f6c90e","#2ec8c8"];
 export const DEF_CATS=[

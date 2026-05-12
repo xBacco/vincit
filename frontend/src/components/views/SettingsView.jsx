@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Btn, Inp, Toggle, SecLabel, AVATARS, COLORS, CAT_COLS, fmtQ } from '../Atoms.jsx';
+import React, { useState, useEffect } from 'react';
+import { Btn, Inp, Toggle, SecLabel, COLORS, CAT_COLS, fmtQ } from '../Atoms.jsx';
 import { useLang } from '../../i18n.js';
 import * as api from '../../api.js';
-import { fileToSquareDataUrl } from '../../imageUtils.js';
 import { useToast } from '../../Toast.jsx';
+import ProfileEditModal from '../modals/ProfileEditModal.jsx';
 
 const S = {
   card: {background:"var(--card)",border:"1px solid var(--brd)",borderRadius:16,padding:16},
@@ -33,47 +33,8 @@ export default function SettingsView({user,profiles,isDark,setIsDark,customCats,
     on_group_bet:true, on_challenged:true, on_targeted:true,
     on_resolved:true, on_expiry:true,
   });
-  const [profileName, setProfileName] = useState('');
-  const [profileAvatar, setProfileAvatar] = useState('');
-  const [profileColor, setProfileColor] = useState('');
-  const [profileAvatarUrl, setProfileAvatarUrl] = useState(null);
-  const [avatarBusy, setAvatarBusy] = useState(false);
-  const fileInputRef = useRef(null);
-
+  const [showProfileEdit, setShowProfileEdit] = useState(false);
   const myProfile = profiles[user];
-
-  useEffect(()=>{
-    if (myProfile) {
-      setProfileName(myProfile.name || '');
-      setProfileAvatar(myProfile.avatar || '😊');
-      setProfileColor(myProfile.colorKey || 'blue');
-      setProfileAvatarUrl(myProfile.avatarUrl || null);
-    }
-  },[user, myProfile?.avatarUrl]);
-
-  const handleAvatarFile = async e => {
-    const f = e.target.files?.[0];
-    e.target.value = '';
-    if (!f) return;
-    setAvatarBusy(true);
-    try {
-      const dataUrl = await fileToSquareDataUrl(f, 512, 0.85);
-      const { avatar_url } = await api.uploadAvatar(dataUrl);
-      setProfileAvatarUrl(avatar_url);
-      onProfileUpdate?.({ avatarUrl: avatar_url });
-    } catch (err) { console.error(err); }
-    finally { setAvatarBusy(false); }
-  };
-
-  const handleRemoveAvatar = async () => {
-    setAvatarBusy(true);
-    try {
-      await api.deleteAvatar();
-      setProfileAvatarUrl(null);
-      onProfileUpdate?.({ avatarUrl: null });
-    } catch (err) { console.error(err); }
-    finally { setAvatarBusy(false); }
-  };
 
   useEffect(()=>{
     api.getNotifPrefs(user).then(setNotifPrefs).catch(console.error);
@@ -90,13 +51,6 @@ export default function SettingsView({user,profiles,isDark,setIsDark,customCats,
       setTemplates(ts => ts.filter(x => x.id !== tpl.id));
       toast.info(t('templates.deleted'));
     } catch { toast.error(t('app.error_cancel')); }
-  };
-
-  const saveProfile = async () => {
-    try {
-      await api.updateProfile({ name: profileName, avatar: profileAvatar, color_key: profileColor });
-      onProfileUpdate?.({ name: profileName, avatar: profileAvatar, colorKey: profileColor });
-    } catch (e) { console.error(e); }
   };
 
   const handleDeltaCredits = async (targetUser, delta) => {
@@ -148,53 +102,56 @@ export default function SettingsView({user,profiles,isDark,setIsDark,customCats,
         </div>
       </div>
 
-      {/* MY PROFILE */}
+      {/* MY PROFILE — compact card → opens edit modal on click */}
       <SecLabel>{t('settings.my_profile')}</SecLabel>
-      {myProfile && (
-        <div style={{...S.card,marginBottom:10}}>
-          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12}}>
-            {profileAvatarUrl
-              ? <img src={profileAvatarUrl} alt="" style={{width:48,height:48,borderRadius:"50%",objectFit:"cover",border:"2px solid var(--gold)44"}}/>
-              : <div style={{fontSize:32}}>{profileAvatar}</div>}
-            <div style={{flex:1}}>
-              <Inp value={profileName} onChange={e=>setProfileName(e.target.value.slice(0,16))} style={{fontWeight:600}}/>
+      {myProfile && (() => {
+        const c = COLORS[myProfile.colorKey] || '#5b8af0';
+        return (
+          <div onClick={() => setShowProfileEdit(true)} className="card-hover"
+            style={{...S.card, marginBottom:10, cursor:'pointer', display:'flex', alignItems:'center', gap:14}}>
+            <div style={{
+              width:54, height:54, borderRadius:'50%',
+              background:`${c}33`, border:`2px solid ${c}66`,
+              display:'flex', alignItems:'center', justifyContent:'center',
+              fontSize:28, overflow:'hidden', flexShrink:0,
+              boxShadow:`0 0 12px ${c}33`,
+            }}>
+              {myProfile.avatarUrl
+                ? <img src={myProfile.avatarUrl} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+                : (myProfile.avatar || '🃏')}
             </div>
+            <div style={{flex:1, minWidth:0}}>
+              <div style={{fontFamily:"'Playfair Display',serif", fontSize:17, fontWeight:700, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
+                {myProfile.name}
+              </div>
+              <div style={{fontSize:11, color:'var(--dim)', marginTop:2}}>
+                {t('profile.tap_to_edit')}
+              </div>
+            </div>
+            <div style={{
+              fontSize:14, color:'var(--gold)', fontFamily:"'Syne',sans-serif", fontWeight:700,
+              padding:'6px 12px', borderRadius:20,
+              border:'1px solid var(--gold)44', background:'var(--gold)0d',
+              flexShrink:0,
+            }}>✏️</div>
           </div>
+        );
+      })()}
 
-          {/* Upload row */}
-          <div style={{fontSize:11,color:"var(--dim)",marginBottom:8}}>{t('settings.photo_label')}</div>
-          <input ref={fileInputRef} type="file" accept="image/*" onChange={handleAvatarFile} style={{display:"none"}} />
-          <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap"}}>
-            <button onClick={()=>fileInputRef.current?.click()} disabled={avatarBusy} style={{...S.btn,padding:"8px 14px",fontSize:12,background:"var(--gold)22",border:"1px solid var(--gold)44",color:"var(--gold)",opacity:avatarBusy?.6:1}}>
-              {profileAvatarUrl ? t('settings.photo_change') : t('settings.photo_upload')}
-            </button>
-            {profileAvatarUrl && (
-              <button onClick={handleRemoveAvatar} disabled={avatarBusy} style={{...S.btn,padding:"8px 14px",fontSize:12,background:"transparent",border:"1px solid var(--red)44",color:"var(--red)",opacity:avatarBusy?.6:1}}>
-                {t('settings.photo_remove')}
-              </button>
-            )}
-            {avatarBusy && <span style={{fontSize:12,color:"var(--dim)",alignSelf:"center"}}>{t('settings.photo_uploading')}</span>}
-          </div>
-
-          <div style={{fontSize:11,color:"var(--dim)",marginBottom:8}}>{t('settings.avatar_label')}{profileAvatarUrl ? t('settings.photo_fallback') : ""}</div>
-          <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:12, opacity: profileAvatarUrl ? .5 : 1}}>
-            {AVATARS.map(a=>(
-              <div key={a} onClick={()=>setProfileAvatar(a)} style={{width:36,height:36,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,cursor:"pointer",background:profileAvatar===a?"var(--gold)22":"var(--surf)",border:`1px solid ${profileAvatar===a?"var(--gold)":"var(--brd)"}`}}>{a}</div>
-            ))}
-          </div>
-          <div style={{fontSize:11,color:"var(--dim)",marginBottom:8}}>{t('settings.color_label')}</div>
-          <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}>
-            {Object.entries(COLORS).map(([k2,hex])=>(
-              <div key={k2} onClick={()=>setProfileColor(k2)} style={{width:26,height:26,borderRadius:"50%",background:hex,cursor:"pointer",border:`3px solid ${profileColor===k2?"#fff":"transparent"}`,boxShadow:profileColor===k2?`0 0 8px ${hex}`:"none"}}/>
-            ))}
-          </div>
-          <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-            <Btn variant="gold" sm onClick={saveProfile}>{t('settings.pin_save')}</Btn>
-            <button onClick={()=>window.open(`/api/bets/export/${user}`,'_blank')} style={{...S.btn,padding:'7px 13px',fontSize:12,background:'transparent',border:'1px solid var(--brd)',color:'var(--dim)'}}>
-              ⬇ {t('settings.export_btn')}
-            </button>
-          </div>
+      {myProfile && (
+        <div style={{marginBottom:12}}>
+          <button onClick={()=>window.open(`/api/bets/export/${user}`,'_blank')} style={{...S.btn,padding:'7px 13px',fontSize:12,background:'transparent',border:'1px solid var(--brd)',color:'var(--dim)'}}>
+            ⬇ {t('settings.export_btn')}
+          </button>
         </div>
+      )}
+
+      {showProfileEdit && (
+        <ProfileEditModal
+          profile={myProfile}
+          onClose={() => setShowProfileEdit(false)}
+          onSaved={(data) => onProfileUpdate?.(data)}
+        />
       )}
 
       {/* PARTNER PROFILES (read-only) */}

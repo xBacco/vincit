@@ -91,6 +91,7 @@ const reactionsRouter = require('./routes/reactions.js')(broadcastUpdate);
 const { router: pushRouter } = require('./routes/push.js');
 const achievementsRouter = require('./routes/achievements.js');
 const templatesRouter    = require('./routes/templates.js');
+const friendsRouter      = require('./routes/friends.js')(broadcastUpdate);
 
 app.use('/api/state',      authMiddleware, stateRouter);
 app.use('/api/groups',     authMiddleware, groupsRouter);
@@ -102,6 +103,7 @@ app.use('/api/bets',       authMiddleware, resolveActiveRoom, reactionsRouter);
 app.use('/api/push',       authMiddleware, pushRouter);
 app.use('/api/achievements', authMiddleware, achievementsRouter);
 app.use('/api/templates',  authMiddleware, templatesRouter);
+app.use('/api/friends',    authMiddleware, friendsRouter);
 
 app.use(express.static(path.join(__dirname, '../frontend/dist')));
 app.get('*', (req, res) => {

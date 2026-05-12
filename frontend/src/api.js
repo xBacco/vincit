@@ -58,6 +58,10 @@ export const promoteMember       = (groupId, userId) => req('PATCH',  `/groups/$
 export const setMemberRole       = (groupId, userId, role)        => req('PATCH', `/groups/${groupId}/members/${userId}/role`, { role });
 export const setMemberPermissions = (groupId, userId, permissions) => req('PATCH', `/groups/${groupId}/members/${userId}/permissions`, { permissions });
 export const updateGroupSettings = (groupId, data)   => req('PATCH',  `/groups/${groupId}/settings`, data);
+export const inviteFriend        = (groupId, userId) => req('POST',   `/groups/${groupId}/invite-member`, { userId });
+
+// Friends (cross-group)
+export const getFriends     = ()             => req('GET',    '/friends');
 
 // Bets
 export const createBet      = (data)         => req('POST',   '/bets', data);

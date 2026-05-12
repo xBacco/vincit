@@ -171,6 +171,47 @@ router.post('/join', async (req, res) => {
   } catch (e) { console.error(e); res.status(500).json({ error: 'server_error' }); }
 });
 
+// POST /api/groups/:id/invite-member — owner / manage_members co-admin can
+// add an existing user (a friend) directly, without sharing the invite code.
+router.post('/:id/invite-member', async (req, res) => {
+  try {
+    if (!(await requirePermission(req, res, 'manage_members', req.params.id))) return;
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ error: 'missing_user' });
+
+    const { rows: [target] } = await db.query('SELECT id FROM users WHERE id=$1', [userId]);
+    if (!target) return res.status(404).json({ error: 'user_not_found' });
+
+    const { rows: [existing] } = await db.query(
+      'SELECT 1 FROM user_groups WHERE group_id=$1 AND user_id=$2',
+      [req.params.id, userId]
+    );
+    if (existing) return res.status(409).json({ error: 'already_member' });
+
+    const { rows: [room] } = await db.query(
+      'SELECT max_size FROM rooms WHERE id=$1', [req.params.id]
+    );
+    if (!room) return res.status(404).json({ error: 'group_not_found' });
+
+    const { rows: [{ count }] } = await db.query(
+      'SELECT COUNT(*) FROM user_groups WHERE group_id=$1', [req.params.id]
+    );
+    if (parseInt(count) >= (room.max_size || 10))
+      return res.status(409).json({ error: 'group_full' });
+
+    await db.query(
+      'INSERT INTO user_groups (group_id, user_id, role, joined_at) VALUES ($1,$2,$3,$4)',
+      [req.params.id, userId, 'member', Date.now()]
+    );
+    refreshAchievements(userId);
+    const { rows: owners } = await db.query(
+      `SELECT user_id FROM user_groups WHERE group_id=$1 AND role='owner'`, [req.params.id]
+    );
+    for (const o of owners) refreshAchievements(o.user_id);
+    res.json({ ok: true });
+  } catch (e) { console.error(e); res.status(500).json({ error: 'server_error' }); }
+});
+
 // DELETE /api/groups/:id/members/:userId — kick a member (manage_members)
 router.delete('/:id/members/:userId', async (req, res) => {
   try {

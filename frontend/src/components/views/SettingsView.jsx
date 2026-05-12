@@ -393,24 +393,27 @@ export default function SettingsView({user,profiles,groupMembers,isDark,setIsDar
         )}
         {canReset && (
           <>
-            {/* Test reset (wipes everything, no narrative) */}
-            {showTestResetConfirm ? (
-              <div style={{...S.card,border:'1px solid var(--red)',background:'var(--red)0d', marginBottom:10}}>
-                <div style={{fontSize:14,fontWeight:700,color:'var(--red)',marginBottom:8}}>{t('settings.test_reset_confirm_title')}</div>
-                <div style={{fontSize:12,color:'var(--dim)',marginBottom:16}}>{t('settings.test_reset_confirm_desc')}</div>
-                <div style={{display:'flex',gap:10}}>
-                  <button onClick={()=>setShowTestResetConfirm(false)} style={{...S.btn,flex:1,background:'transparent',border:'1px solid var(--brd)',color:'var(--dim)'}}>{t('settings.reset_cancel')}</button>
-                  <button onClick={()=>{onTestReset?.();setShowTestResetConfirm(false);}} style={{...S.btn,flex:1,background:'var(--red)',border:'none',color:'#fff',fontWeight:700}}>{t('settings.test_reset_confirm_btn')}</button>
+            {/* Test reset — hidden in production. To enable in prod for one-off
+                debugging: localStorage.setItem('bc_dev_tools','1') + reload.   */}
+            {(import.meta.env.DEV || (typeof localStorage !== 'undefined' && localStorage.getItem('bc_dev_tools') === '1')) && (
+              showTestResetConfirm ? (
+                <div style={{...S.card,border:'1px solid var(--red)',background:'var(--red)0d', marginBottom:10}}>
+                  <div style={{fontSize:14,fontWeight:700,color:'var(--red)',marginBottom:8}}>{t('settings.test_reset_confirm_title')}</div>
+                  <div style={{fontSize:12,color:'var(--dim)',marginBottom:16}}>{t('settings.test_reset_confirm_desc')}</div>
+                  <div style={{display:'flex',gap:10}}>
+                    <button onClick={()=>setShowTestResetConfirm(false)} style={{...S.btn,flex:1,background:'transparent',border:'1px solid var(--brd)',color:'var(--dim)'}}>{t('settings.reset_cancel')}</button>
+                    <button onClick={()=>{onTestReset?.();setShowTestResetConfirm(false);}} style={{...S.btn,flex:1,background:'var(--red)',border:'none',color:'#fff',fontWeight:700}}>{t('settings.test_reset_confirm_btn')}</button>
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <div style={{...S.card,border:'1px dashed var(--red)44', marginBottom:10}}>
-                <div style={{fontSize:13,fontWeight:600,marginBottom:4}}>🧪 {t('settings.test_reset_title')}</div>
-                <div style={{fontSize:11,color:'var(--dim)',marginBottom:12}}>{t('settings.test_reset_desc')}</div>
-                <button onClick={()=>setShowTestResetConfirm(true)} style={{...S.btn,width:'100%',background:'transparent',border:'1px solid var(--red)44',color:'var(--red)',fontSize:12}}>
-                  {t('settings.test_reset_btn')}
-                </button>
-              </div>
+              ) : (
+                <div style={{...S.card,border:'1px dashed var(--red)44', marginBottom:10}}>
+                  <div style={{fontSize:13,fontWeight:600,marginBottom:4}}>🧪 {t('settings.test_reset_title')}</div>
+                  <div style={{fontSize:11,color:'var(--dim)',marginBottom:12}}>{t('settings.test_reset_desc')}</div>
+                  <button onClick={()=>setShowTestResetConfirm(true)} style={{...S.btn,width:'100%',background:'transparent',border:'1px solid var(--red)44',color:'var(--red)',fontSize:12}}>
+                    {t('settings.test_reset_btn')}
+                  </button>
+                </div>
+              )
             )}
 
             {/* Full season reset (preserves trophies) */}

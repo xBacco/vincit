@@ -293,6 +293,43 @@ const pool = new Pool({
     ).catch(e => console.warn('[admin-promote]', e.message));
   }
 
+  // ── Email case-insensitivity migration ───────────────────────────────
+  // Original schema declared `email TEXT UNIQUE`, which is case-sensitive in
+  // Postgres. That let `Anna@x.com` and `anna@x.com` coexist as two distinct
+  // accounts — login looks up LOWER(email), but landed on whichever row the
+  // engine returned first, so password resets routinely missed the account
+  // people were actually using.
+  //
+  // Fix: normalize all addresses to lowercase, then add a UNIQUE INDEX on
+  // LOWER(email). Both steps are idempotent. If there are still duplicates
+  // that can't be normalized without collision, the index creation fails
+  // loudly (caught below) — the admin must merge/delete via the panel and
+  // the next boot will succeed.
+  try {
+    const { rowCount: normalized } = await pool.query(`
+      UPDATE users SET email = LOWER(email)
+      WHERE email <> LOWER(email)
+        AND NOT EXISTS (
+          SELECT 1 FROM users u2
+          WHERE u2.id <> users.id AND u2.email = LOWER(users.email)
+        )
+    `);
+    if (normalized) console.log(`[email-normalize] Lowercased ${normalized} email row(s)`);
+  } catch (e) {
+    console.warn('[email-normalize]', e.message);
+  }
+  try {
+    await pool.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS users_email_lower_unique
+        ON users (LOWER(email))
+    `);
+  } catch (e) {
+    console.error(
+      '[email-unique-index] FAILED — case-insensitive duplicates still exist. ' +
+      'Resolve them in /api/admin/integrity then restart. Error:', e.message
+    );
+  }
+
   // Friendship has to be EXPLICIT — no auto-friending from shared groups.
   // An earlier version of this migration auto-converted every group overlap
   // into an accepted friendship; that was wrong. The one-shot wipe below

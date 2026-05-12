@@ -33,7 +33,7 @@ router.post('/register', async (req, res) => {
     const policyErr = validatePassword(password);
     if (policyErr) return res.status(400).json({ error: policyErr });
 
-    const exists = await db.query('SELECT id FROM users WHERE email=$1', [email.toLowerCase()]);
+    const exists = await db.query('SELECT id FROM users WHERE LOWER(email)=$1', [email.toLowerCase()]);
     if (exists.rows.length) return res.status(409).json({ error: 'Email already registered' });
 
     const userId = `u_${crypto.randomUUID()}`;
@@ -63,7 +63,7 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-    const { rows } = await db.query('SELECT * FROM users WHERE email=$1', [email?.toLowerCase()]);
+    const { rows } = await db.query('SELECT * FROM users WHERE LOWER(email)=$1', [email?.toLowerCase()]);
     const u = rows[0];
     // Same error for wrong email or wrong password — prevents account enumeration
     if (!u || !(await bcrypt.compare(password || '', u.password_hash)))
@@ -94,7 +94,7 @@ router.post('/forgot-password', async (req, res) => {
     if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email))
       return res.status(400).json({ error: 'invalid_email' });
 
-    const { rows } = await db.query('SELECT id, name FROM users WHERE email=$1', [email]);
+    const { rows } = await db.query('SELECT id, name FROM users WHERE LOWER(email)=$1', [email]);
     const user = rows[0];
 
     // Silent OK if the email isn't registered (no enumeration).

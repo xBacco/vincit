@@ -28,15 +28,39 @@ function authMiddlewareSSE(req, res, next) {
   } catch { res.status(401).end(); }
 }
 
-// Verify caller is owner of groupId (defaults to req.roomId)
+// Verify caller is owner of groupId (defaults to req.activeRoomId/req.roomId)
 async function requireOwner(req, res, groupId) {
-  const gid = groupId ?? req.roomId;
+  const gid = groupId ?? req.activeRoomId ?? req.roomId;
   const { rows } = await db.query(
     "SELECT 1 FROM user_groups WHERE group_id=$1 AND user_id=$2 AND role='owner'",
     [gid, req.userId]
   );
   if (!rows.length) { res.status(403).json({ error: 'Owner only' }); return false; }
   return true;
+}
+
+const PERMISSIONS = [
+  'manage_credits',    // adjust other members' credits
+  'manage_members',    // kick / promote / regenerate invite code
+  'moderate_bets',     // edit or cancel other members' bets
+  'manage_categories', // create / delete custom categories
+  'reset_season',      // wipe bets + reset credits
+  'manage_settings',   // rename group / change threshold / emoji
+];
+
+// Allow if caller is owner OR co-admin with the requested permission flag.
+async function requirePermission(req, res, perm, groupId) {
+  const gid = groupId ?? req.activeRoomId ?? req.roomId;
+  const { rows } = await db.query(
+    'SELECT role, permissions FROM user_groups WHERE group_id=$1 AND user_id=$2',
+    [gid, req.userId]
+  );
+  if (!rows.length) { res.status(403).json({ error: 'Not a member' }); return false; }
+  const { role, permissions } = rows[0];
+  if (role === 'owner') return true;
+  if (role === 'co-admin' && permissions && permissions[perm] === true) return true;
+  res.status(403).json({ error: 'Forbidden' });
+  return false;
 }
 
 // Resolves the active group from ?groupId= query param and validates membership.
@@ -58,4 +82,4 @@ async function resolveActiveRoom(req, res, next) {
   }
 }
 
-module.exports = { authMiddleware, authMiddlewareSSE, requireOwner, resolveActiveRoom };
+module.exports = { authMiddleware, authMiddlewareSSE, requireOwner, requirePermission, resolveActiveRoom, PERMISSIONS };

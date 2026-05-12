@@ -6,7 +6,17 @@ import { useToast } from '../../Toast.jsx';
 const EMOJI_OPTIONS = ['🎲','🔥','❤️','🏆','⚡','🎯','👥','🎪','🃏','🌙',
                        '🎉','🎮','🍻','⚽','🎵','💪','🤝','🎭','🎨','🌟'];
 
-export default function GroupInfoModal({ group, userId, onClose, onLeft, onDeleted, onRenamed, isAdmin=false }) {
+const PERMISSION_LABELS = {
+  manage_members:    { icon: '👥', label: 'Gestire membri (kick / nuovo codice)' },
+  manage_credits:    { icon: '💰', label: 'Modificare i crediti' },
+  moderate_bets:     { icon: '🛡', label: 'Moderare le bet (modificare / annullare quelle altrui)' },
+  manage_categories: { icon: '🏷', label: 'Creare ed eliminare categorie' },
+  reset_season:      { icon: '🏆', label: 'Reset stagione' },
+  manage_settings:   { icon: '⚙️', label: 'Rinominare gruppo e modificare le impostazioni' },
+};
+const PERMS = Object.keys(PERMISSION_LABELS);
+
+export default function GroupInfoModal({ group, userId, onClose, onLeft, onDeleted, onRenamed, isAdmin=false, can }) {
   const { t } = useLang();
   const toast = useToast();
 
@@ -74,6 +84,26 @@ export default function GroupInfoModal({ group, userId, onClose, onLeft, onDelet
         role: m.id === member.id ? 'owner' : (m.id === userId ? 'member' : m.role),
       })));
     } catch (e) { console.error(e); }
+  };
+
+  const handleSetRole = async (member, role) => {
+    try {
+      await api.setMemberRole(group.id, member.id, role);
+      setMembers(ms => ms.map(m => m.id === member.id ? { ...m, role, permissions: role === 'co-admin' ? (m.permissions || {}) : {} } : m));
+    } catch (e) { console.error(e); toast.error('Impossibile cambiare ruolo'); }
+  };
+
+  const handleTogglePermission = async (member, perm, value) => {
+    const next = { ...(member.permissions || {}), [perm]: value };
+    setMembers(ms => ms.map(m => m.id === member.id ? { ...m, permissions: next } : m));
+    try {
+      await api.setMemberPermissions(group.id, member.id, next);
+    } catch (e) {
+      console.error(e);
+      toast.error('Impossibile aggiornare i permessi');
+      // revert
+      setMembers(ms => ms.map(m => m.id === member.id ? { ...m, permissions: member.permissions || {} } : m));
+    }
   };
 
   const handleRegenCode = async () => {
@@ -245,29 +275,74 @@ export default function GroupInfoModal({ group, userId, onClose, onLeft, onDelet
               {t('group_info.members')} ({members.length})
             </div>
             {members.map(m => (
-              <div key={m.id} style={{ display:'flex', alignItems:'center', gap:10,
-                padding:'10px 0', borderBottom:'1px solid var(--brd)22' }}>
-                <span style={{ fontSize:22, lineHeight:1 }}>{m.avatar || '😊'}</span>
-                <span style={{ flex:1, fontSize:14, fontWeight:600,
-                  color: m.id === userId ? 'var(--gold)' : 'var(--txt)' }}>
-                  {m.name}
-                </span>
-                {m.role === 'owner' && (
-                  <span style={{ fontSize:10, color:'var(--gold)',
-                    border:'1px solid var(--gold)44', borderRadius:20, padding:'2px 8px' }}>
-                    {t('group_info.owner_badge')}
+              <div key={m.id} style={{ borderBottom:'1px solid var(--brd)22', padding:'10px 0' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                  {m.avatar_url
+                    ? <img src={m.avatar_url} alt="" style={{ width:32, height:32, borderRadius:'50%', objectFit:'cover' }}/>
+                    : <span style={{ fontSize:22, lineHeight:1 }}>{m.avatar || '😊'}</span>}
+                  <span style={{ flex:1, fontSize:14, fontWeight:600,
+                    color: m.id === userId ? 'var(--gold)' : 'var(--txt)' }}>
+                    {m.name}
                   </span>
-                )}
-                {isOwner && m.id !== userId && (
-                  <div style={{ display:'flex', gap:6 }}>
-                    <button onClick={() => handlePromote(m)} style={{
-                      ...S.btn, padding:'4px 10px', fontSize:11,
-                      background:'transparent', border:'1px solid var(--gold)44', color:'var(--gold)',
-                    }}>{t('group_info.promote')}</button>
-                    <button onClick={() => handleKick(m)} style={{
-                      ...S.btn, padding:'4px 10px', fontSize:11,
-                      background:'transparent', border:'1px solid var(--red)44', color:'var(--red)',
-                    }}>{t('group_info.kick')}</button>
+                  {m.role === 'owner' && (
+                    <span style={{ fontSize:10, color:'var(--gold)',
+                      border:'1px solid var(--gold)44', borderRadius:20, padding:'2px 8px' }}>
+                      {t('group_info.owner_badge')}
+                    </span>
+                  )}
+                  {m.role === 'co-admin' && (
+                    <span style={{ fontSize:10, color:'var(--blu)',
+                      border:'1px solid var(--blu)55', borderRadius:20, padding:'2px 8px' }}>
+                      🛡 co-admin
+                    </span>
+                  )}
+                  {isOwner && m.id !== userId && (
+                    <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+                      {m.role === 'member' && (
+                        <button onClick={() => handleSetRole(m, 'co-admin')} style={{
+                          ...S.btn, padding:'4px 10px', fontSize:11,
+                          background:'transparent', border:'1px solid var(--blu)55', color:'var(--blu)',
+                        }}>+ Co-admin</button>
+                      )}
+                      {m.role === 'co-admin' && (
+                        <button onClick={() => handleSetRole(m, 'member')} style={{
+                          ...S.btn, padding:'4px 10px', fontSize:11,
+                          background:'transparent', border:'1px solid var(--mut)', color:'var(--dim)',
+                        }}>− Co-admin</button>
+                      )}
+                      <button onClick={() => handlePromote(m)} style={{
+                        ...S.btn, padding:'4px 10px', fontSize:11,
+                        background:'transparent', border:'1px solid var(--gold)44', color:'var(--gold)',
+                      }}>{t('group_info.promote')}</button>
+                      <button onClick={() => handleKick(m)} style={{
+                        ...S.btn, padding:'4px 10px', fontSize:11,
+                        background:'transparent', border:'1px solid var(--red)44', color:'var(--red)',
+                      }}>{t('group_info.kick')}</button>
+                    </div>
+                  )}
+                </div>
+                {/* Co-admin permission flags — only owner can toggle */}
+                {isOwner && m.role === 'co-admin' && (
+                  <div style={{ marginTop: 8, padding:'8px 10px', background:'var(--blu)0d',
+                    border:'1px solid var(--blu)22', borderRadius:8 }}>
+                    <div style={{ fontSize:10, color:'var(--dim)', textTransform:'uppercase', letterSpacing:1, marginBottom:6 }}>
+                      Permessi co-admin
+                    </div>
+                    <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
+                      {PERMS.map(perm => {
+                        const cfg = PERMISSION_LABELS[perm];
+                        const checked = !!(m.permissions && m.permissions[perm]);
+                        return (
+                          <label key={perm} style={{ display:'flex', alignItems:'center', gap:8, fontSize:12, cursor:'pointer' }}>
+                            <input type="checkbox" checked={checked}
+                              onChange={e => handleTogglePermission(m, perm, e.target.checked)}
+                              style={{ accentColor:'var(--gold)' }}/>
+                            <span>{cfg.icon}</span>
+                            <span style={{ color: checked ? 'var(--txt)' : 'var(--dim)' }}>{cfg.label}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </div>

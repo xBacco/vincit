@@ -133,6 +133,7 @@ export default function App() {
 
   // Groups state
   const [groups,        setGroups]        = useState([]);
+  const [groupsLoaded,  setGroupsLoaded]  = useState(false);
   const [activeGroupId, setActiveGroupId] = useState(() => lsGet('bc_active_group', null));
   const [groupMembers,  setGroupMembers]  = useState([]);
   const [showGroupModal, setShowGroupModal] = useState(false);
@@ -150,7 +151,7 @@ export default function App() {
           return id;
         });
       }
-    } catch {}
+    } catch {} finally { setGroupsLoaded(true); }
   }, []);
 
   useEffect(() => {
@@ -172,6 +173,8 @@ export default function App() {
     localStorage.setItem('bc_token', t);
     setToken(t);
     setAuthUser(u);
+    setGroupsLoaded(false);
+    loadGroups();
   };
 
   const handleLogout = () => {
@@ -180,6 +183,7 @@ export default function App() {
     setToken(null);
     setAuthUser(null);
     setGroups([]);
+    setGroupsLoaded(false);
     setActiveGroupId(null);
   };
 
@@ -357,7 +361,15 @@ export default function App() {
     </div>
   );
 
-  // Group gate — no groups yet → show first-group creation screen
+  // Loading groups (between login and getMyGroups response)
+  if (!groupsLoaded) return (
+    <div style={{position:'fixed',inset:0,display:'flex',alignItems:'center',
+      justifyContent:'center',background:'var(--bg)'}}>
+      <div style={{fontFamily:"'Playfair Display',serif",fontSize:32,color:'var(--gold)'}}>₡</div>
+    </div>
+  );
+
+  // Group gate — show only if loading is finished and there are still no groups
   if (groups.length === 0) return (
     <div className="bc" style={rootVars(C)}>
       <style>{CSS_BASE}</style>
@@ -382,6 +394,9 @@ export default function App() {
   const activeGroup = groups.find(g => g.id === activeGroupId);
   const myRole  = activeGroup?.role ?? 'member';
   const isAdmin = myRole === 'owner';
+  const myPermissions = activeGroup?.permissions || {};
+  // Owner has everything; co-admin has the flagged ones; member has nothing admin
+  const can = perm => isAdmin || (myRole === 'co-admin' && myPermissions[perm] === true);
 
   const groupSwitcher = groups.length > 0 && (
     <div style={{ display:'flex', gap:6, overflowX:'auto', padding:'8px 0', scrollbarWidth:'none' }}>
@@ -512,11 +527,11 @@ export default function App() {
             return null;
           }
           return (<>
-            {view === 'dashboard' && <DashboardView user={user} profiles={profiles} groupMembers={groupMembers} credits={credits} bets={bets} cats={cats} onCreate={() => setShowCreate(true)} onResolve={b => setResolveBet(b)} onReveal={b => setRevealBet(b)} onCounter={b => setCounterTarget(b)} onFlame={handleFlame} notifSince={notifSince} isDesktop={isDesktop} reactions={reactions} onReaction={handleReaction} onReactionPhoto={handleReactionPhoto} onDelete={handleDelete} onEdit={b => setEditingBet(b)} onAccept={handleAccept} onReject={handleReject} />}
-            {view === 'bets'      && <BetsView user={user} profiles={profiles} bets={bets} cats={cats} onResolve={b => setResolveBet(b)} onCounter={b => setCounterTarget(b)} onFlame={handleFlame} isDesktop={isDesktop} reactions={reactions} onReaction={handleReaction} onReactionPhoto={handleReactionPhoto} onDelete={handleDelete} onEdit={b => setEditingBet(b)} onAccept={handleAccept} onReject={handleReject} />}
+            {view === 'dashboard' && <DashboardView user={user} profiles={profiles} groupMembers={groupMembers} credits={credits} bets={bets} cats={cats} onCreate={() => setShowCreate(true)} onResolve={b => setResolveBet(b)} onReveal={b => setRevealBet(b)} onCounter={b => setCounterTarget(b)} onFlame={handleFlame} notifSince={notifSince} isDesktop={isDesktop} reactions={reactions} onReaction={handleReaction} onReactionPhoto={handleReactionPhoto} onDelete={handleDelete} onEdit={b => setEditingBet(b)} onAccept={handleAccept} onReject={handleReject} can={can} />}
+            {view === 'bets'      && <BetsView user={user} profiles={profiles} bets={bets} cats={cats} onResolve={b => setResolveBet(b)} onCounter={b => setCounterTarget(b)} onFlame={handleFlame} isDesktop={isDesktop} reactions={reactions} onReaction={handleReaction} onReactionPhoto={handleReactionPhoto} onDelete={handleDelete} onEdit={b => setEditingBet(b)} onAccept={handleAccept} onReject={handleReject} can={can} />}
             {view === 'vault'     && <VaultView user={user} profiles={profiles} bets={bets} cats={cats} onReveal={b => setRevealBet(b)} onFlame={handleFlame} unlocked={vaultUnlocked} onPinRequest={() => setShowPin(true)} vaultPin={vaultPin} isDesktop={isDesktop} onDelete={handleDelete} onEdit={b => setEditingBet(b)} />}
             {view === 'stats'     && <StatsView user={user} profiles={profiles} credits={credits} bets={bets} cats={cats} isDesktop={isDesktop} />}
-            {view === 'settings'  && <SettingsView user={user} profiles={profiles} isDark={isDark} setIsDark={setIsDark} customCats={customCats} credits={credits} bets={bets} onUpdateProfile={handleUpdateProfile} onCreateCategory={handleCreateCategory} onDeleteCategory={handleDeleteCategory} vaultPin={vaultPin} onSetVaultPin={handleSetVaultPin} isDesktop={isDesktop} onReset={handleReset} onLogout={handleLogout} onProfileUpdate={u => setAuthUser(prev => ({...prev,...u}))} isAdmin={isAdmin} />}
+            {view === 'settings'  && <SettingsView user={user} profiles={profiles} isDark={isDark} setIsDark={setIsDark} customCats={customCats} credits={credits} bets={bets} onUpdateProfile={handleUpdateProfile} onCreateCategory={handleCreateCategory} onDeleteCategory={handleDeleteCategory} vaultPin={vaultPin} onSetVaultPin={handleSetVaultPin} isDesktop={isDesktop} onReset={handleReset} onLogout={handleLogout} onProfileUpdate={u => setAuthUser(prev => ({...prev,...u}))} isAdmin={isAdmin} can={can} />}
           </>);
         })()}
       </div>
@@ -556,6 +571,7 @@ export default function App() {
           group={groups.find(g => g.id === activeGroupId)}
           userId={user}
           isAdmin={isAdmin}
+          can={can}
           onClose={() => setShowGroupInfo(false)}
           onRenamed={async updated => {
             setGroups(prev => prev.map(g => g.id === updated.id ? { ...g, ...updated } : g));

@@ -17,8 +17,9 @@ const DEF_IDS=['intimo','serata','casa','cibo','gaming','altro'];
 const SWIPE_THRESHOLD = 80;
 const VERT_ABORT      = 40;
 
-export default function BetCard({bet,user,profiles,cats,onResolve,onReveal,onCounter,onFlame,onReaction,onReactionPhoto,reactions,onDelete,onEdit,isDesktop,onAccept,onReject}){
+export default function BetCard({bet,user,profiles,cats,onResolve,onReveal,onCounter,onFlame,onReaction,onReactionPhoto,reactions,onDelete,onEdit,isDesktop,onAccept,onReject,can}){
   const { t, lang } = useLang();
+  const canModerate = typeof can === 'function' && can('moderate_bets');
   const photoInputRef = useRef(null);
   const [photoBusy, setPhotoBusy] = useState(false);
   const [lightbox, setLightbox] = useState(null);
@@ -41,7 +42,10 @@ export default function BetCard({bet,user,profiles,cats,onResolve,onReveal,onCou
   const cat=cats.find(c=>c.id===bet.category)||cats[cats.length-1];
   const done=["won","lost","rejected"].includes(bet.status);
   const CANCEL_MS=60*1000;
-  const canCancel=isOwner&&!done&&!!onDelete&&(Date.now()-bet.createdAt<CANCEL_MS);
+  // Owner of the bet: 60s window. Moderator (co-admin with moderate_bets, or owner of group): always.
+  const withinWindow = Date.now() - bet.createdAt < CANCEL_MS;
+  const canCancel = !done && !!onDelete && ((isOwner && withinWindow) || canModerate);
+  const canEditBet = !done && !!onEdit && ((isOwner && withinWindow) || canModerate);
   const minsLeft=Math.ceil((bet.createdAt+CANCEL_MS-Date.now())/60000);
   const tl=tLeft(bet.expiresAt,lang);
   const myCounter=(bet.counterBets||[]).find(cb=>cb.bettor===user);
@@ -98,11 +102,15 @@ export default function BetCard({bet,user,profiles,cats,onResolve,onReveal,onCou
         :<Btn variant="grn" sm style={isDesktop?{}:{flex:1}} onClick={()=>onResolve(bet)}>{t('bet_card.declare')}</Btn>
       }
       <button onClick={()=>onFlame(bet.id)} style={{...S.btn,padding:"7px 10px",background:"transparent",border:"1px solid var(--brd)",color:bet.flamed?"#f97316":"var(--dim)",fontSize:12}}>{bet.flamed?"🔥":"🤍"}</button>
-      {canCancel&&onEdit&&(
-        <button onClick={()=>onEdit(bet)} style={{...S.btn,padding:"7px 10px",background:"transparent",border:"1px solid var(--gold)44",color:"var(--gold)",fontSize:11}}>✏️ {t('bet_card.edit_btn')}</button>
+      {canEditBet&&(
+        <button onClick={()=>onEdit(bet)} style={{...S.btn,padding:"7px 10px",background:"transparent",border:"1px solid var(--gold)44",color:"var(--gold)",fontSize:11}}>✏️ {t('bet_card.edit_btn')}{!isOwner && canModerate ? ' 🛡' : ''}</button>
       )}
       {canCancel&&(
-        <button onClick={()=>{if(window.confirm(t('bet_card.cancel_confirm')))onDelete(bet);}} style={{...S.btn,padding:"7px 10px",background:"transparent",border:"1px solid var(--red)44",color:"var(--red)",fontSize:11}}>✕ {t('bet_card.cancel_btn')} ({t('bet_card.cancel_window',{m:minsLeft})})</button>
+        <button onClick={()=>{if(window.confirm(t('bet_card.cancel_confirm')))onDelete(bet);}} style={{...S.btn,padding:"7px 10px",background:"transparent",border:"1px solid var(--red)44",color:"var(--red)",fontSize:11}}>
+          ✕ {t('bet_card.cancel_btn')}
+          {isOwner && withinWindow && ` (${t('bet_card.cancel_window',{m:minsLeft})})`}
+          {!isOwner && canModerate && ' 🛡'}
+        </button>
       )}
     </div>
   );

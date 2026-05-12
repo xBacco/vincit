@@ -3,7 +3,7 @@ const express = require('express');
 const router  = express.Router();
 const crypto  = require('crypto');
 const db      = require('../db.js');
-const { requireOwner } = require('../middleware/auth.js');
+const { requireOwner, requirePermission, PERMISSIONS } = require('../middleware/auth.js');
 
 const CHARSET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 function genCode() {
@@ -24,7 +24,7 @@ router.get('/', async (req, res) => {
   try {
     const fetchGroups = () => db.query(
       `SELECT r.id, r.name, r.emoji, r.invite_code, r.max_size,
-              r.acceptance_threshold, r.max_stake, ug.role,
+              r.acceptance_threshold, r.max_stake, ug.role, ug.permissions,
               (SELECT COUNT(*) FROM user_groups WHERE group_id = r.id) AS member_count
        FROM rooms r
        JOIN user_groups ug ON ug.group_id = r.id AND ug.user_id = $1
@@ -75,9 +75,10 @@ router.get('/:id/members', async (req, res) => {
     );
     if (!mem) return res.status(403).json({ error: 'not_member' });
     const { rows } = await db.query(
-      `SELECT u.id, u.name, u.avatar, u.color_key, ug.role
+      `SELECT u.id, u.name, u.avatar, u.avatar_url, u.color_key, ug.role, ug.permissions
        FROM users u JOIN user_groups ug ON ug.user_id = u.id
-       WHERE ug.group_id = $1`,
+       WHERE ug.group_id = $1
+       ORDER BY CASE ug.role WHEN 'owner' THEN 0 WHEN 'co-admin' THEN 1 ELSE 2 END, ug.joined_at`,
       [req.params.id]
     );
     res.json(rows);
@@ -109,16 +110,11 @@ router.post('/', async (req, res) => {
   } catch (e) { console.error(e); res.status(500).json({ error: 'server_error' }); }
 });
 
-// PATCH /api/groups/:id — rename group (owner only)
+// PATCH /api/groups/:id — rename group (owner or co-admin with manage_settings)
 router.patch('/:id', async (req, res) => {
   const { name, emoji } = req.body;
   try {
-    const { rows: [mem] } = await db.query(
-      'SELECT role FROM user_groups WHERE group_id=$1 AND user_id=$2',
-      [req.params.id, req.userId]
-    );
-    if (!mem) return res.status(403).json({ error: 'not_member' });
-    if (mem.role !== 'owner') return res.status(403).json({ error: 'not_owner' });
+    if (!(await requirePermission(req, res, 'manage_settings', req.params.id))) return;
     await db.query(
       'UPDATE rooms SET name=COALESCE($1,name), emoji=COALESCE($2,emoji) WHERE id=$3',
       [name?.trim() || null, emoji || null, req.params.id]
@@ -155,12 +151,18 @@ router.post('/join', async (req, res) => {
   } catch (e) { console.error(e); res.status(500).json({ error: 'server_error' }); }
 });
 
-// DELETE /api/groups/:id/members/:userId — kick a member (owner only)
+// DELETE /api/groups/:id/members/:userId — kick a member (manage_members)
 router.delete('/:id/members/:userId', async (req, res) => {
   try {
-    if (!(await requireOwner(req, res, req.params.id))) return;
+    if (!(await requirePermission(req, res, 'manage_members', req.params.id))) return;
     if (req.params.userId === req.userId)
       return res.status(400).json({ error: 'Cannot kick yourself' });
+    // Co-admins cannot kick the owner
+    const { rows: [target] } = await db.query(
+      'SELECT role FROM user_groups WHERE group_id=$1 AND user_id=$2',
+      [req.params.id, req.params.userId]
+    );
+    if (target?.role === 'owner') return res.status(403).json({ error: 'Cannot kick owner' });
     await db.query(
       'DELETE FROM user_groups WHERE group_id=$1 AND user_id=$2',
       [req.params.id, req.params.userId]
@@ -169,13 +171,45 @@ router.delete('/:id/members/:userId', async (req, res) => {
   } catch (e) { console.error(e); res.status(500).json({ error: 'Server error' }); }
 });
 
-// POST /api/groups/:id/regenerate-code — new invite code (owner only)
+// POST /api/groups/:id/regenerate-code — new invite code (manage_members)
 router.post('/:id/regenerate-code', async (req, res) => {
   try {
-    if (!(await requireOwner(req, res, req.params.id))) return;
+    if (!(await requirePermission(req, res, 'manage_members', req.params.id))) return;
     const newCode = await uniqueCode();
     await db.query('UPDATE rooms SET invite_code=$1 WHERE id=$2', [newCode, req.params.id]);
     res.json({ invite_code: newCode });
+  } catch (e) { console.error(e); res.status(500).json({ error: 'Server error' }); }
+});
+
+// PATCH /api/groups/:id/members/:userId/role — owner only: set role to member/co-admin
+router.patch('/:id/members/:userId/role', async (req, res) => {
+  try {
+    if (!(await requireOwner(req, res, req.params.id))) return;
+    const { role } = req.body;
+    if (!['member', 'co-admin'].includes(role))
+      return res.status(400).json({ error: 'Invalid role (member|co-admin)' });
+    if (req.params.userId === req.userId)
+      return res.status(400).json({ error: 'Owner cannot change own role here' });
+    await db.query(
+      "UPDATE user_groups SET role=$1 WHERE group_id=$2 AND user_id=$3 AND role!='owner'",
+      [role, req.params.id, req.params.userId]
+    );
+    res.json({ ok: true });
+  } catch (e) { console.error(e); res.status(500).json({ error: 'Server error' }); }
+});
+
+// PATCH /api/groups/:id/members/:userId/permissions — owner only: set co-admin flags
+router.patch('/:id/members/:userId/permissions', async (req, res) => {
+  try {
+    if (!(await requireOwner(req, res, req.params.id))) return;
+    const incoming = req.body?.permissions ?? {};
+    const sanitized = {};
+    for (const p of PERMISSIONS) sanitized[p] = incoming[p] === true;
+    await db.query(
+      "UPDATE user_groups SET permissions=$1 WHERE group_id=$2 AND user_id=$3 AND role='co-admin'",
+      [JSON.stringify(sanitized), req.params.id, req.params.userId]
+    );
+    res.json({ ok: true, permissions: sanitized });
   } catch (e) { console.error(e); res.status(500).json({ error: 'Server error' }); }
 });
 
@@ -197,10 +231,10 @@ router.patch('/:id/members/:userId/promote', async (req, res) => {
   } catch (e) { console.error(e); res.status(500).json({ error: 'Server error' }); }
 });
 
-// PATCH /api/groups/:id/settings — update group settings (owner only)
+// PATCH /api/groups/:id/settings — update group settings (manage_settings)
 router.patch('/:id/settings', async (req, res) => {
   try {
-    if (!(await requireOwner(req, res, req.params.id))) return;
+    if (!(await requirePermission(req, res, 'manage_settings', req.params.id))) return;
     const { acceptance_threshold, max_stake } = req.body;
     await db.query(
       'UPDATE rooms SET acceptance_threshold=COALESCE($1,acceptance_threshold), max_stake=COALESCE($2,max_stake) WHERE id=$3',

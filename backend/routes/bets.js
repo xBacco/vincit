@@ -3,7 +3,7 @@ const crypto  = require('crypto');
 const express = require('express');
 const db = require('../db.js');
 const { sendPushToUser } = require('./push.js');
-const { requireOwner } = require('../middleware/auth.js');
+const { requireOwner, requirePermission } = require('../middleware/auth.js');
 
 module.exports = function(broadcastUpdate) {
   const router = express.Router();
@@ -236,7 +236,7 @@ module.exports = function(broadcastUpdate) {
 
   router.patch('/:id/edit', async (req, res) => {
     try {
-      const creator = req.userId;
+      const me = req.userId;
       const { title, quota, category, pegno, expiresAt } = req.body;
       if (!title?.trim()) return res.status(400).json({ error: 'Invalid' });
       const parsedQuota = parseFloat(quota);
@@ -244,11 +244,17 @@ module.exports = function(broadcastUpdate) {
         return res.status(400).json({ error: 'quota must be 1.01–100' });
       const { rows } = await db.query('SELECT * FROM bets WHERE id=$1', [req.params.id]);
       const bet = rows[0];
-      if (!bet)                                    return res.status(404).json({ error: 'Not found' });
-      if (bet.room_id !== req.activeRoomId)              return res.status(403).json({ error: 'Forbidden' });
-      if (bet.creator !== creator)                 return res.status(403).json({ error: 'Forbidden' });
-      if (bet.status !== 'active')                 return res.status(403).json({ error: 'Already resolved' });
-      if (Date.now() - bet.created_at > 60000)     return res.status(403).json({ error: 'Window expired' });
+      if (!bet)                              return res.status(404).json({ error: 'Not found' });
+      if (bet.room_id !== req.activeRoomId)  return res.status(403).json({ error: 'Forbidden' });
+      if (bet.status !== 'active')           return res.status(403).json({ error: 'Already resolved' });
+
+      // Owner of the bet within the 60s window: free pass.
+      // Otherwise (someone else, or past window): require moderate_bets permission.
+      const ownerWindow = bet.creator === me && (Date.now() - bet.created_at <= 60000);
+      if (!ownerWindow) {
+        if (!(await requirePermission(req, res, 'moderate_bets'))) return;
+      }
+
       const potentialWin = Math.round(bet.stake * parsedQuota);
       await db.query(
         `UPDATE bets SET title=$1, quota=$2, potential_win=$3, category=$4, pegno=$5, expires_at=$6 WHERE id=$7`,
@@ -304,14 +310,19 @@ module.exports = function(broadcastUpdate) {
 
   router.delete('/:id', async (req, res) => {
     try {
-      const creator = req.userId;
+      const me = req.userId;
       const { rows } = await db.query('SELECT * FROM bets WHERE id = $1', [req.params.id]);
       const bet = rows[0];
       if (!bet) return res.status(404).json({ error: 'Not found' });
-      if (bet.room_id !== req.activeRoomId)                        return res.status(403).json({ error: 'Forbidden' });
-      if (bet.creator !== creator)                           return res.status(403).json({ error: 'Forbidden' });
+      if (bet.room_id !== req.activeRoomId)                  return res.status(403).json({ error: 'Forbidden' });
       if (!['active','pending'].includes(bet.status))        return res.status(403).json({ error: 'Already resolved' });
-      if (Date.now() - bet.created_at > 60 * 1000)          return res.status(403).json({ error: 'Window expired' });
+
+      // Owner of the bet within the 60s window: free pass.
+      // Otherwise (someone else, or past window): require moderate_bets permission.
+      const ownerWindow = bet.creator === me && (Date.now() - bet.created_at <= 60 * 1000);
+      if (!ownerWindow) {
+        if (!(await requirePermission(req, res, 'moderate_bets'))) return;
+      }
 
       const { rows: counters } = await db.query('SELECT * FROM counter_bets WHERE bet_id = $1', [bet.id]);
 
@@ -357,7 +368,7 @@ module.exports = function(broadcastUpdate) {
 
   router.post('/reset', async (req, res) => {
     try {
-      if (!(await requireOwner(req, res))) return;
+      if (!(await requirePermission(req, res, 'reset_season'))) return;
       await db.query('DELETE FROM bets WHERE room_id=$1', [req.activeRoomId]);
       await db.query(
         'UPDATE credits SET amount=100 WHERE "user" IN (SELECT id FROM users WHERE room_id=$1)',

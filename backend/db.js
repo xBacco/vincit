@@ -155,6 +155,10 @@ const pool = new Pool({
   `);
 
   await pool.query(`
+    ALTER TABLE user_groups ADD COLUMN IF NOT EXISTS permissions JSONB NOT NULL DEFAULT '{}'::jsonb;
+  `);
+
+  await pool.query(`
     CREATE INDEX IF NOT EXISTS idx_bets_room_id     ON bets(room_id);
     CREATE INDEX IF NOT EXISTS idx_bets_creator     ON bets(creator);
     CREATE INDEX IF NOT EXISTS idx_bets_status      ON bets(status) WHERE status IN ('active','pending');

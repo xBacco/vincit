@@ -55,6 +55,8 @@ export const deleteGroup         = (groupId)         => req('DELETE', `/groups/$
 export const kickMember          = (groupId, userId) => req('DELETE', `/groups/${groupId}/members/${userId}`);
 export const regenerateCode      = (groupId)         => req('POST',   `/groups/${groupId}/regenerate-code`);
 export const promoteMember       = (groupId, userId) => req('PATCH',  `/groups/${groupId}/members/${userId}/promote`);
+export const setMemberRole       = (groupId, userId, role)        => req('PATCH', `/groups/${groupId}/members/${userId}/role`, { role });
+export const setMemberPermissions = (groupId, userId, permissions) => req('PATCH', `/groups/${groupId}/members/${userId}/permissions`, { permissions });
 export const updateGroupSettings = (groupId, data)   => req('PATCH',  `/groups/${groupId}/settings`, data);
 
 // Bets

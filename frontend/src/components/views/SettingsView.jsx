@@ -10,8 +10,13 @@ const S = {
   btn: {display:"inline-flex",alignItems:"center",justifyContent:"center",gap:6,padding:"10px 18px",borderRadius:10,border:"none",cursor:"pointer",fontFamily:"'Syne',sans-serif",fontSize:13,fontWeight:600,transition:"all .18s",userSelect:"none",whiteSpace:"nowrap"},
 };
 
-export default function SettingsView({user,profiles,isDark,setIsDark,customCats,credits,bets,onUpdateProfile,onCreateCategory,onDeleteCategory,vaultPin,onSetVaultPin,isDesktop,onReset,onLogout,onProfileUpdate,isAdmin=false}){
+export default function SettingsView({user,profiles,isDark,setIsDark,customCats,credits,bets,onUpdateProfile,onCreateCategory,onDeleteCategory,vaultPin,onSetVaultPin,isDesktop,onReset,onLogout,onProfileUpdate,isAdmin=false,can}){
   const { t, lang, setLang } = useLang();
+  // Backward-compat: if `can` is missing, fall back to isAdmin gating
+  const allow = perm => typeof can === 'function' ? can(perm) : !!isAdmin;
+  const canCats     = allow('manage_categories');
+  const canCredits  = allow('manage_credits');
+  const canReset    = allow('reset_season');
   const [newE,setNewE]=useState("🎯");
   const [newLabel,setNewLabel]=useState("");
   const [newColor,setNewColor]=useState(CAT_COLS[0]);
@@ -235,7 +240,7 @@ export default function SettingsView({user,profiles,isDark,setIsDark,customCats,
 
       {/* CUSTOM CATS */}
       <SecLabel>{t('settings.custom_cats')}</SecLabel>
-      {isAdmin ? (
+      {canCats ? (
         <div style={{...S.card,marginBottom:12}}>
           {customCats.map(c=>(
             <div key={c.id} style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,paddingBottom:8,borderBottom:"1px solid var(--brd)"}}>
@@ -283,12 +288,12 @@ export default function SettingsView({user,profiles,isDark,setIsDark,customCats,
 
       {/* CREDITS */}
       <SecLabel mt={16}>{t('settings.credits_section')}</SecLabel>
-      {!isAdmin && (
+      {!canCredits && (
         <div style={{...S.card,opacity:.5}}>
           <div style={{fontSize:13,color:'var(--dim)'}}>{t('settings.admin_only')}</div>
         </div>
       )}
-      {isAdmin && (
+      {canCredits && (
         Object.keys(profiles).length === 0 ? (
           <div style={{...S.card,opacity:.6}}>
             <div style={{fontSize:13,color:'var(--dim)',textAlign:'center'}}>{t('settings.loading')}</div>
@@ -348,12 +353,12 @@ export default function SettingsView({user,profiles,isDark,setIsDark,customCats,
       {/* DANGER ZONE */}
       <div style={{marginTop:32,paddingTop:24,borderTop:'1px solid var(--red)33'}}>
         <SecLabel style={{color:'var(--red)88'}}>{t('settings.danger_zone')}</SecLabel>
-        {!isAdmin && (
+        {!canReset && (
           <div style={{...S.card,opacity:.5}}>
             <div style={{fontSize:13,color:'var(--dim)'}}>{t('settings.admin_only')}</div>
           </div>
         )}
-        {isAdmin && (showResetConfirm ? (
+        {canReset && (showResetConfirm ? (
           <div style={{...S.card,border:'1px solid var(--red)',background:'var(--red)0d'}}>
             <div style={{fontSize:14,fontWeight:700,color:'var(--red)',marginBottom:8}}>{t('settings.reset_confirm_title')}</div>
             <div style={{fontSize:12,color:'var(--dim)',marginBottom:16}}>{t('settings.reset_confirm_desc')}</div>

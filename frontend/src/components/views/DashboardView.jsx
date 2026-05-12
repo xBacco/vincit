@@ -45,78 +45,119 @@ const S = {
   row: {display:"flex",alignItems:"center",gap:10},
 };
 
-// Easter egg #1: the empty-state die. Click it and it rolls (CSS tumble).
-// Visual: the 🎲 emoji is kept throughout (renders reliably on every
-// platform) and a big Playfair number flashes ON TOP for ~1.2s after the
-// tumble — that's the rolled result. localStorage tracks the 6 unique
-// numbers seen across sessions; reaching all 6 fires the secret achievement.
-// A second localStorage key remembers we've already claimed so we don't
-// spam the API on repeat visits.
+// Easter egg #1: the empty-state die. A proper styled die drawn in CSS
+// with pip dots in standard positions. Click → the face value cycles
+// rapidly (every 80ms) while the whole die tumbles for ~1.3s, then
+// lands on a final value. Each landed value is recorded in localStorage;
+// when all 6 have been seen the secret achievement is claimed and we
+// fire `onEggUnlock` so the parent polls for the new trophy.
 const DIE_LS_FACES   = 'bc_egg_dice_faces';
 const DIE_LS_CLAIMED = 'bc_egg_dice_claimed';
 
-function RollingDie({ sizeDesktop, sizeMobile, isDesktop, style = {} }) {
-  const [rolling, setRolling] = useState(false);
-  const [showNumber, setShowNumber] = useState(null); // 1..6 | null
+// Pip positions for each face — using a 3x3 grid with named cells:
+//   tl tm tr
+//   ml mc mr
+//   bl bm br
+const PIP_LAYOUTS = {
+  1: { mc: true },
+  2: { tr: true, bl: true },
+  3: { tr: true, mc: true, bl: true },
+  4: { tl: true, tr: true, bl: true, br: true },
+  5: { tl: true, tr: true, mc: true, bl: true, br: true },
+  6: { tl: true, ml: true, bl: true, tr: true, mr: true, br: true },
+};
+const PIP_CELLS = ['tl','tm','tr','ml','mc','mr','bl','bm','br'];
 
-  const roll = () => {
-    if (rolling) return;
-    setRolling(true);
-    setShowNumber(null);
-    const next = 1 + Math.floor(Math.random() * 6);
-
-    // Phase 1: tumble for ~0.75s — visual only.
-    setTimeout(() => {
-      setRolling(false);
-      // Phase 2: flash the rolled number for ~1.4s.
-      setShowNumber(next);
-      // Record + maybe claim.
-      try {
-        const raw = localStorage.getItem(DIE_LS_FACES);
-        const seen = new Set(raw ? JSON.parse(raw) : []);
-        seen.add(next);
-        localStorage.setItem(DIE_LS_FACES, JSON.stringify(Array.from(seen)));
-        if (seen.size >= 6 && !localStorage.getItem(DIE_LS_CLAIMED)) {
-          localStorage.setItem(DIE_LS_CLAIMED, '1');
-          api.unlockSecretAchievement('egg_dice').catch(() => {});
-        }
-      } catch {}
-      // Phase 3: number fades out, die returns to neutral.
-      setTimeout(() => setShowNumber(null), 1400);
-    }, 750);
-  };
-
+function DieFace({ value, size }) {
+  const layout = PIP_LAYOUTS[value] || {};
+  const pipSize = size * 0.16;
   return (
-    <div onClick={roll} style={{
-      position: 'relative', display: 'inline-block', userSelect: 'none',
-      // Intentionally no `cursor: pointer`, no `title`, no hover effects —
-      // the easter egg should not announce itself on desktop hover.
-      ...style,
+    <div style={{
+      width: size, height: size,
+      borderRadius: size * 0.16,
+      background: 'linear-gradient(135deg, #faf5e5 0%, #ede8d8 60%, #d8cdb0 100%)',
+      boxShadow:
+        'inset 0 -5px 14px rgba(60,40,15,.22),' +
+        'inset 0 5px 10px rgba(255,255,255,.55),' +
+        '0 12px 26px rgba(0,0,0,.4)',
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr 1fr',
+      gridTemplateRows: '1fr 1fr 1fr',
+      padding: size * 0.14,
+      gap: 0,
+      position:'relative',
     }}>
-      <div style={{
-        fontSize: isDesktop ? sizeDesktop : sizeMobile,
-        lineHeight: 1,
-        transition: 'transform .15s ease',
-        animation: rolling ? 'dieTumble .75s cubic-bezier(.34,1.2,.64,1)' : 'none',
-        filter: rolling ? 'drop-shadow(0 0 12px var(--gold))' : 'none',
-      }}>🎲</div>
-      {showNumber != null && (
-        <div style={{
-          position: 'absolute', inset: 0,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontFamily: "'Playfair Display',serif", fontWeight: 900,
-          fontSize: (isDesktop ? sizeDesktop : sizeMobile) * 0.62,
-          color: 'var(--gold)',
-          textShadow: '0 0 12px rgba(196,168,120,.8)',
-          pointerEvents: 'none',
-          animation: 'bIn .35s cubic-bezier(.34,1.56,.64,1), fIn .25s ease 1.1s reverse forwards',
-        }}>{showNumber}</div>
-      )}
+      {PIP_CELLS.map(cell => (
+        <div key={cell} style={{display:'flex', alignItems:'center', justifyContent:'center'}}>
+          {layout[cell] && (
+            <div style={{
+              width: pipSize, height: pipSize, borderRadius: '50%',
+              background: 'radial-gradient(circle at 35% 30%, #4a2a10 0%, #2a1638 60%, #1a0f28 100%)',
+              boxShadow: 'inset 0 2px 3px rgba(0,0,0,.45), inset 0 -1px 2px rgba(255,255,255,.15), 0 1px 1px rgba(255,255,255,.3)',
+            }}/>
+          )}
+        </div>
+      ))}
     </div>
   );
 }
 
-export default function DashboardView({user,profiles,groupMembers,credits,bets,cats,onCreate,onResolve,onReveal,onCounter,onFlame,notifSince,isDesktop,reactions,onReaction,onReactionPhoto,onDelete,onEdit,onAccept,onReject,can,onGoToVault,onConfirmOutcome,onWithdrawResolve,onOvertime}){
+function RollingDie({ sizeDesktop, sizeMobile, isDesktop, onEggUnlock }) {
+  const [rolling, setRolling] = useState(false);
+  const [face, setFace] = useState(1);
+  const cycleRef = useRef(null);
+  const claimedRef = useRef(false);
+  const size = isDesktop ? sizeDesktop : sizeMobile;
+
+  const roll = () => {
+    if (rolling) return;
+    setRolling(true);
+    // Pick the final value first so the visual landing matches it.
+    const finalValue = 1 + Math.floor(Math.random() * 6);
+    // Cycle face values rapidly while tumbling for that "real" rolling feel.
+    cycleRef.current = setInterval(() => {
+      setFace(1 + Math.floor(Math.random() * 6));
+    }, 80);
+    setTimeout(() => {
+      clearInterval(cycleRef.current);
+      cycleRef.current = null;
+      setFace(finalValue);
+      setRolling(false);
+      // Record + maybe claim.
+      try {
+        const raw = localStorage.getItem(DIE_LS_FACES);
+        const seen = new Set(raw ? JSON.parse(raw) : []);
+        seen.add(finalValue);
+        localStorage.setItem(DIE_LS_FACES, JSON.stringify(Array.from(seen)));
+        if (seen.size >= 6 && !localStorage.getItem(DIE_LS_CLAIMED) && !claimedRef.current) {
+          claimedRef.current = true;
+          localStorage.setItem(DIE_LS_CLAIMED, '1');
+          api.unlockSecretAchievement('egg_dice')
+            .then(() => onEggUnlock?.())
+            .catch(e => { console.error('[egg_dice] unlock failed', e); claimedRef.current = false; });
+        }
+      } catch (e) { console.error('[egg_dice] localStorage error', e); }
+    }, 1300);
+  };
+
+  // Cleanup any interval if the component unmounts mid-roll.
+  React.useEffect(() => () => { if (cycleRef.current) clearInterval(cycleRef.current); }, []);
+
+  return (
+    <div onClick={roll} style={{
+      display: 'inline-block', userSelect: 'none',
+      // Intentionally no `cursor:pointer`, no `title`, no hover effects —
+      // the easter egg should not announce itself on desktop hover.
+      animation: rolling ? 'dieTumble 1.3s cubic-bezier(.34,1.05,.55,1)' : 'none',
+      filter: rolling ? 'drop-shadow(0 0 14px rgba(196,168,120,.55))' : 'none',
+      transformOrigin: 'center',
+    }}>
+      <DieFace value={face} size={size}/>
+    </div>
+  );
+}
+
+export default function DashboardView({user,profiles,groupMembers,credits,bets,cats,onCreate,onResolve,onReveal,onCounter,onFlame,notifSince,isDesktop,reactions,onReaction,onReactionPhoto,onDelete,onEdit,onAccept,onReject,can,onGoToVault,onConfirmOutcome,onWithdrawResolve,onOvertime,onEggUnlock}){
   const { t, lang } = useLang();
   // Multi-member ranking: include every profile in the group, sorted by wins desc
   const allMemberIds = (groupMembers && groupMembers.length
@@ -305,7 +346,7 @@ export default function DashboardView({user,profiles,groupMembers,credits,bets,c
         transform: 'rotate(-14deg)',
         animation: 'sUp .6s ease both .1s',
       }}>
-        <RollingDie isDesktop={isDesktop} sizeDesktop={56} sizeMobile={38}/>
+        <RollingDie isDesktop={isDesktop} sizeDesktop={84} sizeMobile={64} onEggUnlock={onEggUnlock}/>
       </div>
 
       {/* Gigantic banner — italic Cormorant, italic, breaks into two lines

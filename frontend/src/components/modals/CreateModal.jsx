@@ -210,15 +210,22 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
   const selectedCat = cats.find(c=>c.id===cat) || cats[0];
 
   // Easter egg #3: JACKPOT titles trigger a slot-machine overlay BEFORE the
-  // bet is actually submitted. After the reels stop, the bet is created
-  // normally so it survives as a memento in the user's bet history.
-  // The animation runs ~4.2s — long enough to be satisfying — but the
-  // user can tap anywhere to skip it and finish the submit immediately.
-  const [jackpot, setJackpot] = useState(false);
-  const jackpotTimerRef = useRef(null);
+  // bet is actually submitted. The flow is now a three-phase one so the
+  // close isn't an abrupt cut:
+  //   1. 'spinning' — reels spin staggered (≈3.1s)
+  //   2. 'celebrating' — "JACKPOT!" pulses (≈0.9s)
+  //   3. 'fading' — overlay fades out smoothly (≈0.7s), then submit fires
+  // Tap anywhere skips ahead to 'fading'.
+  const [jackpotPhase, setJackpotPhase] = useState(null); // null | 'spinning' | 'celebrating' | 'fading'
+  const jackpotTimersRef = useRef([]);
   const isMagicTitle = (s) => {
     const v = s.trim().toLowerCase();
     return v === '777' || v === 'jackpot' || v === '💎💎💎';
+  };
+
+  const clearJackpotTimers = () => {
+    jackpotTimersRef.current.forEach(clearTimeout);
+    jackpotTimersRef.current = [];
   };
 
   const doActualSubmit = () => {
@@ -238,13 +245,14 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
     });
   };
 
-  const finishJackpot = () => {
-    if (jackpotTimerRef.current) {
-      clearTimeout(jackpotTimerRef.current);
-      jackpotTimerRef.current = null;
-    }
-    setJackpot(false);
-    doActualSubmit();
+  // Start the smooth exit: fade overlay, then submit when fade ends.
+  const startJackpotFade = () => {
+    clearJackpotTimers();
+    setJackpotPhase('fading');
+    jackpotTimersRef.current.push(setTimeout(() => {
+      setJackpotPhase(null);
+      doActualSubmit();
+    }, 700));
   };
 
   const submit=()=>{
@@ -253,13 +261,18 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
     if(needsOpponent && !opponentId){toast.error(t('create.opponent_pick'));return;}
 
     if (isMagicTitle(title)) {
-      setJackpot(true);
-      api.unlockSecretAchievement('egg_jackpot').catch(() => {});
-      jackpotTimerRef.current = setTimeout(finishJackpot, 4200);
+      setJackpotPhase('spinning');
+      api.unlockSecretAchievement('egg_jackpot').catch(e => console.error('[egg_jackpot] unlock failed', e));
+      // Phase transition timers — kept in a ref so user-skip can clear them.
+      jackpotTimersRef.current.push(setTimeout(() => setJackpotPhase('celebrating'), 3100));
+      jackpotTimersRef.current.push(setTimeout(startJackpotFade, 4000));
       return;
     }
     doActualSubmit();
   };
+
+  // Cleanup on unmount.
+  useEffect(() => () => clearJackpotTimers(), []);
 
   // ─── Form blocks (shared mobile/desktop) ──────────────────────────────
   const TemplatesBlock = templates.length > 0 && (
@@ -681,16 +694,21 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
     </div>
   );
 
-  // Easter egg #3 — slot machine overlay. Spinning reels stop staggered
-  // over ~3.2s, then JACKPOT title pulses in, then the bet submits at 4.2s.
-  // Click anywhere to skip.
-  const SlotMachine = jackpot && (
-    <div onClick={finishJackpot} style={{
+  // Easter egg #3 — slot machine overlay. Three phases:
+  // 'spinning'    → reels translate downward, columns stop staggered.
+  // 'celebrating' → reels frozen, JACKPOT text pulses in.
+  // 'fading'      → whole overlay fades out smoothly before submit fires.
+  // Tap anywhere at any time jumps straight to the fade.
+  const SlotMachine = jackpotPhase && (
+    <div onClick={startJackpotFade} style={{
       position:'fixed', inset:0, zIndex:9600,
       background:'radial-gradient(circle at 50% 45%, rgba(43,34,71,.96) 0%, rgba(15,11,35,.98) 70%)',
       backdropFilter:'blur(8px)', WebkitBackdropFilter:'blur(8px)',
       display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
       padding:24, cursor:'pointer',
+      opacity: jackpotPhase === 'fading' ? 0 : 1,
+      transform: jackpotPhase === 'fading' ? 'scale(.92)' : 'scale(1)',
+      transition: 'opacity .65s ease, transform .65s ease',
     }}>
       <div className="bc-meta" style={{marginBottom:22, color:'var(--gold)'}}>— Jackpot</div>
       <div style={{
@@ -698,7 +716,10 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
         padding:'clamp(18px, 5vw, 36px) clamp(20px, 6vw, 48px)',
         border:'2px solid var(--gold)', borderRadius:6,
         background:'rgba(15,11,35,.6)',
-        boxShadow:'0 0 50px rgba(196,168,120,.45), inset 0 0 20px rgba(196,168,120,.15)',
+        boxShadow: jackpotPhase === 'celebrating'
+          ? '0 0 90px rgba(196,168,120,.7), inset 0 0 30px rgba(196,168,120,.25)'
+          : '0 0 50px rgba(196,168,120,.45), inset 0 0 20px rgba(196,168,120,.15)',
+        transition: 'box-shadow .5s ease',
       }}>
         {[0, 1, 2].map(i => (
           <div key={i} style={{
@@ -723,17 +744,22 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
           </div>
         ))}
       </div>
+      {/* JACKPOT title — only visible from 'celebrating' phase onward */}
       <div style={{
         marginTop:36,
         fontFamily:"'Cormorant Garamond',serif", fontStyle:'italic',
         fontSize:'clamp(36px, 8vw, 72px)', fontWeight:600,
         color:'var(--gold)', letterSpacing:'-0.02em',
-        animation:'bIn .55s cubic-bezier(.34,1.56,.64,1) both 3.1s',
         textShadow:'0 0 30px rgba(196,168,120,.5)',
+        opacity: jackpotPhase === 'spinning' ? 0 : 1,
+        transform: jackpotPhase === 'spinning' ? 'scale(.6) translateY(20px)' : 'scale(1) translateY(0)',
+        transition: 'opacity .55s cubic-bezier(.34,1.56,.64,1), transform .55s cubic-bezier(.34,1.56,.64,1)',
       }}>JACKPOT!</div>
       <div className="bc-meta" style={{
         marginTop: 36, color:'var(--mut)', fontSize:8,
         animation: 'fIn .4s ease both 1.2s',
+        opacity: jackpotPhase === 'fading' ? 0 : 1,
+        transition: 'opacity .3s ease',
       }}>tocca per saltare</div>
     </div>
   );

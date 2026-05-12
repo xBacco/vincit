@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Btn, Inp, Toggle, SecLabel, Q_PRE, qToP, pToQ, fmtQ, clamp } from '../Atoms.jsx';
 import { useLang } from '../../i18n.js';
 import { useToast } from '../../Toast.jsx';
+import * as api from '../../api.js';
 
 const S = {
   lbl: {fontSize:10,color:"var(--dim)",letterSpacing:2,textTransform:"uppercase",display:"block",marginBottom:6},
@@ -129,6 +130,44 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
   const [targetId,setTargetId]=useState(null);
   const [pegno,setPegno]=useState("");
   const [exp,setExp]=useState("");
+  const [templates, setTemplates] = useState([]);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [tplName, setTplName] = useState("");
+
+  useEffect(() => {
+    api.listTemplates().then(setTemplates).catch(() => {});
+  }, []);
+
+  const applyTemplate = (tpl) => {
+    setTitle(tpl.title || "");
+    setQuota(parseFloat(tpl.quota) || 1.5);
+    setStakeStr(String(tpl.stake ?? 10));
+    if (tpl.category) setCat(tpl.category);
+    if (tpl.bet_type && ['vault','open','targeted','surprise'].includes(tpl.bet_type)) setBetType(tpl.bet_type);
+    setPegno(tpl.pegno || "");
+  };
+
+  const saveAsTemplate = async () => {
+    if (!title.trim() || !stake) {
+      toast.error(t('templates.no_title_hint'));
+      return;
+    }
+    if (!tplName.trim()) { toast.error(t('templates.name_label')); return; }
+    try {
+      const created = await api.createTemplate({
+        name: tplName.trim(),
+        title: title.trim(),
+        quota, stake,
+        category: cat,
+        bet_type: betType,
+        pegno: pegno || null,
+      });
+      setTemplates([created, ...templates]);
+      setShowSaveDialog(false);
+      setTplName("");
+      toast.success(t('templates.saved'));
+    } catch (e) { toast.error(t('app.error_create')); }
+  };
 
   // Auto-select first available opponent when switching to targeted/surprise
   useEffect(() => {
@@ -167,6 +206,43 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
   };
 
   // ─── Form blocks (shared mobile/desktop) ──────────────────────────────
+  const TemplatesBlock = templates.length > 0 && (
+    <div style={{ marginBottom: 14 }}>
+      <label style={S.lbl}>{t('templates.title_picker')}</label>
+      <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+        {templates.map(tpl => (
+          <button key={tpl.id} onClick={() => applyTemplate(tpl)}
+            title={`${tpl.title} · ${fmtQ(tpl.quota)}× · ${tpl.stake} ₡`}
+            style={{
+              display:'inline-flex', alignItems:'center', gap:6,
+              padding:'6px 12px', borderRadius:20,
+              border:'1px solid var(--gold)44',
+              background:'var(--gold)0d', color:'var(--gold)',
+              cursor:'pointer', fontFamily:"'Syne',sans-serif", fontSize:12, fontWeight:600,
+            }}>
+            <span style={{fontSize:13}}>💾</span>
+            <span>{tpl.name}</span>
+            <span style={{fontSize:10,color:'var(--dim)'}}>· {fmtQ(tpl.quota)}× · {tpl.stake}₡</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  const SaveAsTemplateBtn = (
+    <button onClick={() => { setShowSaveDialog(true); setTplName(""); }}
+      style={{
+        display:'inline-flex', alignItems:'center', gap:6,
+        padding:'6px 12px', borderRadius:20,
+        border:'1px solid var(--brd)', background:'transparent',
+        color:'var(--dim)', cursor:'pointer',
+        fontFamily:"'Syne',sans-serif", fontSize:11, fontWeight:600,
+        marginTop:10,
+      }}>
+      {t('templates.save_as_btn')}
+    </button>
+  );
+
   const TYPE_OPTIONS = [
     { key:'vault',     color:'var(--gold)', requiresOther:false },
     { key:'open',      color:'var(--blu)',  requiresOther:false },
@@ -382,6 +458,7 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
 
           <div style={{display:"grid",gridTemplateColumns:"1fr 360px",flex:1,minHeight:0}}>
             <div style={{padding:"22px 24px",overflowY:"auto"}}>
+              {TemplatesBlock}
               {TypeBlock}
               {OpponentBlock}
               {TargetBlock}
@@ -421,12 +498,23 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
             </div>
           </div>
 
-          <div style={{display:"flex",gap:10,justifyContent:"flex-end",padding:"14px 24px",borderTop:"1px solid var(--brd)",flexShrink:0}}>
-            <Btn variant="ghost" onClick={onClose}>{t('reveal.cancel')}</Btn>
-            <Btn variant="gold" onClick={submit} style={{padding:"12px 24px",fontSize:14}}>
-              {isSecret?t('create.submit_secret'):t('create.submit_shared')}
-            </Btn>
+          <div style={{display:"flex",gap:10,justifyContent:"space-between",alignItems:"center",padding:"14px 24px",borderTop:"1px solid var(--brd)",flexShrink:0}}>
+            {SaveAsTemplateBtn}
+            <div style={{display:'flex',gap:10}}>
+              <Btn variant="ghost" onClick={onClose}>{t('reveal.cancel')}</Btn>
+              <Btn variant="gold" onClick={submit} style={{padding:"12px 24px",fontSize:14}}>
+                {isSecret?t('create.submit_secret'):t('create.submit_shared')}
+              </Btn>
+            </div>
           </div>
+
+          {showSaveDialog && (
+            <SaveTemplateDialog
+              name={tplName} setName={setTplName}
+              onCancel={() => setShowSaveDialog(false)}
+              onSave={saveAsTemplate} t={t}
+            />
+          )}
         </div>
       </div>
     );
@@ -441,6 +529,7 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
           <Btn variant="ghost" sm onClick={onClose}>✕</Btn>
         </div>
 
+        {TemplatesBlock}
         {TypeBlock}
         {OpponentBlock}
         {TargetBlock}
@@ -452,6 +541,40 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
         {ExpiryBlock}
 
         <Btn variant="gold" full onClick={submit}>{isSecret?t('create.submit_secret'):t('create.submit_shared')}</Btn>
+        <div style={{textAlign:'center'}}>{SaveAsTemplateBtn}</div>
+
+        {showSaveDialog && (
+          <SaveTemplateDialog
+            name={tplName} setName={setTplName}
+            onCancel={() => setShowSaveDialog(false)}
+            onSave={saveAsTemplate} t={t}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SaveTemplateDialog({ name, setName, onCancel, onSave, t }) {
+  return (
+    <div style={{position:'fixed', inset:0, background:'rgba(0,0,0,.7)',
+      display:'flex', alignItems:'center', justifyContent:'center', zIndex:120, padding:20}}>
+      <div className="bIn" style={{
+        background:'var(--surf)', border:'1px solid var(--gold)44', borderRadius:14,
+        padding:20, width:'100%', maxWidth:360,
+      }}>
+        <div style={{fontFamily:"'Playfair Display', serif", fontSize:18, fontWeight:700, marginBottom:10}}>
+          💾 {t('templates.save_as_btn').replace('💾 ', '')}
+        </div>
+        <label style={{fontSize:10,color:'var(--dim)',letterSpacing:2,textTransform:'uppercase'}}>
+          {t('templates.name_label')}
+        </label>
+        <Inp value={name} onChange={e => setName(e.target.value.slice(0, 60))}
+          placeholder={t('templates.name_ph')} style={{marginTop:6, marginBottom:14}}/>
+        <div style={{display:'flex', gap:8}}>
+          <Btn variant="ghost" style={{flex:1}} onClick={onCancel}>{t('reveal.cancel')}</Btn>
+          <Btn variant="gold" style={{flex:1}} onClick={onSave}>{t('settings.pin_save')}</Btn>
+        </div>
       </div>
     </div>
   );

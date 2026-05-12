@@ -2,33 +2,48 @@
 const db = require('./db.js');
 const { sendPushToUser, isPrefEnabled } = require('./routes/push.js');
 
-// Static catalog. UI uses these ids and renders the icon/title from i18n.
+// Static catalog. UI uses these ids and renders title/desc from i18n.
+// "category": positive | challenge | shadow (loss-themed) | mission (special)
 const CATALOG = [
-  { id: 'first_win',    icon: '🎯', tier: 'bronze' },
-  { id: 'wins_5',       icon: '🥉', tier: 'bronze' },
-  { id: 'wins_25',      icon: '🥈', tier: 'silver' },
-  { id: 'wins_100',     icon: '🥇', tier: 'gold'   },
-  { id: 'streak_3',     icon: '🔥', tier: 'bronze' },
-  { id: 'streak_5',     icon: '🔥', tier: 'silver' },
-  { id: 'streak_10',    icon: '🔥', tier: 'gold'   },
-  { id: 'outsider',     icon: '🌙', tier: 'silver' },
-  { id: 'miracle',      icon: '💫', tier: 'gold'   },
-  { id: 'total_10',     icon: '🎲', tier: 'bronze' },
-  { id: 'total_50',     icon: '🎲', tier: 'silver' },
-  { id: 'surprise_won', icon: '🤫', tier: 'silver' },
-  { id: 'target_won',   icon: '🛡', tier: 'silver' },
-  { id: 'comeback',     icon: '⚖',  tier: 'silver' },
-  { id: 'bluff',        icon: '🃏', tier: 'silver' },
-  { id: 'balance_500',  icon: '💎', tier: 'gold'   },
+  // Wins ladder
+  { id: 'first_win',    icon: '🎯', tier: 'bronze', category: 'positive' },
+  { id: 'wins_5',       icon: '🥉', tier: 'bronze', category: 'positive' },
+  { id: 'wins_25',      icon: '🥈', tier: 'silver', category: 'positive' },
+  { id: 'wins_100',     icon: '🥇', tier: 'gold',   category: 'positive' },
+  // Streaks (positive)
+  { id: 'streak_3',     icon: '🔥', tier: 'bronze', category: 'positive' },
+  { id: 'streak_5',     icon: '🔥', tier: 'silver', category: 'positive' },
+  { id: 'streak_10',    icon: '🔥', tier: 'gold',   category: 'positive' },
+  // High-odds challenges
+  { id: 'bluff',        icon: '🃏', tier: 'silver', category: 'challenge' },
+  { id: 'outsider',     icon: '🌙', tier: 'silver', category: 'challenge' },
+  { id: 'miracle',      icon: '💫', tier: 'gold',   category: 'challenge' },
+  // Volume
+  { id: 'total_10',     icon: '🎲', tier: 'bronze', category: 'positive' },
+  { id: 'total_50',     icon: '🎲', tier: 'silver', category: 'positive' },
+  // Special wins
+  { id: 'surprise_won', icon: '🤫', tier: 'silver', category: 'mission' },
+  { id: 'target_won',   icon: '🛡', tier: 'silver', category: 'mission' },
+  { id: 'epic_pegno',   icon: '🎁', tier: 'silver', category: 'mission' },
+  // Shadow (loss-themed) — visible but hopefully unlocked rarely
+  { id: 'first_loss',     icon: '🥲', tier: 'bronze', category: 'shadow' },
+  { id: 'loss_streak_3',  icon: '🧊', tier: 'bronze', category: 'shadow' },
+  { id: 'loss_streak_5',  icon: '❄️', tier: 'silver', category: 'shadow' },
+  { id: 'loss_streak_10', icon: '💀', tier: 'gold',   category: 'shadow' },
+  { id: 'total_losses_25', icon: '📉', tier: 'silver', category: 'shadow' },
+  // Recovery + balance
+  { id: 'comeback',     icon: '⚖',  tier: 'silver', category: 'mission' },
+  { id: 'comeback_5',   icon: '🔥', tier: 'gold',   category: 'mission' },
+  { id: 'equilibrium',  icon: '⚖',  tier: 'silver', category: 'mission' },
+  { id: 'balance_500',  icon: '💎', tier: 'gold',   category: 'positive' },
 ];
 
-// Evaluate user's stats and return ids of achievements they qualify for.
-async function computeUnlocked(userId) {
-  const out = new Set();
-
-  // Pull all the user's resolved bets in chronological order (across all their groups)
+// Returns map { id → { current, target } } so the UI can show progress bars.
+// `unlocked` is derived from current >= target.
+async function computeProgressFor(userId) {
   const { rows: bets } = await db.query(
-    `SELECT id, creator, status, quota, stake, potential_win, is_surprise, target_user, opponent,
+    `SELECT id, creator, status, quota, stake, potential_win,
+            is_surprise, target_user, opponent, pegno,
             COALESCE(created_at, 0) AS created_at
      FROM bets
      WHERE creator=$1 AND status IN ('won','lost')
@@ -36,63 +51,94 @@ async function computeUnlocked(userId) {
     [userId]
   );
 
-  const totalResolved = bets.length;
-  const wins = bets.filter(b => b.status === 'won');
-  const winCount = wins.length;
+  const wins   = bets.filter(b => b.status === 'won');
+  const losses = bets.filter(b => b.status === 'lost');
 
-  if (winCount >= 1)   out.add('first_win');
-  if (winCount >= 5)   out.add('wins_5');
-  if (winCount >= 25)  out.add('wins_25');
-  if (winCount >= 100) out.add('wins_100');
-  if (totalResolved >= 10) out.add('total_10');
-  if (totalResolved >= 50) out.add('total_50');
-
-  // Win streak
-  let cur = 0, best = 0;
+  // Compute streaks
+  let bestWinStreak = 0, curWin = 0;
+  let bestLossStreak = 0, curLoss = 0;
   for (const b of bets) {
-    if (b.status === 'won') { cur++; if (cur > best) best = cur; }
-    else cur = 0;
+    if (b.status === 'won')  { curWin++;  curLoss = 0; if (curWin > bestWinStreak)  bestWinStreak  = curWin;  }
+    else                     { curLoss++; curWin  = 0; if (curLoss > bestLossStreak) bestLossStreak = curLoss; }
   }
-  if (best >= 3)  out.add('streak_3');
-  if (best >= 5)  out.add('streak_5');
-  if (best >= 10) out.add('streak_10');
 
   // High-odds wins
-  if (wins.some(b => parseFloat(b.quota) >= 5))  out.add('outsider');
-  if (wins.some(b => parseFloat(b.quota) >= 10)) out.add('miracle');
-  if (wins.some(b => parseFloat(b.quota) >= 3))  out.add('bluff');
+  const winMaxQuota = wins.reduce((mx, b) => Math.max(mx, parseFloat(b.quota || 0)), 0);
 
-  // Surprise win (bet creator won a bet that was marked surprise)
-  if (wins.some(b => b.is_surprise === 1)) out.add('surprise_won');
+  // Surprise/target/pegno wins
+  const wonSurprise = wins.some(b => b.is_surprise === 1) ? 1 : 0;
+  const wonPegno    = wins.some(b => (b.pegno || '').trim().length > 0) ? 1 : 0;
 
-  // "Target win": this user is the target on a bet that resolved (regardless of outcome)
+  // Target reveal (this user was the target of any resolved bet)
   const { rows: targetRows } = await db.query(
     `SELECT 1 FROM bets WHERE target_user=$1 AND status IN ('won','lost') LIMIT 1`,
     [userId]
   );
-  if (targetRows.length) out.add('target_won');
+  const wasTargeted = targetRows.length ? 1 : 0;
 
-  // Comeback: win after 3 consecutive losses
-  let lossStreak = 0;
+  // Comeback / comeback_5: win after N losses in a row
+  let lossesBeforeWin = 0;
+  let comeback3 = 0, comeback5 = 0;
   for (const b of bets) {
-    if (b.status === 'lost') lossStreak++;
+    if (b.status === 'lost') lossesBeforeWin++;
     else {
-      if (lossStreak >= 3) { out.add('comeback'); break; }
-      lossStreak = 0;
+      if (lossesBeforeWin >= 3) comeback3 = 1;
+      if (lossesBeforeWin >= 5) comeback5 = 1;
+      lossesBeforeWin = 0;
     }
   }
 
-  // Balance milestone (across all groups: simple aggregate from credits table)
+  // Balance
   const { rows: cr } = await db.query('SELECT amount FROM credits WHERE "user"=$1', [userId]);
-  if (cr[0]?.amount >= 500) out.add('balance_500');
+  const balance = cr[0]?.amount ?? 0;
 
-  return [...out];
+  return {
+    first_win:       { current: wins.length,   target: 1 },
+    wins_5:          { current: wins.length,   target: 5 },
+    wins_25:         { current: wins.length,   target: 25 },
+    wins_100:        { current: wins.length,   target: 100 },
+
+    streak_3:        { current: bestWinStreak, target: 3 },
+    streak_5:        { current: bestWinStreak, target: 5 },
+    streak_10:       { current: bestWinStreak, target: 10 },
+
+    bluff:           { current: winMaxQuota >= 3  ? 3  : winMaxQuota, target: 3 },
+    outsider:        { current: winMaxQuota >= 5  ? 5  : winMaxQuota, target: 5 },
+    miracle:         { current: winMaxQuota >= 10 ? 10 : winMaxQuota, target: 10 },
+
+    total_10:        { current: bets.length,   target: 10 },
+    total_50:        { current: bets.length,   target: 50 },
+
+    surprise_won:    { current: wonSurprise,   target: 1 },
+    target_won:      { current: wasTargeted,   target: 1 },
+    epic_pegno:      { current: wonPegno,      target: 1 },
+
+    first_loss:       { current: losses.length,   target: 1 },
+    loss_streak_3:    { current: bestLossStreak,  target: 3 },
+    loss_streak_5:    { current: bestLossStreak,  target: 5 },
+    loss_streak_10:   { current: bestLossStreak,  target: 10 },
+    total_losses_25:  { current: losses.length,   target: 25 },
+
+    comeback:        { current: comeback3,     target: 1 },
+    comeback_5:      { current: comeback5,     target: 1 },
+    equilibrium:     { current: Math.min(wins.length, losses.length), target: 10 },
+    balance_500:     { current: balance,       target: 500 },
+  };
+}
+
+function unlockedIdsFromProgress(progress) {
+  const out = [];
+  for (const [id, p] of Object.entries(progress)) {
+    if (p.current >= p.target) out.push(id);
+  }
+  return out;
 }
 
 // Check what's new and insert + notify.
 async function refreshAchievements(userId) {
   try {
-    const qualified = await computeUnlocked(userId);
+    const progress = await computeProgressFor(userId);
+    const qualified = unlockedIdsFromProgress(progress);
     if (!qualified.length) return [];
     const { rows: already } = await db.query(
       'SELECT achievement_id FROM achievements WHERE user_id=$1', [userId]
@@ -110,7 +156,6 @@ async function refreshAchievements(userId) {
       );
     }
 
-    // Fire-and-forget push notification (single message per unlock burst)
     if (await isPrefEnabled(userId, 'on_resolved')) {
       sendPushToUser(userId, {
         title: newOnes.length === 1 ? '🏆 Trofeo sbloccato!' : `🏆 ${newOnes.length} trofei sbloccati!`,
@@ -135,4 +180,7 @@ async function listForUser(userId) {
   return rows;
 }
 
-module.exports = { CATALOG, refreshAchievements, listForUser, computeUnlocked };
+module.exports = {
+  CATALOG, refreshAchievements, listForUser,
+  computeProgressFor, unlockedIdsFromProgress,
+};

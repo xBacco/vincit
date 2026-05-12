@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { SecLabel, Avatar, fmtQ, qToP, COLORS, getC } from '../Atoms.jsx';
 import { useLang } from '../../i18n.js';
 import Sparkline from '../Sparkline.jsx';
+import StreakBadge, { StreakInline } from '../StreakBadge.jsx';
+import TrophiesSection from '../TrophiesSection.jsx';
 import * as api from '../../api.js';
 
 const S = {
@@ -64,12 +66,22 @@ export default function StatsView({user,profiles,groupMembers,credits,bets,cats,
   const peakBalance = balanceSeries.length ? Math.max(...balanceSeries) : 100;
   const lowBalance  = balanceSeries.length ? Math.min(...balanceSeries) : 100;
 
-  // Achievements
-  const [achv, setAchv] = useState({ catalog: [], unlocked: [] });
-  useEffect(() => {
-    api.getAchievements().then(setAchv).catch(() => {});
-  }, [bets.length]);
-  const unlockedMap = Object.fromEntries(achv.unlocked.map(u => [u.achievement_id, u.unlocked_at]));
+  // Compute personal loss streak (best run length)
+  const myChronologicalResolved = [...bets]
+    .filter(b => b.creator === user && ['won','lost'].includes(b.status))
+    .sort((a,b) => (a.resolvedAt||a.createdAt) - (b.resolvedAt||b.createdAt));
+  let _bestLoss = 0, _cl = 0, _curWinStr = 0, _curLossStr = 0;
+  for (const b of myChronologicalResolved) {
+    if (b.status === 'lost') { _cl++; if (_cl > _bestLoss) _bestLoss = _cl; }
+    else _cl = 0;
+  }
+  // Current trailing streaks (from the end backwards)
+  for (let i = myChronologicalResolved.length - 1; i >= 0; i--) {
+    const s = myChronologicalResolved[i].status;
+    if (s === 'won' && _curLossStr === 0) _curWinStr++;
+    else if (s === 'lost' && _curWinStr === 0) _curLossStr++;
+    else break;
+  }
 
   // Head-to-head member selection
   const [h2hId, setH2hId] = useState(null);
@@ -116,13 +128,20 @@ export default function StatsView({user,profiles,groupMembers,credits,bets,cats,
   );
   const statsGrid=(
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
-      {[{e:"✅",l:t('stats_view.won'),v:won.length,c:"var(--grn)"},{e:"❌",l:t('stats_view.lost'),v:lost.length,c:"var(--red)"},{e:"📈",l:t('stats_view.win_rate'),v:`${wr}%`,c:wr>=50?"var(--grn)":"var(--red)"},{e:"🔥",l:t('stats_view.streak'),v:streak,c:"#f97316"}].map(s=>(
+      {[
+        {e:"✅",l:t('stats_view.won'),v:won.length,c:"var(--grn)"},
+        {e:"❌",l:t('stats_view.lost'),v:lost.length,c:"var(--red)"},
+        {e:"📈",l:t('stats_view.win_rate'),v:`${wr}%`,c:wr>=50?"var(--grn)":"var(--red)"},
+      ].map(s=>(
         <div key={s.l} style={{...S.card,textAlign:"center"}}>
           <div style={{fontSize:20,marginBottom:4}}>{s.e}</div>
           <div style={{fontFamily:"'Playfair Display',serif",fontSize:26,fontWeight:700,color:s.c}}>{s.v}</div>
           <div style={{fontSize:11,color:"var(--dim)"}}>{s.l}</div>
         </div>
       ))}
+      <div style={{...S.card, display:'flex', alignItems:'center', justifyContent:'center', padding:'10px 4px'}}>
+        <StreakBadge winStreak={_curWinStr} lossStreak={_curLossStr} label={t('stats_view.streak')}/>
+      </div>
     </div>
   );
   const bestCard=best&&(
@@ -172,39 +191,10 @@ export default function StatsView({user,profiles,groupMembers,credits,bets,cats,
   );
   const emptyMsg=all.length===0&&<div style={{textAlign:"center",padding:"32px 0",color:"var(--dim)",fontSize:13}}>{t('stats_view.no_bets')}</div>;
 
-  // ─── Trophies card ──────────────────────────────────────────────────
-  const trophiesCard = achv.catalog.length > 0 && (
-    <div style={{...S.card, marginBottom:10}}>
-      <SecLabel>
-        {t('trophies.title')}
-        <span style={{marginLeft:8,color:'var(--gold)',fontWeight:700}}>
-          {achv.unlocked.length}/{achv.catalog.length}
-        </span>
-      </SecLabel>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill, minmax(76px, 1fr))',gap:8}}>
-        {achv.catalog.map(a => {
-          const unlocked = !!unlockedMap[a.id];
-          const tierC = a.tier === 'gold' ? 'var(--gold)' : a.tier === 'silver' ? '#c0c4d0' : '#b87333';
-          return (
-            <div key={a.id} title={t('trophies.'+a.id+'_desc')} style={{
-              textAlign:'center', padding:'8px 4px', borderRadius:10,
-              background: unlocked ? 'var(--surf)' : 'rgba(255,255,255,.02)',
-              border: `1px solid ${unlocked ? tierC + '55' : 'var(--brd)'}`,
-              opacity: unlocked ? 1 : .45, position:'relative',
-            }}>
-              <div style={{fontSize:28, filter: unlocked ? `drop-shadow(0 0 8px ${tierC}55)` : 'grayscale(1)', marginBottom:2}}>{a.icon}</div>
-              <div style={{fontSize:10, fontWeight:700, color: unlocked ? 'var(--txt)' : 'var(--dim)', lineHeight:1.2}}>
-                {t('trophies.'+a.id)}
-              </div>
-              {!unlocked && (
-                <div style={{fontSize:8,color:'var(--mut)',letterSpacing:1,marginTop:2,textTransform:'uppercase'}}>
-                  🔒 {t('trophies.locked')}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+  // ─── Trophies (full section, embedded as a card) ─────────────────────
+  const trophiesCard = (
+    <div style={{marginBottom:10}}>
+      <TrophiesSection embedded betsTick={bets.length} />
     </div>
   );
 

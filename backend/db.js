@@ -181,6 +181,22 @@ const pool = new Pool({
   `);
 
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS bet_templates (
+      id          TEXT PRIMARY KEY,
+      user_id     TEXT NOT NULL,
+      name        TEXT NOT NULL,
+      title       TEXT NOT NULL,
+      quota       REAL NOT NULL,
+      stake       INTEGER NOT NULL,
+      category    TEXT,
+      bet_type    TEXT NOT NULL DEFAULT 'open',
+      pegno       TEXT,
+      created_at  BIGINT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_bet_templates_user ON bet_templates(user_id);
+  `);
+
+  await pool.query(`
     CREATE INDEX IF NOT EXISTS idx_bets_room_id     ON bets(room_id);
     CREATE INDEX IF NOT EXISTS idx_bets_creator     ON bets(creator);
     CREATE INDEX IF NOT EXISTS idx_bets_status      ON bets(status) WHERE status IN ('active','pending');

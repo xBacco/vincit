@@ -83,6 +83,11 @@ export const saveNotifPrefs = (prefs)       => req('POST', '/push/prefs', prefs)
 
 export const getAchievements = ()           => req('GET',  '/achievements');
 
+export const listTemplates   = ()           => req('GET',    '/templates');
+export const createTemplate  = (data)       => req('POST',   '/templates', data);
+export const updateTemplate  = (id, data)   => req('PATCH',  `/templates/${id}`, data);
+export const deleteTemplate  = (id)         => req('DELETE', `/templates/${id}`);
+
 // Avatar image upload (dataUrl = "data:image/jpeg;base64,..."). Optional token override
 // for the one-shot call right after register (token not yet in localStorage).
 export const uploadAvatar = (dataUrl, opts) => req('POST',   '/auth/avatar', { dataUrl }, opts);

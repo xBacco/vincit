@@ -90,6 +90,7 @@ const catsRouter     = require('./routes/categories.js')(broadcastUpdate);
 const reactionsRouter = require('./routes/reactions.js')(broadcastUpdate);
 const { router: pushRouter } = require('./routes/push.js');
 const achievementsRouter = require('./routes/achievements.js');
+const templatesRouter    = require('./routes/templates.js');
 
 app.use('/api/state',      authMiddleware, stateRouter);
 app.use('/api/groups',     authMiddleware, groupsRouter);
@@ -100,6 +101,7 @@ app.use('/api/categories', authMiddleware, resolveActiveRoom, catsRouter);
 app.use('/api/bets',       authMiddleware, resolveActiveRoom, reactionsRouter);
 app.use('/api/push',       authMiddleware, pushRouter);
 app.use('/api/achievements', authMiddleware, achievementsRouter);
+app.use('/api/templates',  authMiddleware, templatesRouter);
 
 app.use(express.static(path.join(__dirname, '../frontend/dist')));
 app.get('*', (req, res) => {

@@ -22,6 +22,22 @@ function computeStreak(bets, user) {
 import { Btn, SecLabel, fmtD, isSoon, tLeft, COLORS, getC } from '../Atoms.jsx';
 import { useLang, TRANSLATIONS } from '../../i18n.js';
 import BetCard from '../BetCard.jsx';
+import { StreakInline } from '../StreakBadge.jsx';
+
+// Returns trailing consecutive {winStreak, lossStreak} for a given user, based on their bets.
+function currentStreaks(bets, userId) {
+  const sorted = [...bets]
+    .filter(b => b.creator === userId && ['won','lost'].includes(b.status))
+    .sort((a,b) => (a.resolvedAt||a.createdAt) - (b.resolvedAt||b.createdAt));
+  let w = 0, l = 0;
+  for (let i = sorted.length - 1; i >= 0; i--) {
+    const s = sorted[i].status;
+    if (s === 'won' && l === 0) w++;
+    else if (s === 'lost' && w === 0) l++;
+    else break;
+  }
+  return { winStreak: w, lossStreak: l };
+}
 
 const S = {
   card: {background:"var(--card)",border:"1px solid var(--brd)",borderRadius:16,padding:16},
@@ -52,11 +68,13 @@ export default function DashboardView({user,profiles,groupMembers,credits,bets,c
   // Build ranking rows for all members
   const rankRows = allMemberIds.map(id => {
     const p = profiles[id] || (groupMembers && groupMembers.find(m => m.id === id));
+    const streaks = currentStreaks(bets, id);
     return {
       id, p,
       c: getC(profiles, id),
       w: bets.filter(b => b.creator === id && b.status === 'won').length,
       isMe: id === user,
+      streaks,
     };
   }).sort((a,b) => b.w - a.w || (a.isMe ? -1 : 1));
 
@@ -87,6 +105,13 @@ export default function DashboardView({user,profiles,groupMembers,credits,bets,c
                 : (s.p?.avatar ?? '')}
               {i===0 && rankRows.length>1 && (
                 <div style={{position:"absolute",top:-6,right:-6,fontSize:14}}>👑</div>
+              )}
+              {(s.streaks.winStreak >= 3 || s.streaks.lossStreak >= 3) && (
+                <div style={{position:'absolute', bottom:-4, right:-6,
+                  background:'var(--surf)', borderRadius:10, padding:'1px 4px',
+                  border:'1px solid var(--brd)', display:'flex', alignItems:'center'}}>
+                  <StreakInline winStreak={s.streaks.winStreak} lossStreak={s.streaks.lossStreak} size={13}/>
+                </div>
               )}
             </div>
             <div style={{fontFamily:"'Playfair Display',serif",fontSize:13,fontWeight:700,marginTop:6,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>

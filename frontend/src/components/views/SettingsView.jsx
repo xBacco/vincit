@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Btn, Inp, Toggle, SecLabel, AVATARS, COLORS, CAT_COLS } from '../Atoms.jsx';
+import { Btn, Inp, Toggle, SecLabel, AVATARS, COLORS, CAT_COLS, fmtQ } from '../Atoms.jsx';
 import { useLang } from '../../i18n.js';
 import * as api from '../../api.js';
 import { fileToSquareDataUrl } from '../../imageUtils.js';
+import { useToast } from '../../Toast.jsx';
 
 const S = {
   card: {background:"var(--card)",border:"1px solid var(--brd)",borderRadius:16,padding:16},
@@ -77,6 +78,19 @@ export default function SettingsView({user,profiles,isDark,setIsDark,customCats,
   useEffect(()=>{
     api.getNotifPrefs(user).then(setNotifPrefs).catch(console.error);
   },[user]);
+
+  // Templates management
+  const toast = useToast();
+  const [templates, setTemplates] = useState([]);
+  useEffect(() => { api.listTemplates().then(setTemplates).catch(() => {}); }, []);
+  const handleDeleteTemplate = async (tpl) => {
+    if (!window.confirm(t('templates.delete_confirm'))) return;
+    try {
+      await api.deleteTemplate(tpl.id);
+      setTemplates(ts => ts.filter(x => x.id !== tpl.id));
+      toast.info(t('templates.deleted'));
+    } catch { toast.error(t('app.error_cancel')); }
+  };
 
   const saveProfile = async () => {
     try {
@@ -267,6 +281,40 @@ export default function SettingsView({user,profiles,isDark,setIsDark,customCats,
           <div style={{fontSize:13,color:'var(--dim)'}}>{t('settings.admin_only')}</div>
         </div>
       )}
+
+      {/* TEMPLATES */}
+      <SecLabel mt={16}>💾 {t('templates.title_settings')}</SecLabel>
+      <div style={{...S.card, marginBottom:12}}>
+        {templates.length === 0 ? (
+          <div style={{fontSize:12, color:'var(--dim)', textAlign:'center', padding:'8px 0'}}>
+            {t('templates.empty')}
+          </div>
+        ) : (
+          <div style={{display:'flex', flexDirection:'column', gap:8}}>
+            {templates.map(tpl => (
+              <div key={tpl.id} style={{
+                display:'flex', alignItems:'center', gap:10,
+                padding:'8px 10px', borderRadius:8,
+                border:'1px solid var(--brd)', background:'var(--surf)',
+              }}>
+                <div style={{fontSize:18, color:'var(--gold)'}}>💾</div>
+                <div style={{flex:1, minWidth:0}}>
+                  <div style={{fontSize:13, fontWeight:700, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
+                    {tpl.name}
+                  </div>
+                  <div style={{fontSize:11, color:'var(--dim)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', marginTop:1}}>
+                    "{tpl.title}" · {fmtQ(tpl.quota)}× · {tpl.stake} ₡
+                  </div>
+                </div>
+                <button onClick={() => handleDeleteTemplate(tpl)} style={{
+                  ...S.btn, padding:'4px 10px', fontSize:11,
+                  background:'transparent', border:'1px solid var(--red)44', color:'var(--red)',
+                }}>{t('templates.delete_btn')}</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* NOTIFICATIONS */}
       <SecLabel mt={16}>{t('settings.notif_title')}</SecLabel>

@@ -28,21 +28,37 @@ const S = {
   row: {display:"flex",alignItems:"center",gap:10},
 };
 
-export default function DashboardView({user,profiles,credits,bets,cats,onCreate,onResolve,onReveal,onCounter,onFlame,notifSince,isDesktop,reactions,onReaction,onReactionPhoto,onDelete,onEdit,onAccept,onReject}){
+export default function DashboardView({user,profiles,groupMembers,credits,bets,cats,onCreate,onResolve,onReveal,onCounter,onFlame,notifSince,isDesktop,reactions,onReaction,onReactionPhoto,onDelete,onEdit,onAccept,onReject}){
   const { t, lang } = useLang();
-  const other=Object.keys(profiles).find(k=>k!==user)??null;
+  // Multi-member ranking: include every profile in the group, sorted by wins desc
+  const allMemberIds = (groupMembers && groupMembers.length
+    ? groupMembers.map(m => m.id)
+    : Object.keys(profiles)
+  );
+  const otherIds = allMemberIds.filter(k => k !== user);
+  // Backward-compat "other" pointer: primary partner if any (used for partner-notification banner)
+  const other = otherIds[0] ?? null;
   const myWon=bets.filter(b=>b.creator===user&&b.status==="won");
   const myLost=bets.filter(b=>b.creator===user&&b.status==="lost");
-  const thWon=bets.filter(b=>b.creator===other&&b.status==="won");
   const myAct=bets.filter(b=>b.creator===user&&!b.isSecret&&['active','expired'].includes(b.status));
   const pendingBets=bets.filter(b=>b.status==='pending'&&(b.creator===user||b.opponent===user));
   const mySec=bets.filter(b=>b.creator===user&&b.isSecret&&b.status==="active");
-  const thAct=bets.filter(b=>b.creator===other&&!b.isSecret&&b.status==="active");
-  const newPart=bets.filter(b=>b.creator===other&&!b.isSecret&&b.createdAt>(notifSince[user]||0)).length;
+  const thAct=bets.filter(b=>otherIds.includes(b.creator)&&!b.isSecret&&b.status==="active");
+  const newPart=bets.filter(b=>otherIds.includes(b.creator)&&!b.isSecret&&b.createdAt>(notifSince[user]||0)).length;
   const expiring=bets.filter(b=>b.creator===user&&b.status==="active"&&isSoon(b.expiresAt));
   const expiredBets=bets.filter(b=>b.creator===user&&b.status==="expired");
   const wr=(myWon.length+myLost.length)?Math.round(myWon.length/(myWon.length+myLost.length)*100):0;
-  const meC=getC(profiles,user); const otC=other?getC(profiles,other):"#5b8af0";
+
+  // Build ranking rows for all members
+  const rankRows = allMemberIds.map(id => {
+    const p = profiles[id] || (groupMembers && groupMembers.find(m => m.id === id));
+    return {
+      id, p,
+      c: getC(profiles, id),
+      w: bets.filter(b => b.creator === id && b.status === 'won').length,
+      isMe: id === user,
+    };
+  }).sort((a,b) => b.w - a.w || (a.isMe ? -1 : 1));
 
   // Monthly summary
   const now=new Date();
@@ -60,18 +76,23 @@ export default function DashboardView({user,profiles,credits,bets,cats,onCreate,
   const months=TRANSLATIONS[lang]?.dashboard?.months??TRANSLATIONS.it.dashboard.months;
 
   const scoreCard=(
-    <div className={`card ${other ? 'pGold' : ''}`} style={{...S.card,marginBottom:14,background:"linear-gradient(135deg,var(--card),var(--surf))"}}>
+    <div className={`card ${otherIds.length>0 ? 'pGold' : ''}`} style={{...S.card,marginBottom:14,background:"linear-gradient(135deg,var(--card),var(--surf))"}}>
       <SecLabel>{t('dashboard.ranking')}</SecLabel>
-      <div style={{display:"flex",alignItems:"center",gap:8}}>
-        {[{k:user,p:profiles[user],c:meC,w:myWon.length},...(other?[{k:other,p:profiles[other],c:otC,w:thWon.length}]:[])].map((s,i)=>(
-          <div key={s.k} style={{flex:1,textAlign:"center"}}>
-            <div style={{width:44,height:44,borderRadius:"50%",background:`${s.c}33`,border:`2px solid ${s.c}66`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:26,margin:"0 auto",overflow:"hidden"}}>
+      <div style={{display:"flex",alignItems:"flex-start",gap:8,overflowX:"auto",paddingBottom:rankRows.length>3?6:0}}>
+        {rankRows.map((s,i)=>(
+          <div key={s.id} style={{flex:"1 0 22%", minWidth:78, textAlign:"center"}}>
+            <div style={{position:"relative",width:44,height:44,borderRadius:"50%",background:`${s.c}33`,border:`2px solid ${s.c}66`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:26,margin:"0 auto",overflow:"hidden"}}>
               {s.p?.avatarUrl
                 ? <img src={s.p.avatarUrl} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
                 : (s.p?.avatar ?? '')}
+              {i===0 && rankRows.length>1 && (
+                <div style={{position:"absolute",top:-6,right:-6,fontSize:14}}>👑</div>
+              )}
             </div>
-            <div style={{fontFamily:"'Playfair Display',serif",fontSize:15,fontWeight:700,marginTop:6}}>{s.p?.name}</div>
-            <div style={{fontFamily:"'Playfair Display',serif",fontSize:28,fontWeight:900,color:i===0?"var(--gold)":s.c,lineHeight:1.1}}>{s.w}</div>
+            <div style={{fontFamily:"'Playfair Display',serif",fontSize:13,fontWeight:700,marginTop:6,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
+              {s.p?.name}{s.isMe && <span style={{color:"var(--gold)",marginLeft:3}}>·</span>}
+            </div>
+            <div style={{fontFamily:"'Playfair Display',serif",fontSize:24,fontWeight:900,color:i===0?"var(--gold)":s.c,lineHeight:1.1}}>{s.w}</div>
             <div style={{fontSize:10,color:"var(--dim)"}}>{t('dashboard.wins')}</div>
           </div>
         ))}

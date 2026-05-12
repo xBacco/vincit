@@ -143,6 +143,10 @@ export default function BetCard({bet,user,profiles,cats,onResolve,onReveal,onCou
             {isDesktop&&!bet.isSecret&&<Bdg bg="var(--gold)22" c="var(--gold)">{fmtQ(bet.quota)}× · {qToP(bet.quota)}%</Bdg>}
             {!bet.isSecret&&<><Bdg bg="var(--mut)44" c="var(--dim)">{t('bet_card.stake')} {bet.stake} ₡</Bdg><Bdg bg="var(--grn)22" c="var(--grn)">{t('bet_card.win')} {bet.potentialWin} ₡</Bdg></>}
             {bet.pegno&&<Bdg bg="var(--gold)22" c="var(--gold)">🎁 {bet.pegno}</Bdg>}
+            {bet.isSurprise && (isOwner || user === bet.opponent) && !done && <Bdg bg="var(--pur)22" c="var(--pur)">{t('bet_card.surprise_label')}</Bdg>}
+            {bet.opponent && !bet.isSecret && !bet.isCounterable && profiles[bet.opponent] && (
+              <Bdg bg="var(--grn)22" c="var(--grn)">{t('bet_card.targeted_vs', { name: profiles[bet.opponent].name })}</Bdg>
+            )}
             {tl&&<Bdg bg={isSoon(bet.expiresAt)?"var(--red)22":"var(--mut)33"} c={isSoon(bet.expiresAt)?"var(--red)":"var(--dim)"}>⏱ {tl}</Bdg>}
             {isPending&&<Bdg bg="var(--gold)22" c="var(--gold)">{t('bet_card.pending_label')}</Bdg>}
             {isRejected&&<Bdg bg="var(--red)22" c="var(--red)">❌ {t('bet_card.reject_btn')}</Bdg>}

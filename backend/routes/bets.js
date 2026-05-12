@@ -13,7 +13,7 @@ module.exports = function(broadcastUpdate) {
       const creator = req.userId;
       const roomId  = req.activeRoomId;
       const { title, quota: quotaRaw, stake: stakeRaw,
-              category, isSecret, isCounterable, pegno, expiresAt, opponent } = req.body;
+              category, isSecret, isCounterable, pegno, expiresAt, opponent, isSurprise } = req.body;
 
       const quota = parseFloat(quotaRaw);
       const stake = parseInt(stakeRaw, 10);
@@ -33,15 +33,19 @@ module.exports = function(broadcastUpdate) {
       const isPending = !isSecret && opponent && stake >= threshold;
       const status = isPending ? 'pending' : 'active';
 
+      // A surprise bet requires an opponent and is never broadcasted as counterable
+      const surprise = !!isSurprise && !!opponent && !isSecret;
+      const counterable = isCounterable && !isSecret && !surprise;
+
       await db.transaction(async (client) => {
         await client.query(
           `INSERT INTO bets
              (id, creator, room_id, title, quota, stake, potential_win,
-              category, is_secret, is_counterable, pegno, expires_at, created_at, status, opponent)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
+              category, is_secret, is_counterable, pegno, expires_at, created_at, status, opponent, is_surprise)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`,
           [id, creator, roomId, title, quota, stake, potentialWin,
-           category, isSecret ? 1 : 0, isCounterable ? 1 : 0,
-           pegno || null, expiresAt || null, createdAt, status, opponent || null]
+           category, isSecret ? 1 : 0, counterable ? 1 : 0,
+           pegno || null, expiresAt || null, createdAt, status, opponent || null, surprise ? 1 : 0]
         );
         if (!isPending) {
           await client.query(
@@ -52,13 +56,35 @@ module.exports = function(broadcastUpdate) {
       });
 
       broadcastUpdate(roomId);
-      const { rows: partners } = await db.query(
-        'SELECT id FROM users WHERE room_id=$1 AND id!=$2', [roomId, creator]
-      );
-      if (partners[0]) {
-        const targetUser = partners[0].id;
+
+      // Determine notification recipients:
+      // - Vault (isSecret): nobody
+      // - Surprise: only the explicit opponent
+      // - Targeted (opponent set, not surprise): everyone in the group except creator
+      //   (so the opponent gets notified AND other members see it too)
+      // - Open: everyone in the group except creator
+      let targets = [];
+      if (!isSecret) {
+        if (surprise) {
+          targets = [opponent];
+        } else {
+          const { rows: members } = await db.query(
+            `SELECT user_id AS id FROM user_groups WHERE group_id=$1 AND user_id!=$2`,
+            [roomId, creator]
+          );
+          targets = members.map(m => m.id);
+        }
+      }
+      for (const targetUser of targets) {
         const { rows: prefs } = await db.query('SELECT on_new_bet FROM notification_prefs WHERE "user"=$1', [targetUser]);
-        if (prefs[0]?.on_new_bet !== false) sendPushToUser(targetUser, { title:'BetCouple 🎲', body:`Nuova bet: "${title}"`, url:'/' });
+        if (prefs[0]?.on_new_bet !== false) {
+          const isMine = opponent === targetUser;
+          sendPushToUser(targetUser, {
+            title: isMine ? '🎯 Sfida diretta' : 'BetCouple 🎲',
+            body:  isMine ? `Sei stato sfidato: "${title}"` : `Nuova bet: "${title}"`,
+            url: '/',
+          });
+        }
       }
       res.status(201).json({ id });
     } catch (err) {
@@ -115,6 +141,30 @@ module.exports = function(broadcastUpdate) {
 
       if (!res.headersSent) {
         broadcastUpdate(req.activeRoomId);
+
+        // Push notification to interested parties: opponent + counter bettors (not the resolver)
+        try {
+          const { rows: [bet] } = await db.query('SELECT * FROM bets WHERE id=$1', [req.params.id]);
+          if (bet) {
+            const notifyIds = new Set();
+            if (bet.opponent && bet.opponent !== req.userId) notifyIds.add(bet.opponent);
+            if (bet.creator !== req.userId) notifyIds.add(bet.creator);
+            const { rows: cbs } = await db.query('SELECT DISTINCT bettor FROM counter_bets WHERE bet_id=$1', [bet.id]);
+            for (const r of cbs) if (r.bettor !== req.userId) notifyIds.add(r.bettor);
+
+            for (const u of notifyIds) {
+              const { rows: prefs } = await db.query('SELECT on_resolved FROM notification_prefs WHERE "user"=$1', [u]);
+              if (prefs[0]?.on_resolved !== false) {
+                sendPushToUser(u, {
+                  title: outcome === 'won' ? '✅ Bet vinta' : '❌ Bet persa',
+                  body:  `"${bet.title}"`,
+                  url:   '/',
+                });
+              }
+            }
+          }
+        } catch (e) { console.error('notify on resolve failed', e); }
+
         res.json({ ok: true });
       }
     } catch (err) {

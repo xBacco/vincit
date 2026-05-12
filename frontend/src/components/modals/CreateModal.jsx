@@ -107,46 +107,132 @@ function Summary({ stake, potWin, maxC, t }) {
   );
 }
 
-export default function CreateModal({user,profiles,maxC,cats,settings={},onCreate,onClose}){
+export default function CreateModal({user,profiles,groupMembers,maxC,cats,settings={},onCreate,onClose}){
   const { t } = useLang();
   const toast = useToast();
   const isDesktop = useBreakpoint(768);
   const catLabel = c => c && (DEF_IDS.includes(c.id) ? t('cats.'+c.id) : c.label);
+
+  // Other members of the group (excluding self). Falls back to "profiles minus self" if not provided yet.
+  const others = (groupMembers && groupMembers.length
+    ? groupMembers
+    : Object.entries(profiles).map(([id,p])=>({id,...p}))
+  ).filter(m => m.id !== user);
+
   const [title,setTitle]=useState("");
   const [quota,setQuota]=useState(1.50);
   const [stakeStr,setStakeStr]=useState("10");
   const [cat,setCat]=useState(cats[0]?.id||"intimo");
-  const [isSecret,setIsSecret]=useState(false);
-  const [isCnt,setIsCnt]=useState(true);
+  // betType: 'vault' | 'open' | 'targeted' | 'surprise'
+  const [betType,setBetType]=useState('open');
+  const [opponentId,setOpponentId]=useState(others[0]?.id ?? null);
   const [pegno,setPegno]=useState("");
   const [exp,setExp]=useState("");
+
+  // Auto-select first available opponent when switching to targeted/surprise
+  useEffect(() => {
+    if ((betType === 'targeted' || betType === 'surprise') && !opponentId && others[0]) {
+      setOpponentId(others[0].id);
+    }
+  }, [betType, opponentId, others]);
+
+  const isSecret   = betType === 'vault';
+  const isSurprise = betType === 'surprise';
+  const needsOpponent = betType === 'targeted' || betType === 'surprise';
+  const opponent   = needsOpponent ? opponentId : null;
+  const isCnt      = betType === 'open';
+
   const maxStake=Math.min(maxC, settings.max_stake ?? maxC);
   const threshold=settings.acceptance_threshold ?? Infinity;
   const stake=Math.max(0,parseFloat(stakeStr)||0);
   const prob=qToP(quota); const potWin=Math.round(stake*quota);
   const probC=prob>=70?"var(--grn)":prob>=40?"var(--gold)":"var(--red)";
-  const opponent=Object.keys(profiles).find(k=>k!==user)??null;
-  const needsApproval=!isSecret&&stake>=threshold&&opponent;
+  const needsApproval=needsOpponent && stake>=threshold;
   const selectedCat = cats.find(c=>c.id===cat) || cats[0];
 
   const submit=()=>{
     if(!title.trim()){toast.error(t('create.err_title'));return;}
     if(stake<=0||stake>maxStake){toast.error(t('create.err_stake',{max:Math.round(maxStake)}));return;}
-    onCreate({title,quota,stake,potentialWin:potWin,category:cat,isSecret,isCounterable:!isSecret&&isCnt,pegno,expiresAt:exp?new Date(exp).getTime():null,opponent:opponent||undefined});
+    if(needsOpponent && !opponentId){toast.error(t('create.opponent_pick'));return;}
+    onCreate({
+      title, quota, stake, potentialWin:potWin, category:cat,
+      isSecret, isSurprise,
+      isCounterable: betType === 'open',
+      pegno,
+      expiresAt: exp ? new Date(exp).getTime() : null,
+      opponent: opponent || undefined,
+    });
   };
 
   // ─── Form blocks (shared mobile/desktop) ──────────────────────────────
+  const TYPE_OPTIONS = [
+    { key:'vault',     color:'var(--gold)', requiresOther:false },
+    { key:'open',      color:'var(--blu)',  requiresOther:false },
+    { key:'targeted',  color:'var(--grn)',  requiresOther:true  },
+    { key:'surprise',  color:'var(--pur)',  requiresOther:true  },
+  ];
+
   const TypeBlock = (
-    <div onClick={()=>{setIsSecret(!isSecret);if(!isSecret)setIsCnt(false);}} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 16px",borderRadius:14,marginBottom:14,cursor:"pointer",background:isSecret?"var(--gold)14":"var(--card)",border:`1px solid ${isSecret?"var(--gold)":"var(--brd)"}`,transition:"all .2s"}}>
-      <div><div style={{fontWeight:600,fontSize:14}}>{isSecret?t('create.secret_on_label'):t('create.secret_off_label')}</div><div style={{fontSize:12,color:"var(--dim)",marginTop:2}}>{isSecret?t('create.secret_on_desc'):t('create.secret_off_desc')}</div></div>
-      <Toggle on={isSecret} onToggle={()=>{}}/>
+    <div style={{ marginBottom: 14 }}>
+      <label style={S.lbl}>{t('create.type_label')}</label>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap: 8 }}>
+        {TYPE_OPTIONS.map(o => {
+          const disabled = o.requiresOther && others.length === 0;
+          const active = betType === o.key;
+          return (
+            <div key={o.key}
+              onClick={() => { if (!disabled) setBetType(o.key); }}
+              style={{
+                padding: '10px 12px', borderRadius: 12,
+                cursor: disabled ? 'not-allowed' : 'pointer',
+                background: active ? `${o.color}1a` : 'var(--card)',
+                border: `1px solid ${active ? o.color : 'var(--brd)'}`,
+                opacity: disabled ? .4 : 1,
+                transition: 'all .18s',
+              }}>
+              <div style={{ fontWeight: 600, fontSize: 13, color: active ? o.color : 'var(--txt)' }}>
+                {t('create.type_'+o.key)}
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--dim)', marginTop: 2, lineHeight: 1.3 }}>
+                {t('create.type_'+o.key+'_desc')}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {others.length === 0 && (
+        <div style={{ fontSize: 11, color: 'var(--mut)', marginTop: 6, fontStyle: 'italic' }}>
+          {t('create.no_others_hint')}
+        </div>
+      )}
     </div>
   );
 
-  const CounterBlock = !isSecret && (
-    <div onClick={()=>setIsCnt(!isCnt)} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",borderRadius:12,marginBottom:14,cursor:"pointer",background:isCnt?"var(--blu)12":"var(--card)",border:`1px solid ${isCnt?"var(--blu)":"var(--brd)"}`,transition:"all .2s"}}>
-      <div><div style={{fontWeight:600,fontSize:13}}>{t('create.counter_title')}</div><div style={{fontSize:11,color:"var(--dim)",marginTop:1}}>{profiles[opponent]?.name ?? ''} {t('create.counter_desc')}</div></div>
-      <Toggle on={isCnt} onToggle={()=>{}} color="var(--blu)"/>
+  const OpponentBlock = needsOpponent && others.length > 0 && (
+    <div style={{ marginBottom: 14 }}>
+      <label style={S.lbl}>{t('create.opponent_label')}</label>
+      <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+        {others.map(m => {
+          const active = opponentId === m.id;
+          return (
+            <button key={m.id} onClick={() => setOpponentId(m.id)}
+              style={{
+                display:'inline-flex', alignItems:'center', gap:8,
+                padding:'8px 14px 8px 8px', borderRadius:24,
+                border:`1px solid ${active ? 'var(--gold)' : 'var(--brd)'}`,
+                background: active ? 'var(--gold)1a' : 'transparent',
+                color: active ? 'var(--gold)' : 'var(--dim)',
+                cursor:'pointer', fontFamily:"'Syne',sans-serif", fontSize:13, fontWeight:600,
+                transition:'all .15s',
+              }}>
+              {m.avatarUrl
+                ? <img src={m.avatarUrl} alt="" style={{width:24,height:24,borderRadius:'50%',objectFit:'cover'}}/>
+                : <span style={{fontSize:18,lineHeight:1}}>{m.avatar || '😊'}</span>}
+              <span>{m.name}</span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 
@@ -254,7 +340,7 @@ export default function CreateModal({user,profiles,maxC,cats,settings={},onCreat
           <div style={{display:"grid",gridTemplateColumns:"1fr 360px",flex:1,minHeight:0}}>
             <div style={{padding:"22px 24px",overflowY:"auto"}}>
               {TypeBlock}
-              {CounterBlock}
+              {OpponentBlock}
               {TitleBlock}
               {QuotaBlock}
               {StakeBlock}
@@ -312,7 +398,7 @@ export default function CreateModal({user,profiles,maxC,cats,settings={},onCreat
         </div>
 
         {TypeBlock}
-        {CounterBlock}
+        {OpponentBlock}
         {TitleBlock}
         {QuotaBlock}
         {StakeBlock}

@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db.js');
 
-async function buildState(roomId) {
+async function buildState(roomId, viewerId) {
   const profiles = {};
   // Prefer user_groups (multi-group), fall back to users.room_id for legacy rows
   const { rows: members } = await db.query(
@@ -49,7 +49,18 @@ async function buildState(roomId) {
   const { rows: betRows } = await db.query(
     'SELECT * FROM bets WHERE room_id=$1 ORDER BY created_at DESC', [roomId]
   );
-  const bets = betRows.map(r => ({
+  // Visibility filter:
+  // - Vault (is_secret): only creator (the existing client-side handles this too)
+  // - Surprise (is_surprise) while active/pending: only creator + opponent
+  // - Resolved (won/lost/rejected): always visible to group (even if was surprise)
+  const visibleRows = betRows.filter(r => {
+    if (r.is_secret === 1) return r.creator === viewerId;
+    if (r.is_surprise === 1 && ['active', 'pending'].includes(r.status)) {
+      return r.creator === viewerId || r.opponent === viewerId;
+    }
+    return true;
+  });
+  const bets = visibleRows.map(r => ({
     id:            r.id,
     creator:       r.creator,
     title:         r.title,
@@ -58,6 +69,7 @@ async function buildState(roomId) {
     potentialWin:  r.potential_win,
     category:      r.category,
     isSecret:      r.is_secret === 1,
+    isSurprise:    r.is_surprise === 1,
     isCounterable: r.is_counterable === 1,
     pegno:         r.pegno,
     expiresAt:     r.expires_at,
@@ -112,7 +124,7 @@ router.get('/', async (req, res) => {
       if (!rows.length) return res.status(403).json({ error: 'not_member' });
       groupId = req.query.groupId;
     }
-    res.json(await buildState(groupId));
+    res.json(await buildState(groupId, req.userId));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Internal server error' });

@@ -139,7 +139,7 @@ const TRANSLATIONS = {
     h2h: { title:'⚔️ Testa a testa', you:'Tu', net_me:'Bilancio per me', bets:'Bet', no_data:'Nessuna bet diretta tra voi' },
     trophies: {
       title:'🏆 Trofei', empty:'Nessun trofeo sbloccato', locked:'Bloccato', unlocked_at:'Sbloccato il',
-      max_reached:'MASSIMO RAGGIUNTO',
+      max_reached:'MASSIMO RAGGIUNTO', unlocked_header:'Trofeo sbloccato',
       filter_all:'Tutti', filter_unlocked:'Sbloccati', filter_locked:'Da sbloccare', filter_max:'Al massimo',
       cat_positive:'Vittorie', cat_challenge:'Sfide', cat_mission:'Missioni', cat_shadow:'Lato oscuro', cat_social:'Sociale',
 
@@ -165,7 +165,7 @@ const TRANSLATIONS = {
       commentator:'Commentatore',     commentator_desc:'Commenti su tue bet risolte. Lv max = 250.',
       quick_resolve:'Lampo',          quick_resolve_desc:'Bet risolte entro 1h dalla creazione. Lv max = 100.',
       comeback:'Comeback',            comeback_desc:'Vittoria dopo N sconfitte di fila. Lv max = dopo 15.',
-      equilibrium:'Equilibrio',       equilibrium_desc:'Minimo tra vittorie e sconfitte. Lv max = 250 per parte.',
+      equilibrium:'Equilibrio',       equilibrium_desc:'Tieni stesso numero di V e S. Lv max = 250 per parte.',
 
       // Shadow
       losses:'Sopravvissuto',         losses_desc:'Sconfitte totali. Anche perdere è imparare. Lv max = 100.',
@@ -395,7 +395,7 @@ const TRANSLATIONS = {
     h2h: { title:'⚔️ Head to head', you:'You', net_me:'Net for me', bets:'Bets', no_data:'No direct bets between you' },
     trophies: {
       title:'🏆 Trophies', empty:'No trophies unlocked yet', locked:'Locked', unlocked_at:'Unlocked on',
-      max_reached:'MAX REACHED',
+      max_reached:'MAX REACHED', unlocked_header:'Trophy unlocked',
       filter_all:'All', filter_unlocked:'Unlocked', filter_locked:'Locked', filter_max:'Maxed',
       cat_positive:'Wins', cat_challenge:'Challenges', cat_mission:'Missions', cat_shadow:'Dark side', cat_social:'Social',
 
@@ -418,7 +418,7 @@ const TRANSLATIONS = {
       commentator:'Commentator',      commentator_desc:'Comments on your resolved bets. Lv max = 250.',
       quick_resolve:'Lightning',      quick_resolve_desc:'Bets resolved within 1h of creation. Lv max = 100.',
       comeback:'Comeback',            comeback_desc:'Win after N losses in a row. Lv max = after 15.',
-      equilibrium:'Equilibrium',      equilibrium_desc:'Min of wins vs losses. Lv max = 250 each side.',
+      equilibrium:'Equilibrium',      equilibrium_desc:'Keep wins and losses balanced. Lv max = 250 each side.',
 
       losses:'Survivor',              losses_desc:'Total losses. Losing is learning. Lv max = 100.',
       loss_streak:'Loss Streak',      loss_streak_desc:'Longest losing streak. Lv max = 25 in a row.',

@@ -7,6 +7,7 @@ import { useLang } from './i18n.js';
 import WinOverlay from './components/WinOverlay.jsx';
 import SplashScreen from './components/SplashScreen.jsx';
 import OnboardingTour from './components/OnboardingTour.jsx';
+import TrophyUnlockOverlay from './components/TrophyUnlockOverlay.jsx';
 import { SkeletonDashboard, SkeletonList } from './components/Skeleton.jsx';
 import { useToast } from './Toast.jsx';
 import AuthView from './components/views/AuthView.jsx';
@@ -248,6 +249,47 @@ export default function App() {
   const [editingBet, setEditingBet]       = useState(null);
 
   useEffect(() => { if (user && groups.length > 0) registerPush(user); }, [user, groups.length]);
+
+  // ─── Trophy unlock watcher ─────────────────────────────────────────
+  // Detect new unlocked levels by polling /api/achievements whenever the
+  // bets list changes (which happens on every SSE refresh) and queue an
+  // animated overlay for each freshly-earned level.
+  const [trophyQueue, setTrophyQueue] = useState([]);
+  const [trophyBaseline, setTrophyBaseline] = useState(null); // Set<"id:level"> | null
+  useEffect(() => {
+    if (!user || !profiles[user]) return;
+    let cancelled = false;
+    api.getAchievements().then(({ unlocked, catalog }) => {
+      if (cancelled) return;
+      const cur = new Set(unlocked.map(u => `${u.achievement_id}:${u.level}`));
+      if (trophyBaseline === null) {
+        // First load after login — treat existing unlocks as already seen.
+        setTrophyBaseline(cur);
+        return;
+      }
+      const fresh = [];
+      for (const key of cur) {
+        if (!trophyBaseline.has(key)) {
+          const [id, levelStr] = key.split(':');
+          const a = catalog.find(c => c.id === id);
+          if (a) fresh.push({
+            id, icon: a.icon,
+            level: parseInt(levelStr, 10),
+            max_level: a.levels?.length ?? 5,
+          });
+        }
+      }
+      if (fresh.length) {
+        // Sort by level asc so successive levels of same trophy appear in order
+        fresh.sort((a,b) => a.level - b.level);
+        setTrophyQueue(q => [...q, ...fresh]);
+      }
+      setTrophyBaseline(cur);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [bets.length, user]);
+
+  const consumeTrophy = () => setTrophyQueue(q => q.slice(1));
 
   const notifSince = user ? { [user]: getNotifSince(user) } : {};
 
@@ -568,6 +610,9 @@ export default function App() {
       {commentBetModal && <CommentModal bet={commentBetModal} onSave={handleComment} onSkip={() => setCommentBetModal(null)} />}
       {editingBet && <EditModal bet={editingBet} cats={cats} user={user} onSave={handleEdit} onClose={() => setEditingBet(null)}/>}
       {showGroupModal && <CreateGroupModal onCreated={handleGroupCreated} onClose={() => setShowGroupModal(false)} />}
+      {/* Trophy unlock animation — small banner top-center, ~3s per unlock */}
+      <TrophyUnlockOverlay queue={trophyQueue} onDone={consumeTrophy} />
+
       {/* Onboarding tour — shown once on first login per device, only after data is ready */}
       {!tourDone && !!profiles[user] && (
         <OnboardingTour

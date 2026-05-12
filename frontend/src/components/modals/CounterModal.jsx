@@ -1,13 +1,11 @@
 import React, { useState } from 'react';
-import { Btn, Inp, Avatar, fmtQ, qNo, qToP, COLORS } from '../Atoms.jsx';
+import { Btn, Inp, Avatar, fmtQ, qNo, qToP, COLORS, DEF_CAT_IDS as DEF_IDS } from '../Atoms.jsx';
 import { useLang } from '../../i18n.js';
 
 const S = {
   card: {background:"var(--card)",border:"1px solid var(--brd)",borderRadius:16,padding:16},
   btn: {display:"inline-flex",alignItems:"center",justifyContent:"center",gap:6,padding:"10px 18px",borderRadius:10,border:"none",cursor:"pointer",fontFamily:"'Syne',sans-serif",fontSize:13,fontWeight:600,transition:"all .18s",userSelect:"none",whiteSpace:"nowrap"},
 };
-
-const DEF_IDS=['intimo','serata','casa','cibo','gaming','altro'];
 
 export default function CounterModal({bet,user,profiles,credits,cats,onPlace,onClose}){
   const { t } = useLang();

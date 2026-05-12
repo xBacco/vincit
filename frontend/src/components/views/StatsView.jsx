@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { SecLabel, Avatar, fmtQ, qToP, COLORS, getC } from '../Atoms.jsx';
+import { SecLabel, Avatar, fmtQ, qToP, COLORS, getC, DEF_CAT_IDS as DEF_IDS } from '../Atoms.jsx';
 import { useLang } from '../../i18n.js';
 import Sparkline from '../Sparkline.jsx';
 import StreakBadge, { StreakInline } from '../StreakBadge.jsx';
@@ -11,8 +11,6 @@ const S = {
 };
 
 const Bdg=({c,bg,children})=><span style={{...S.bdg,background:bg,color:c}}>{children}</span>;
-
-const DEF_IDS=['intimo','serata','casa','cibo','gaming','altro'];
 
 export default function StatsView({user,profiles,groupMembers,credits,bets,cats,isDesktop}){
   const { t } = useLang();

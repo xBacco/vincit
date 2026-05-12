@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Btn, Bdg, Avatar, fmtQ, fmtD, tLeft, isSoon, qNo, COLORS } from './Atoms.jsx';
+import { Btn, Bdg, Avatar, fmtQ, fmtD, tLeft, isSoon, qNo, COLORS, DEF_CAT_IDS as DEF_IDS } from './Atoms.jsx';
 import { useLang } from '../i18n.js';
 import PhotoCaptureModal from './modals/PhotoCaptureModal.jsx';
 
@@ -11,8 +11,6 @@ const S = {
 
 const getC = (profiles,user)=>COLORS[profiles[user]?.colorKey]||"#5b8af0";
 const qToP = q=>Math.round(100/parseFloat(q));
-
-const DEF_IDS=['intimo','serata','casa','cibo','gaming','altro'];
 
 const SWIPE_THRESHOLD = 80;
 const VERT_ABORT      = 40;

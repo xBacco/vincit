@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { useLang } from '../../i18n.js';
 import BetCard from '../BetCard.jsx';
-
-const DEF_IDS=['intimo','serata','casa','cibo','gaming','altro'];
+import { DEF_CAT_IDS as DEF_IDS } from '../Atoms.jsx';
 
 export default function BetsView({user,profiles,bets,cats,onResolve,onCounter,onFlame,isDesktop,reactions,onReaction,onReactionPhoto,onDelete,onEdit,onAccept,onReject,can,hideTitle=false}){
   const { t } = useLang();

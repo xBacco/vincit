@@ -27,6 +27,7 @@ import CounterModal from './components/modals/CounterModal.jsx';
 import PinModal from './components/modals/PinModal.jsx';
 import CommentModal from './components/modals/CommentModal.jsx';
 import EditModal from './components/modals/EditModal.jsx';
+import ProfileEditModal from './components/modals/ProfileEditModal.jsx';
 import GroupPicker from './components/GroupPicker.jsx';
 
 function urlB64ToUint8(b64) {
@@ -296,6 +297,7 @@ export default function App() {
   const [winAnim, setWinAnim]             = useState(null);
   const [commentBetModal, setCommentBetModal] = useState(null);
   const [editingBet, setEditingBet]       = useState(null);
+  const [showProfileEdit, setShowProfileEdit] = useState(false);
 
   useEffect(() => { if (user && groups.length > 0) registerPush(user); }, [user, groups.length]);
 
@@ -417,6 +419,23 @@ export default function App() {
     try { await api.updateProfile(data); } catch (e) { console.error(e); }
   };
 
+  // Live-merge a saved profile back into authUser AND profiles[user] so the
+  // avatar/name/color change shows everywhere immediately (no wait for SSE).
+  const handleLiveProfileUpdate = u => {
+    setAuthUser(prev => ({ ...prev, ...u }));
+    setProfiles(prev => ({
+      ...prev,
+      [user]: {
+        ...(prev[user] || {}),
+        name:      u.name      ?? prev[user]?.name,
+        avatar:    u.avatar    ?? prev[user]?.avatar,
+        avatarUrl: u.avatarUrl !== undefined ? u.avatarUrl : prev[user]?.avatarUrl,
+        color:     u.colorKey  ?? prev[user]?.color,
+        colorKey:  u.colorKey  ?? prev[user]?.colorKey,
+      },
+    }));
+  };
+
   const handleReset = async () => {
     try { await api.resetAll(); refresh(); toast.success(t('app.ok_reset')); }
     catch(e) { console.error(e); toast.error(t('app.error_reset')); }
@@ -528,7 +547,13 @@ export default function App() {
             <div style={{ fontFamily:"'Playfair Display',serif", fontSize:18, fontWeight:900, letterSpacing:-0.5, marginBottom:14 }}>
               <span className="shim">BetCouple</span>
             </div>
-            <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+            <div
+              onClick={() => setShowProfileEdit(true)}
+              title={t('profile.edit_title')}
+              style={{ display:'flex', alignItems:'center', gap:10, cursor:'pointer', borderRadius:10, padding:4, margin:-4, transition:'background .15s' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--gold)10'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+            >
               <div style={{ width: 38, height: 38, borderRadius: '50%', background: `${COLORS[myProfile.colorKey] || '#5b8af0'}33`, border: `2px solid ${COLORS[myProfile.colorKey] || '#5b8af0'}66`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink:0, overflow:'hidden' }}>
                 {myProfile.avatarUrl
                   ? <img src={myProfile.avatarUrl} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
@@ -574,7 +599,13 @@ export default function App() {
                 <div style={{ fontSize: 9, color:'var(--dim)', letterSpacing:1.5, textTransform:'uppercase' }}>{t('app.credits')}</div>
                 <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--gold)' }}>{Math.round(credits[user] ?? 0)} ₡</div>
               </div>
-              <div style={{ width: 36, height: 36, borderRadius: '50%', background: `${COLORS[myProfile.colorKey] || '#5b8af0'}33`, border: `2px solid ${COLORS[myProfile.colorKey] || '#5b8af0'}66`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0, overflow:'hidden' }}>
+              <div
+                onClick={() => setShowProfileEdit(true)}
+                title={t('profile.edit_title')}
+                style={{ width: 36, height: 36, borderRadius: '50%', background: `${COLORS[myProfile.colorKey] || '#5b8af0'}33`, border: `2px solid ${COLORS[myProfile.colorKey] || '#5b8af0'}66`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0, overflow:'hidden', cursor:'pointer', transition:'transform .15s' }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.05)'; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
+              >
                 {myProfile.avatarUrl
                   ? <img src={myProfile.avatarUrl} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
                   : myProfile.avatar}
@@ -610,20 +641,7 @@ export default function App() {
             {view === 'stats'     && <StatsView user={user} profiles={profiles} groupMembers={groupMembers} credits={credits} bets={bets} cats={cats} isDesktop={isDesktop} />}
             {view === 'trophies'  && <TrophiesView bets={bets} isDesktop={isDesktop} />}
             {view === 'friends'   && <FriendsView groups={groups} user={user} onSwitchToGroup={switchGroup} isDesktop={isDesktop} />}
-            {view === 'settings'  && <SettingsView user={user} profiles={profiles} groupMembers={groupMembers} isDark={isDark} setIsDark={setIsDark} customCats={customCats} credits={credits} bets={bets} onUpdateProfile={handleUpdateProfile} onCreateCategory={handleCreateCategory} onDeleteCategory={handleDeleteCategory} vaultPin={vaultPin} onSetVaultPin={handleSetVaultPin} isDesktop={isDesktop} onReset={handleReset} onTestReset={handleTestReset} onLogout={handleLogout} onProfileUpdate={u => {
-              setAuthUser(prev => ({...prev,...u}));
-              setProfiles(prev => ({
-                ...prev,
-                [user]: {
-                  ...(prev[user] || {}),
-                  name: u.name ?? prev[user]?.name,
-                  avatar: u.avatar ?? prev[user]?.avatar,
-                  avatarUrl: u.avatarUrl !== undefined ? u.avatarUrl : prev[user]?.avatarUrl,
-                  color: u.colorKey ?? prev[user]?.color,
-                  colorKey: u.colorKey ?? prev[user]?.colorKey,
-                },
-              }));
-            }} isAdmin={isAdmin} can={can} />}
+            {view === 'settings'  && <SettingsView user={user} profiles={profiles} groupMembers={groupMembers} isDark={isDark} setIsDark={setIsDark} customCats={customCats} credits={credits} bets={bets} onUpdateProfile={handleUpdateProfile} onCreateCategory={handleCreateCategory} onDeleteCategory={handleDeleteCategory} vaultPin={vaultPin} onSetVaultPin={handleSetVaultPin} isDesktop={isDesktop} onReset={handleReset} onTestReset={handleTestReset} onLogout={handleLogout} onOpenProfileEdit={() => setShowProfileEdit(true)} isAdmin={isAdmin} can={can} />}
           </>);
         })()}
       </div>
@@ -658,6 +676,13 @@ export default function App() {
       {commentBetModal && <CommentModal bet={commentBetModal} onSave={handleComment} onSkip={() => setCommentBetModal(null)} />}
       {editingBet && <EditModal bet={editingBet} cats={cats} user={user} onSave={handleEdit} onClose={() => setEditingBet(null)}/>}
       {showGroupModal && <CreateGroupModal onCreated={handleGroupCreated} onClose={() => setShowGroupModal(false)} />}
+      {showProfileEdit && (
+        <ProfileEditModal
+          profile={myProfile}
+          onSaved={handleLiveProfileUpdate}
+          onClose={() => setShowProfileEdit(false)}
+        />
+      )}
       {/* Trophy unlock animation — small banner top-center, ~3s per unlock */}
       <TrophyUnlockOverlay queue={trophyQueue} onDone={consumeTrophy} />
 

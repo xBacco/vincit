@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Btn, Inp, Toggle, SecLabel, Q_PRE, qToP, pToQ, fmtQ, clamp } from '../Atoms.jsx';
+import { Btn, Inp, Toggle, SecLabel, Q_PRE, qToP, pToQ, fmtQ, clamp, DEF_CAT_IDS as DEF_IDS } from '../Atoms.jsx';
 import { useLang } from '../../i18n.js';
 import { useToast } from '../../Toast.jsx';
 import * as api from '../../api.js';
@@ -13,7 +13,6 @@ const S = {
 };
 
 const qNo = qY=>parseFloat((parseFloat(qY)/(parseFloat(qY)-1)).toFixed(2));
-const DEF_IDS=['intimo','serata','casa','cibo','gaming','altro'];
 
 const Bdg = ({c,bg,children}) => <span style={{...S.bdg,background:bg,color:c}}>{children}</span>;
 
@@ -123,7 +122,7 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
   const [title,setTitle]=useState("");
   const [quota,setQuota]=useState(1.50);
   const [stakeStr,setStakeStr]=useState("10");
-  const [cat,setCat]=useState(cats[0]?.id||"intimo");
+  const [cat,setCat]=useState(cats[0]?.id||"sport");
   // betType: 'vault' | 'open' | 'targeted' | 'surprise'
   const [betType,setBetType]=useState('open');
   const [opponentId,setOpponentId]=useState(others[0]?.id ?? null);

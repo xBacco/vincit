@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Btn, Inp, SecLabel, Q_PRE, qToP, pToQ, fmtQ, clamp } from '../Atoms.jsx';
+import { Btn, Inp, SecLabel, Q_PRE, qToP, pToQ, fmtQ, clamp, DEF_CAT_IDS as DEF_IDS } from '../Atoms.jsx';
 import { useLang } from '../../i18n.js';
 import { useToast } from '../../Toast.jsx';
 
@@ -11,7 +11,6 @@ const S = {
 };
 
 const qNo = qY => parseFloat((parseFloat(qY)/(parseFloat(qY)-1)).toFixed(2));
-const DEF_IDS=['intimo','serata','casa','cibo','gaming','altro'];
 
 export default function EditModal({bet, user, cats, onSave, onClose}){
   const { t } = useLang();

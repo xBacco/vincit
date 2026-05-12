@@ -3,7 +3,6 @@ import { Btn, Inp, Toggle, SecLabel, COLORS, CAT_COLS, fmtQ } from '../Atoms.jsx
 import { useLang } from '../../i18n.js';
 import * as api from '../../api.js';
 import { useToast } from '../../Toast.jsx';
-import ProfileEditModal from '../modals/ProfileEditModal.jsx';
 
 const S = {
   card: {background:"var(--card)",border:"1px solid var(--brd)",borderRadius:16,padding:16},
@@ -11,7 +10,7 @@ const S = {
   btn: {display:"inline-flex",alignItems:"center",justifyContent:"center",gap:6,padding:"10px 18px",borderRadius:10,border:"none",cursor:"pointer",fontFamily:"'Syne',sans-serif",fontSize:13,fontWeight:600,transition:"all .18s",userSelect:"none",whiteSpace:"nowrap"},
 };
 
-export default function SettingsView({user,profiles,groupMembers,isDark,setIsDark,customCats,credits,bets,onUpdateProfile,onCreateCategory,onDeleteCategory,vaultPin,onSetVaultPin,isDesktop,onReset,onTestReset,onLogout,onProfileUpdate,isAdmin=false,can}){
+export default function SettingsView({user,profiles,groupMembers,isDark,setIsDark,customCats,credits,bets,onUpdateProfile,onCreateCategory,onDeleteCategory,vaultPin,onSetVaultPin,isDesktop,onReset,onTestReset,onLogout,onOpenProfileEdit,isAdmin=false,can}){
   const { t, lang, setLang } = useLang();
   // Backward-compat: if `can` is missing, fall back to isAdmin gating
   const allow = perm => typeof can === 'function' ? can(perm) : !!isAdmin;
@@ -34,7 +33,6 @@ export default function SettingsView({user,profiles,groupMembers,isDark,setIsDar
     on_group_bet:true, on_challenged:true, on_targeted:true,
     on_resolved:true, on_expiry:true,
   });
-  const [showProfileEdit, setShowProfileEdit] = useState(false);
   const myProfile = profiles[user];
 
   useEffect(()=>{
@@ -108,7 +106,7 @@ export default function SettingsView({user,profiles,groupMembers,isDark,setIsDar
       {myProfile && (() => {
         const c = COLORS[myProfile.colorKey] || '#5b8af0';
         return (
-          <div onClick={() => setShowProfileEdit(true)} className="card-hover"
+          <div onClick={() => onOpenProfileEdit?.()} className="card-hover"
             style={{...S.card, marginBottom:10, cursor:'pointer', display:'flex', alignItems:'center', gap:14}}>
             <div style={{
               width:54, height:54, borderRadius:'50%',
@@ -145,14 +143,6 @@ export default function SettingsView({user,profiles,groupMembers,isDark,setIsDar
             ⬇ {t('settings.export_btn')}
           </button>
         </div>
-      )}
-
-      {showProfileEdit && (
-        <ProfileEditModal
-          profile={myProfile}
-          onClose={() => setShowProfileEdit(false)}
-          onSaved={(data) => onProfileUpdate?.(data)}
-        />
       )}
 
       {/* PARTNER PROFILES (read-only) */}

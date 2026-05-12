@@ -1,5 +1,5 @@
 import React from 'react';
-import { Btn, SecLabel, Avatar, COLORS, getC, fmtQ, fmtD, tLeft, isSoon } from '../Atoms.jsx';
+import { Btn, SecLabel, Avatar, COLORS, getC, fmtQ, fmtD, tLeft, isSoon, DEF_CAT_IDS as DEF_IDS } from '../Atoms.jsx';
 import { useLang } from '../../i18n.js';
 import BetCard from '../BetCard.jsx';
 
@@ -11,7 +11,6 @@ const S = {
 
 const Bdg=({c,bg,children})=><span style={{...S.bdg,background:bg,color:c}}>{children}</span>;
 const qToP = q=>Math.round(100/parseFloat(q));
-const DEF_IDS=['intimo','serata','casa','cibo','gaming','altro'];
 
 export default function VaultView({user,profiles,bets,cats,onReveal,onFlame,unlocked,onPinRequest,vaultPin,isDesktop,onDelete,onEdit,hideTitle=false}){
   const { t, lang } = useLang();

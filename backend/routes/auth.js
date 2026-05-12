@@ -21,7 +21,8 @@ function makeInviteCode() {
   return Array.from(crypto.randomBytes(6), b => CHARSET[b % CHARSET.length]).join('');
 }
 
-// POST /api/auth/register
+// POST /api/auth/register — creates the user only. No auto-group: the user picks
+// one (create or join via invite code) from the PairingView right after.
 router.post('/register', async (req, res) => {
   try {
     const { email, password, name, avatar, color_key } = req.body;
@@ -31,33 +32,23 @@ router.post('/register', async (req, res) => {
     const exists = await db.query('SELECT id FROM users WHERE email=$1', [email.toLowerCase()]);
     if (exists.rows.length) return res.status(409).json({ error: 'Email already registered' });
 
-    const userId     = `u_${crypto.randomUUID()}`;
-    const roomId     = `r_${crypto.randomUUID()}`;
-    const inviteCode = makeInviteCode();
-    const hash       = await bcrypt.hash(password, ROUNDS);
-    const now        = Date.now();
+    const userId = `u_${crypto.randomUUID()}`;
+    const hash   = await bcrypt.hash(password, ROUNDS);
+    const now    = Date.now();
 
     await db.transaction(async (client) => {
       await client.query(
-        "INSERT INTO rooms(id, invite_code, created_at, name, emoji, max_size) VALUES($1,$2,$3,'My Group','🎲',10)",
-        [roomId, inviteCode, now]
-      );
-      await client.query(
-        'INSERT INTO users(id,email,name,avatar,color_key,password_hash,room_id,created_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8)',
-        [userId, email.toLowerCase(), name.trim(), avatar||'😊', color_key||'blue', hash, roomId, now]
+        'INSERT INTO users(id,email,name,avatar,color_key,password_hash,created_at) VALUES($1,$2,$3,$4,$5,$6,$7)',
+        [userId, email.toLowerCase(), name.trim(), avatar||'😊', color_key||'blue', hash, now]
       );
       await client.query(
         'INSERT INTO credits("user",amount) VALUES($1,100) ON CONFLICT("user") DO NOTHING',
         [userId]
       );
-      await client.query(
-        'INSERT INTO user_groups(group_id,user_id,role,joined_at) VALUES($1,$2,$3,$4)',
-        [roomId, userId, 'owner', now]
-      );
     });
 
-    const token = makeToken(userId, name.trim(), roomId);
-    res.json({ token, user: { id:userId, name:name.trim(), avatar:avatar||'😊', avatar_url:null, color_key:color_key||'blue', room_id:roomId, invite_code:inviteCode, paired:false } });
+    const token = makeToken(userId, name.trim(), null);
+    res.json({ token, user: { id:userId, name:name.trim(), avatar:avatar||'😊', avatar_url:null, color_key:color_key||'blue', room_id:null, invite_code:null, paired:false } });
   } catch(e) {
     console.error(e);
     res.status(500).json({ error: 'Server error' });

@@ -190,6 +190,29 @@ const pool = new Pool({
     ALTER TABLE bets ADD COLUMN IF NOT EXISTS resolved_at BIGINT;
   `);
 
+  // One-shot cleanup: drop auto-created "My Group" rooms that are still empty
+  // (1 member, 0 bets, 0 custom categories). This wipes the auto-room that
+  // old register flow used to create per user. Safe to re-run.
+  try {
+    const { rows: dangling } = await pool.query(`
+      SELECT r.id
+      FROM rooms r
+      WHERE r.name = 'My Group'
+        AND (SELECT COUNT(*) FROM user_groups WHERE group_id = r.id) <= 1
+        AND NOT EXISTS (SELECT 1 FROM bets       WHERE room_id = r.id)
+        AND NOT EXISTS (SELECT 1 FROM categories WHERE room_id = r.id)
+    `);
+    if (dangling.length) {
+      const ids = dangling.map(r => r.id);
+      // users.room_id has no ON DELETE CASCADE — null it first.
+      await pool.query('UPDATE users SET room_id = NULL WHERE room_id = ANY($1)', [ids]);
+      await pool.query('DELETE FROM rooms WHERE id = ANY($1)', [ids]);
+      console.log(`[cleanup] Deleted ${dangling.length} dangling "My Group" room(s)`);
+    }
+  } catch (e) {
+    console.warn('[cleanup] My Group sweep failed (non-fatal):', e.message);
+  }
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS bet_templates (
       id          TEXT PRIMARY KEY,

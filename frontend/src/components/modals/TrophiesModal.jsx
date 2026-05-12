@@ -6,42 +6,43 @@ export default function TrophiesModal({ onClose, betsTick = 0 }) {
   const { t } = useLang();
   return (
     <div onClick={onClose} style={{
-      position:'fixed', inset:0, background:'rgba(0,0,0,.88)',
+      position:'fixed', inset:0, background:'rgba(15,11,35,.78)',
+      backdropFilter:'blur(6px)', WebkitBackdropFilter:'blur(6px)',
       display:'flex', alignItems:'center', justifyContent:'center',
-      zIndex:120, padding:'env(safe-area-inset-top, 16px) 12px env(safe-area-inset-bottom, 16px)',
+      zIndex:120, padding:'env(safe-area-inset-top, 16px) 16px env(safe-area-inset-bottom, 16px)',
     }}>
       <div className="bIn" onClick={e => e.stopPropagation()} style={{
         background:'var(--surf)',
-        border:'1px solid var(--brd)',
-        borderRadius:18,
+        border:'1px solid var(--rule)',
+        borderRadius:6,
         width:'100%',
         maxWidth:760,
         maxHeight:'92vh',
         display:'flex',
         flexDirection:'column',
-        boxShadow:'0 24px 64px rgba(0,0,0,.6)',
+        boxShadow:'0 30px 80px rgba(0,0,0,.55)',
       }}>
-        {/* Sticky header */}
+        {/* Editorial header */}
         <div style={{
-          display:'flex', justifyContent:'space-between', alignItems:'center',
-          padding:'16px 20px',
-          borderBottom:'1px solid var(--brd)',
+          display:'flex', justifyContent:'space-between', alignItems:'flex-end',
+          padding:'26px 28px 18px',
+          borderBottom:'1px solid var(--rule)',
           flexShrink:0,
-          background:'linear-gradient(180deg, var(--surf), var(--card))',
-          borderRadius:'18px 18px 0 0',
         }}>
-          <div style={{fontFamily:"'Cormorant Garamond',serif", fontSize:20, fontWeight:700}}>
-            {t('trophies.title')}
+          <div>
+            <div className="bc-meta" style={{marginBottom:8}}>— Collezione</div>
+            <div style={{fontFamily:"'Cormorant Garamond',serif", fontStyle:'italic', fontSize:28, fontWeight:600, lineHeight:1, color:'var(--txt)'}}>
+              {t('trophies.title')}
+            </div>
           </div>
           <button onClick={onClose} style={{
-            background:'transparent', border:'1px solid var(--brd)', borderRadius:10,
-            color:'var(--dim)', padding:'6px 12px', cursor:'pointer',
-            fontFamily:"'Manrope',sans-serif", fontSize:12, fontWeight:600,
+            background:'transparent', border:'none', cursor:'pointer',
+            color:'var(--dim)', fontSize:18, padding:4,
           }}>✕</button>
         </div>
 
         {/* Scrollable body */}
-        <div style={{padding:'16px 20px 24px', overflowY:'auto'}}>
+        <div style={{padding:'24px 28px 28px', overflowY:'auto'}}>
           <TrophiesSection embedded={false} betsTick={betsTick} />
         </div>
       </div>

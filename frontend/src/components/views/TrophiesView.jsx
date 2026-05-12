@@ -6,11 +6,12 @@ export default function TrophiesView({ bets = [], isDesktop }) {
   const { t } = useLang();
   return (
     <div className="sUp">
-      <div style={{
-        fontFamily:"'Cormorant Garamond',serif",
-        fontSize: isDesktop ? 28 : 24,
-        fontWeight: 700, marginBottom: 18,
-      }}>{t('trophies.title')}</div>
+      <div style={{ marginBottom: 32, paddingTop: isDesktop ? 16 : 8 }}>
+        <div className="bc-meta" style={{ marginBottom: 10 }}>— Collezione</div>
+        <div className="bc-hero" style={{ fontSize: isDesktop ? 54 : 38 }}>
+          {t('trophies.title')}
+        </div>
+      </div>
       <TrophiesSection embedded={false} betsTick={bets.length} />
     </div>
   );

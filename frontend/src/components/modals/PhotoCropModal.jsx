@@ -131,27 +131,30 @@ export default function PhotoCropModal({ img, dataUrl, size = 512, quality = 0.8
 
   return createPortal(
     <div onClick={onCancel} style={{
-      position: 'fixed', inset: 0, background: 'rgba(0,0,0,.85)',
+      position: 'fixed', inset: 0, background: 'rgba(15,11,35,.78)',
+      backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      zIndex: 9200, padding: 16,
+      zIndex: 9200, padding: 24,
     }}>
       <div onClick={e => e.stopPropagation()} className="bIn" style={{
-        background: 'var(--surf)', border: '1px solid var(--brd)',
-        borderRadius: 18, width: '100%', maxWidth: 380,
-        boxShadow: '0 24px 64px rgba(0,0,0,.6)',
+        background: 'var(--surf)', border: '1px solid var(--rule)',
+        borderRadius: 6, width: '100%', maxWidth: 400,
+        boxShadow: '0 30px 80px rgba(0,0,0,.55)',
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
       }}>
         <div style={{
-          padding: '14px 18px', borderBottom: '1px solid var(--brd)',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '24px 26px 16px', borderBottom: '1px solid var(--rule)',
+          display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between',
         }}>
-          <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 17, fontWeight: 700 }}>
-            🖼 {t('crop.title')}
+          <div>
+            <div className="bc-meta" style={{ marginBottom: 8 }}>— Ritaglio</div>
+            <div style={{ fontFamily: "'Cormorant Garamond',serif", fontStyle: 'italic', fontSize: 24, fontWeight: 600, lineHeight: 1, color: 'var(--txt)' }}>
+              {t('crop.title')}
+            </div>
           </div>
           <button onClick={onCancel} style={{
-            background: 'transparent', border: '1px solid var(--brd)', borderRadius: 10,
-            color: 'var(--dim)', padding: '5px 11px', cursor: 'pointer',
-            fontSize: 12, fontWeight: 600,
+            background: 'transparent', border: 'none', cursor: 'pointer',
+            color: 'var(--dim)', fontSize: 18, padding: 4,
           }}>✕</button>
         </div>
 

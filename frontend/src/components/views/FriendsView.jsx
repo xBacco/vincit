@@ -272,24 +272,22 @@ export default function FriendsView({ groups, user, onSwitchToGroup, isDesktop }
     const active = tab === id;
     return (
       <button onClick={() => setTab(id)} style={{
-        flex: 1, position: 'relative', padding: '10px 8px',
-        background: active ? 'var(--gold)18' : 'transparent',
-        color: active ? 'var(--gold)' : 'var(--dim)',
+        position: 'relative', padding: '6px 0 14px',
+        background: 'transparent',
+        color: active ? 'var(--txt)' : 'var(--dim)',
         border: 'none', borderBottom: `2px solid ${active ? 'var(--gold)' : 'transparent'}`,
-        cursor: 'pointer', fontFamily: "'Manrope',sans-serif",
-        fontSize: 12, fontWeight: 700, letterSpacing: 0.3,
-        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+        marginBottom: -1, cursor: 'pointer', fontFamily: "'Manrope',sans-serif",
+        fontSize: 11, fontWeight: 600, letterSpacing: '.22em', textTransform: 'uppercase',
+        whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 8,
         transition: 'all .18s',
       }}>
         <span>{label}</span>
         {count > 0 && (
           <span style={{
-            minWidth: 18, height: 18, padding: '0 5px', borderRadius: 9,
-            background: id === 'requests' && !active ? 'var(--gold)' : (active ? 'var(--gold)' : 'var(--gold)33'),
-            color: id === 'requests' && !active ? '#07060f' : (active ? '#07060f' : 'var(--gold)'),
-            fontSize: 10, fontWeight: 800,
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-          }}>{count}</span>
+            display: 'inline-block', minWidth: 6, height: 6, borderRadius: 999,
+            background: id === 'requests' ? 'var(--red)' : 'var(--gold)',
+            marginLeft: 2,
+          }}/>
         )}
       </button>
     );
@@ -336,19 +334,17 @@ export default function FriendsView({ groups, user, onSwitchToGroup, isDesktop }
 
   return (
     <div className="sUp" style={{ paddingBottom: isDesktop ? 32 : 96 }}>
-      <div style={{ marginBottom: 16 }}>
-        <h1 style={{
-          fontFamily: "'Cormorant Garamond',serif", fontSize: isDesktop ? 32 : 24,
-          fontWeight: 900, letterSpacing: -0.5, marginBottom: 4,
-        }}>👥 {t('friends.title')}</h1>
-        <div style={{ fontSize: 12, color: 'var(--dim)', lineHeight: 1.5 }}>
+      <div style={{ marginBottom: 32, paddingTop: isDesktop ? 16 : 8 }}>
+        <div className="bc-meta" style={{ marginBottom: 10 }}>— Cerchia</div>
+        <div className="bc-hero" style={{ fontSize: isDesktop ? 54 : 38 }}>{t('friends.title')}</div>
+        <div style={{ fontSize: 13, color: 'var(--dim)', lineHeight: 1.6, marginTop: 14, maxWidth: 520 }}>
           {t('friends.subtitle_v2')}
         </div>
       </div>
 
       <div style={{
-        display: 'flex', background: 'var(--card)', border: '1px solid var(--brd)',
-        borderRadius: 12, overflow: 'hidden', marginBottom: 14,
+        display: 'flex', gap: 24, borderBottom: '1px solid var(--rule)',
+        marginBottom: 4, overflowX: 'auto',
       }}>
         <TabBtn id="friends"  label={t('friends.tab_friends')}  count={friends.length}/>
         <TabBtn id="requests" label={t('friends.tab_requests')} count={incomingCount}/>
@@ -357,10 +353,9 @@ export default function FriendsView({ groups, user, onSwitchToGroup, isDesktop }
 
       {(tab !== 'requests' && (tab === 'friends' ? friends.length : discover.length) > 4) && (
         <div style={{
-          display: 'flex', alignItems: 'center', gap: 8,
-          padding: '10px 14px', marginBottom: 14,
-          background: 'var(--card)', border: '1px solid var(--brd)',
-          borderRadius: 12,
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: '14px 2px', marginTop: 18, marginBottom: 4,
+          borderBottom: '1px solid var(--brd)',
         }}>
           <span style={{ color: 'var(--dim)', fontSize: 14 }}>🔍</span>
           <input
@@ -370,7 +365,7 @@ export default function FriendsView({ groups, user, onSwitchToGroup, isDesktop }
             style={{
               flex: 1, border: 'none', outline: 'none',
               background: 'transparent', color: 'var(--txt)',
-              fontFamily: "'Manrope',sans-serif", fontSize: 13,
+              fontFamily: "'Manrope',sans-serif", fontSize: 14, letterSpacing: '.01em',
             }}
           />
         </div>

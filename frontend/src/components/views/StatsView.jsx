@@ -5,9 +5,12 @@ import Sparkline from '../Sparkline.jsx';
 import StreakBadge, { StreakInline } from '../StreakBadge.jsx';
 import * as api from '../../api.js';
 
+// Editorial section pattern — no card box, content separated by hairlines.
 const S = {
-  card: {background:"var(--card)",border:"1px solid var(--brd)",borderRadius:16,padding:16},
-  bdg: {display:"inline-flex",alignItems:"center",gap:3,padding:"3px 9px",borderRadius:20,fontSize:11,fontWeight:600},
+  card:    {padding:"22px 0", borderBottom:"1px solid var(--rule)"},
+  tile:    {padding:"16px 0", textAlign:"center"},
+  raised:  {background:"var(--soft)", border:"1px solid var(--rule)", borderRadius:4, padding:16},
+  bdg:     {display:"inline-flex",alignItems:"center",gap:4,padding:"4px 10px",borderRadius:999,fontSize:10,fontWeight:600,letterSpacing:".06em",textTransform:"uppercase"},
 };
 
 const Bdg=({c,bg,children})=><span style={{...S.bdg,background:bg,color:c}}>{children}</span>;
@@ -100,43 +103,48 @@ export default function StatsView({user,profiles,groupMembers,credits,bets,cats,
     ro.observe(sparkRef.current);
     return () => ro.disconnect();
   }, []);
+  // Editorial balance hero — single giant Playfair number, tracked meta above
   const balanceCard=(
-    <div className="pGold" style={{...S.card,marginBottom:12,textAlign:"center",background:"linear-gradient(135deg,var(--card),var(--surf))"}}>
-      <SecLabel>{t('stats_view.balance')}</SecLabel>
-      <div className="shim" style={{fontFamily:"'Cormorant Garamond',serif",fontSize:44,fontWeight:900}}>{Math.round(credits[user] ?? 0)} ₡</div>
-      <div style={{fontSize:13,color:net>=0?"var(--grn)":"var(--red)",marginTop:6,fontWeight:600}}>{net>=0?t('stats_view.net_pos',{n:Math.abs(net)}):t('stats_view.net_neg',{n:Math.abs(net)})}</div>
+    <div style={{padding:"4px 0 26px", borderBottom:"1px solid var(--rule)", marginBottom:0}}>
+      <div className="bc-meta" style={{marginBottom:8}}>{t('stats_view.balance')}</div>
+      <div className="bc-num" style={{fontSize: 88, color:"var(--gold)", lineHeight:.95}}>
+        {Math.round(credits[user] ?? 0)}<span style={{fontSize:'0.4em', color:'var(--dim)', marginLeft:10, fontWeight:400}}>₡</span>
+      </div>
+      <div style={{fontSize:13,color:net>=0?"var(--grn)":"var(--red)",marginTop:10,fontWeight:600,letterSpacing:'.02em'}}>
+        {net>=0?t('stats_view.net_pos',{n:Math.abs(net)}):t('stats_view.net_neg',{n:Math.abs(net)})}
+      </div>
       {balanceSeries.length >= 2 && (
-        <div ref={sparkRef} style={{marginTop:14, paddingTop:12, borderTop:"1px solid var(--brd)"}}>
+        <div ref={sparkRef} style={{marginTop:22, paddingTop:18, borderTop:"1px solid var(--rule)"}}>
           <Sparkline
             points={balanceSeries}
             width={sparkW}
-            height={64}
+            height={72}
             color={net >= 0 ? "var(--grn)" : "var(--red)"}
             baseline={100}
           />
-          <div style={{display:"flex",justifyContent:"space-between",marginTop:8,fontSize:10,color:"var(--dim)",letterSpacing:1}}>
-            <div><span style={{color:"var(--mut)"}}>Start</span> · 100 ₡</div>
-            <div><span style={{color:"var(--gold)"}}>Peak</span> · {peakBalance} ₡</div>
-            <div><span style={{color:"var(--red)"}}>Low</span> · {lowBalance} ₡</div>
+          <div style={{display:"flex",justifyContent:"space-between",marginTop:12}}>
+            <div className="bc-meta" style={{fontSize:8}}>Start · 100₡</div>
+            <div className="bc-meta" style={{fontSize:8, color:'var(--gold)'}}>Peak · {peakBalance}₡</div>
+            <div className="bc-meta" style={{fontSize:8, color:'var(--red)'}}>Low · {lowBalance}₡</div>
           </div>
         </div>
       )}
     </div>
   );
+  // Stats grid — pure typography, no tiles, separated by vertical hairlines
   const statsGrid=(
-    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
+    <div style={{display:"flex", marginBottom:0, padding:"22px 0", borderBottom:"1px solid var(--rule)"}}>
       {[
-        {e:"✅",l:t('stats_view.won'),v:won.length,c:"var(--grn)"},
-        {e:"❌",l:t('stats_view.lost'),v:lost.length,c:"var(--red)"},
-        {e:"📈",l:t('stats_view.win_rate'),v:`${wr}%`,c:wr>=50?"var(--grn)":"var(--red)"},
-      ].map(s=>(
-        <div key={s.l} style={{...S.card,textAlign:"center"}}>
-          <div style={{fontSize:20,marginBottom:4}}>{s.e}</div>
-          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:26,fontWeight:700,color:s.c}}>{s.v}</div>
-          <div style={{fontSize:11,color:"var(--dim)"}}>{s.l}</div>
+        {l:t('stats_view.won'), v:won.length, c:"var(--grn)"},
+        {l:t('stats_view.lost'), v:lost.length, c:"var(--red)"},
+        {l:t('stats_view.win_rate'), v:`${wr}%`, c:wr>=50?"var(--grn)":"var(--red)"},
+      ].map((s,i) => (
+        <div key={s.l} style={{flex:1, textAlign:i===0?'left':'center', borderLeft: i===0?'none':'1px solid var(--rule)', paddingLeft:i===0?0:14}}>
+          <div className="bc-num" style={{fontSize:36, color:s.c}}>{s.v}</div>
+          <div className="bc-meta" style={{marginTop:8, fontSize:8}}>{s.l}</div>
         </div>
       ))}
-      <div style={{...S.card, display:'flex', alignItems:'center', justifyContent:'center', padding:'10px 4px'}}>
+      <div style={{flex:1, display:'flex', alignItems:'center', justifyContent:'flex-end', borderLeft:'1px solid var(--rule)', paddingLeft:14}}>
         <StreakBadge winStreak={_curWinStr} lossStreak={_curLossStr} label={t('stats_view.streak')}/>
       </div>
     </div>
@@ -363,7 +371,10 @@ export default function StatsView({user,profiles,groupMembers,credits,bets,cats,
 
   return(
     <div className="sUp">
-      <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:24,fontWeight:700,marginBottom:20}}>{t('stats_view.title')}</div>
+      <div style={{marginBottom:32, paddingTop: isDesktop ? 16 : 8}}>
+        <div className="bc-meta" style={{marginBottom:10}}>— Analisi</div>
+        <div className="bc-hero" style={{fontSize: isDesktop ? 54 : 38}}>{t('stats_view.title')}</div>
+      </div>
       {isDesktop?(
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,alignItems:"start"}}>
           <div style={{display:'flex', flexDirection:'column', gap:10}}>{balanceCard}{statsGrid}{bestCard}{h2hCard}{emptyMsg}</div>

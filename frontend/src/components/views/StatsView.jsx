@@ -3,7 +3,7 @@ import { SecLabel, Avatar, fmtQ, qToP, COLORS, getC } from '../Atoms.jsx';
 import { useLang } from '../../i18n.js';
 import Sparkline from '../Sparkline.jsx';
 import StreakBadge, { StreakInline } from '../StreakBadge.jsx';
-import TrophiesSection from '../TrophiesSection.jsx';
+import TrophiesModal from '../modals/TrophiesModal.jsx';
 import * as api from '../../api.js';
 
 const S = {
@@ -65,6 +65,20 @@ export default function StatsView({user,profiles,groupMembers,credits,bets,cats,
   })();
   const peakBalance = balanceSeries.length ? Math.max(...balanceSeries) : 100;
   const lowBalance  = balanceSeries.length ? Math.min(...balanceSeries) : 100;
+
+  // Trophies preview state
+  const [showTrophies, setShowTrophies] = useState(false);
+  const [achvData, setAchvData] = useState({ catalog: [], unlocked: [], progress: {} });
+  useEffect(() => {
+    api.getAchievements().then(setAchvData).catch(() => {});
+  }, [bets.length]);
+  const earnedLevels = Object.values(achvData.progress || {}).reduce((s, p) => s + (p.level || 0), 0);
+  const totalLevels  = (achvData.catalog || []).reduce((s, a) => s + (a.levels?.length || 5), 0);
+  const recentUnlocks = [...(achvData.unlocked || [])]
+    .sort((a, b) => Number(b.unlocked_at || 0) - Number(a.unlocked_at || 0))
+    .slice(0, 6)
+    .map(u => achvData.catalog.find(c => c.id === u.achievement_id))
+    .filter(Boolean);
 
   // Compute personal loss streak (best run length)
   const myChronologicalResolved = [...bets]
@@ -191,10 +205,53 @@ export default function StatsView({user,profiles,groupMembers,credits,bets,cats,
   );
   const emptyMsg=all.length===0&&<div style={{textAlign:"center",padding:"32px 0",color:"var(--dim)",fontSize:13}}>{t('stats_view.no_bets')}</div>;
 
-  // ─── Trophies (full section, embedded as a card) ─────────────────────
+  // ─── Trophies (compact preview card → opens full modal on click) ─────
   const trophiesCard = (
-    <div style={{marginBottom:10}}>
-      <TrophiesSection embedded betsTick={bets.length} />
+    <div onClick={() => setShowTrophies(true)} className="card-hover"
+      style={{...S.card, marginBottom:10, cursor:'pointer'}}>
+      <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:10, marginBottom:8}}>
+        <div>
+          <div style={{fontSize:10, color:'var(--dim)', letterSpacing:2, textTransform:'uppercase', marginBottom:4, fontWeight:700}}>
+            {t('trophies.title')}
+          </div>
+          <div style={{display:'flex', alignItems:'baseline', gap:8}}>
+            <div style={{fontFamily:"'Playfair Display',serif", fontSize:28, fontWeight:900, color:'var(--gold)', lineHeight:1}}>
+              {earnedLevels}<span style={{fontSize:14, color:'var(--dim)', fontWeight:400}}>/{totalLevels}</span>
+            </div>
+            <div style={{fontSize:11, color:'var(--dim)'}}>livelli</div>
+          </div>
+        </div>
+        <div style={{
+          fontSize:12, color:'var(--gold)', fontFamily:"'Syne',sans-serif", fontWeight:700,
+          display:'flex', alignItems:'center', gap:4, padding:'6px 12px', borderRadius:20,
+          border:'1px solid var(--gold)44', background:'var(--gold)0d',
+        }}>{t('trophies.view_all') || 'Vedi tutti'} →</div>
+      </div>
+
+      {/* Progress bar */}
+      <div style={{height:6, background:'var(--mut)22', borderRadius:3, overflow:'hidden'}}>
+        <div style={{
+          height:'100%',
+          width: totalLevels ? `${(earnedLevels/totalLevels)*100}%` : '0%',
+          background:'linear-gradient(90deg, var(--gold), var(--goldL))',
+          boxShadow:'0 0 6px var(--glow)', transition:'width .5s',
+        }}/>
+      </div>
+
+      {/* Recent unlocks strip */}
+      {recentUnlocks.length > 0 && (
+        <div style={{display:'flex', alignItems:'center', gap:8, marginTop:10, flexWrap:'wrap'}}>
+          <span style={{fontSize:9, color:'var(--dim)', letterSpacing:2, fontWeight:700}}>RECENTI</span>
+          <div style={{display:'flex', gap:4}}>
+            {recentUnlocks.map((a, i) => (
+              <span key={a.id+'_'+i} style={{
+                fontSize:18, lineHeight:1,
+                filter:'drop-shadow(0 0 4px var(--glow))',
+              }}>{a.icon}</span>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 
@@ -333,10 +390,13 @@ export default function StatsView({user,profiles,groupMembers,credits,bets,cats,
       {isDesktop?(
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20,alignItems:"start"}}>
           <div>{balanceCard}{statsGrid}{bestCard}{h2hCard}{emptyMsg}</div>
-          <div>{leaderboardCard}{trophiesCard}{catCard}{hofCard}</div>
+          <div>{trophiesCard}{leaderboardCard}{catCard}{hofCard}</div>
         </div>
       ):(
-        <>{balanceCard}{statsGrid}{bestCard}{leaderboardCard}{h2hCard}{trophiesCard}{catCard}{hofCard}{emptyMsg}</>
+        <>{balanceCard}{statsGrid}{trophiesCard}{bestCard}{leaderboardCard}{h2hCard}{catCard}{hofCard}{emptyMsg}</>
+      )}
+      {showTrophies && (
+        <TrophiesModal onClose={() => setShowTrophies(false)} betsTick={bets.length} />
       )}
     </div>
   );

@@ -159,6 +159,11 @@ const pool = new Pool({
   `);
 
   await pool.query(`
+    ALTER TABLE bets ADD COLUMN IF NOT EXISTS target_user TEXT;
+    CREATE INDEX IF NOT EXISTS idx_bets_target_user ON bets(target_user);
+  `);
+
+  await pool.query(`
     CREATE INDEX IF NOT EXISTS idx_bets_room_id     ON bets(room_id);
     CREATE INDEX IF NOT EXISTS idx_bets_creator     ON bets(creator);
     CREATE INDEX IF NOT EXISTS idx_bets_status      ON bets(status) WHERE status IN ('active','pending');

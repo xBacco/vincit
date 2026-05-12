@@ -79,6 +79,7 @@ async function buildState(roomId, viewerId) {
     comment:       r.comment || null,
     counterBets:   countersByBetId[r.id] || [],
     opponent:      r.opponent || null,
+    targetUser:    r.target_user || null,
   }));
 
   const { rows: catRows } = await db.query(

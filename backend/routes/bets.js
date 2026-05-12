@@ -13,7 +13,7 @@ module.exports = function(broadcastUpdate) {
       const creator = req.userId;
       const roomId  = req.activeRoomId;
       const { title, quota: quotaRaw, stake: stakeRaw,
-              category, isSecret, isCounterable, pegno, expiresAt, opponent, isSurprise } = req.body;
+              category, isSecret, isCounterable, pegno, expiresAt, opponent, isSurprise, targetUser } = req.body;
 
       const quota = parseFloat(quotaRaw);
       const stake = parseInt(stakeRaw, 10);
@@ -37,15 +37,25 @@ module.exports = function(broadcastUpdate) {
       const surprise = !!isSurprise && !!opponent && !isSecret;
       const counterable = isCounterable && !isSecret && !surprise;
 
+      // Validate target: must be in the same group, can't be creator, can't equal opponent (for clarity)
+      let target = null;
+      if (targetUser && typeof targetUser === 'string' && targetUser !== creator) {
+        const { rows: m } = await db.query(
+          'SELECT 1 FROM user_groups WHERE group_id=$1 AND user_id=$2',
+          [roomId, targetUser]
+        );
+        if (m.length) target = targetUser;
+      }
+
       await db.transaction(async (client) => {
         await client.query(
           `INSERT INTO bets
              (id, creator, room_id, title, quota, stake, potential_win,
-              category, is_secret, is_counterable, pegno, expires_at, created_at, status, opponent, is_surprise)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`,
+              category, is_secret, is_counterable, pegno, expires_at, created_at, status, opponent, is_surprise, target_user)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
           [id, creator, roomId, title, quota, stake, potentialWin,
            category, isSecret ? 1 : 0, counterable ? 1 : 0,
-           pegno || null, expiresAt || null, createdAt, status, opponent || null, surprise ? 1 : 0]
+           pegno || null, expiresAt || null, createdAt, status, opponent || null, surprise ? 1 : 0, target]
         );
         if (!isPending) {
           await client.query(
@@ -75,13 +85,25 @@ module.exports = function(broadcastUpdate) {
           targets = members.map(m => m.id);
         }
       }
-      for (const targetUser of targets) {
-        const { rows: prefs } = await db.query('SELECT on_new_bet FROM notification_prefs WHERE "user"=$1', [targetUser]);
+      for (const recipient of targets) {
+        const { rows: prefs } = await db.query('SELECT on_new_bet FROM notification_prefs WHERE "user"=$1', [recipient]);
         if (prefs[0]?.on_new_bet !== false) {
-          const isMine = opponent === targetUser;
-          sendPushToUser(targetUser, {
+          const isMine = opponent === recipient;
+          sendPushToUser(recipient, {
             title: isMine ? '🎯 Sfida diretta' : 'BetCouple 🎲',
             body:  isMine ? `Sei stato sfidato: "${title}"` : `Nuova bet: "${title}"`,
+            url: '/',
+          });
+        }
+      }
+      // Notify the target if specified AND the bet is not a surprise — for surprise, the target
+      // must remain unaware until resolution.
+      if (target && !surprise && !isSecret && target !== creator && target !== opponent) {
+        const { rows: prefs } = await db.query('SELECT on_new_bet FROM notification_prefs WHERE "user"=$1', [target]);
+        if (prefs[0]?.on_new_bet !== false) {
+          sendPushToUser(target, {
+            title: '🎯 Sei nel mirino',
+            body:  `Stanno scommettendo su di te: "${title}"`,
             url: '/',
           });
         }
@@ -142,7 +164,7 @@ module.exports = function(broadcastUpdate) {
       if (!res.headersSent) {
         broadcastUpdate(req.activeRoomId);
 
-        // Push notification to interested parties: opponent + counter bettors (not the resolver)
+        // Push notification to interested parties: opponent + counter bettors + target (not the resolver)
         try {
           const { rows: [bet] } = await db.query('SELECT * FROM bets WHERE id=$1', [req.params.id]);
           if (bet) {
@@ -158,6 +180,20 @@ module.exports = function(broadcastUpdate) {
                 sendPushToUser(u, {
                   title: outcome === 'won' ? '✅ Bet vinta' : '❌ Bet persa',
                   body:  `"${bet.title}"`,
+                  url:   '/',
+                });
+              }
+            }
+
+            // Target gets a dedicated notification — for surprise bets this is when they finally
+            // discover the bet existed at all
+            if (bet.target_user && bet.target_user !== req.userId
+                && bet.target_user !== bet.creator && bet.target_user !== bet.opponent) {
+              const { rows: prefs } = await db.query('SELECT on_resolved FROM notification_prefs WHERE "user"=$1', [bet.target_user]);
+              if (prefs[0]?.on_resolved !== false) {
+                sendPushToUser(bet.target_user, {
+                  title: bet.is_surprise === 1 ? '🤫 Sorpresa, eri tu il bersaglio' : '🎯 Bet su di te risolta',
+                  body:  `"${bet.title}" · ${outcome === 'won' ? 'esito SÌ' : 'esito NO'}`,
                   url:   '/',
                 });
               }

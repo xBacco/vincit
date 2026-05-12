@@ -155,6 +155,9 @@ export default function BetCard({bet,user,profiles,cats,onResolve,onReveal,onCou
             {bet.opponent && !bet.isSecret && !bet.isCounterable && profiles[bet.opponent] && (
               <Bdg bg="var(--grn)22" c="var(--grn)">{t('bet_card.targeted_vs', { name: profiles[bet.opponent].name })}</Bdg>
             )}
+            {bet.targetUser && profiles[bet.targetUser] && (
+              <Bdg bg="var(--pur)22" c="var(--pur)">{t('bet_card.target_on', { name: profiles[bet.targetUser].name })}</Bdg>
+            )}
             {tl&&<Bdg bg={isSoon(bet.expiresAt)?"var(--red)22":"var(--mut)33"} c={isSoon(bet.expiresAt)?"var(--red)":"var(--dim)"}>⏱ {tl}</Bdg>}
             {isPending&&<Bdg bg="var(--gold)22" c="var(--gold)">{t('bet_card.pending_label')}</Bdg>}
             {isRejected&&<Bdg bg="var(--red)22" c="var(--red)">❌ {t('bet_card.reject_btn')}</Bdg>}

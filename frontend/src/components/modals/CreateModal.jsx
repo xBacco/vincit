@@ -126,6 +126,7 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
   // betType: 'vault' | 'open' | 'targeted' | 'surprise'
   const [betType,setBetType]=useState('open');
   const [opponentId,setOpponentId]=useState(others[0]?.id ?? null);
+  const [targetId,setTargetId]=useState(null);
   const [pegno,setPegno]=useState("");
   const [exp,setExp]=useState("");
 
@@ -161,6 +162,7 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
       pegno,
       expiresAt: exp ? new Date(exp).getTime() : null,
       opponent: opponent || undefined,
+      targetUser: betType !== 'vault' && targetId ? targetId : undefined,
     });
   };
 
@@ -232,6 +234,47 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
             </button>
           );
         })}
+      </div>
+    </div>
+  );
+
+  // Target = chi è oggetto della bet (es. "Maria arriverà in ritardo"). Diverso dall'avversario.
+  // Visibile per ogni tipo tranne Vault; opponent escluso per chiarezza.
+  const targetCandidates = others.filter(m => m.id !== opponentId);
+  const TargetBlock = betType !== 'vault' && targetCandidates.length > 0 && (
+    <div style={{ marginBottom: 14 }}>
+      <label style={S.lbl}>{t('create.target_label')}</label>
+      <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+        <button onClick={() => setTargetId(null)}
+          style={{
+            padding:'8px 14px', borderRadius:24,
+            border:`1px solid ${!targetId ? 'var(--gold)' : 'var(--brd)'}`,
+            background: !targetId ? 'var(--gold)1a' : 'transparent',
+            color: !targetId ? 'var(--gold)' : 'var(--dim)',
+            cursor:'pointer', fontFamily:"'Syne',sans-serif", fontSize:13, fontWeight:600,
+          }}>—  {t('create.target_none')}</button>
+        {targetCandidates.map(m => {
+          const active = targetId === m.id;
+          return (
+            <button key={m.id} onClick={() => setTargetId(m.id)}
+              style={{
+                display:'inline-flex', alignItems:'center', gap:8,
+                padding:'8px 14px 8px 8px', borderRadius:24,
+                border:`1px solid ${active ? 'var(--pur)' : 'var(--brd)'}`,
+                background: active ? 'var(--pur)1a' : 'transparent',
+                color: active ? 'var(--pur)' : 'var(--dim)',
+                cursor:'pointer', fontFamily:"'Syne',sans-serif", fontSize:13, fontWeight:600,
+              }}>
+              {m.avatarUrl
+                ? <img src={m.avatarUrl} alt="" style={{width:24,height:24,borderRadius:'50%',objectFit:'cover'}}/>
+                : <span style={{fontSize:18,lineHeight:1}}>{m.avatar || '😊'}</span>}
+              <span>🎯 {m.name}</span>
+            </button>
+          );
+        })}
+      </div>
+      <div style={{ fontSize: 11, color: 'var(--mut)', marginTop: 6, lineHeight: 1.4 }}>
+        {t('create.target_hint')}
       </div>
     </div>
   );
@@ -341,6 +384,7 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
             <div style={{padding:"22px 24px",overflowY:"auto"}}>
               {TypeBlock}
               {OpponentBlock}
+              {TargetBlock}
               {TitleBlock}
               {QuotaBlock}
               {StakeBlock}
@@ -399,6 +443,7 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
 
         {TypeBlock}
         {OpponentBlock}
+        {TargetBlock}
         {TitleBlock}
         {QuotaBlock}
         {StakeBlock}

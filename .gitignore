@@ -10,3 +10,6 @@ frontend/.env
 *.db
 *.db-shm
 *.db-wal
+Screenshot*.png
+*.tmp
+

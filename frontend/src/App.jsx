@@ -66,8 +66,18 @@ const CSS_BASE = `
 @keyframes confB{0%{transform:translate(0,0) rotate(0deg) scale(1);opacity:1}100%{transform:translate(var(--ex),var(--ey)) rotate(var(--rot,720deg)) scale(.4);opacity:0}}
 .bc *{box-sizing:border-box;margin:0;padding:0}
 .bc{font-family:'Manrope',sans-serif;transition:background .25s,color .25s}
-.bc-head{font-family:'Cormorant Garamond',serif;letter-spacing:-0.01em;font-weight:600}
-.bc-num{font-family:'Playfair Display',serif;font-feature-settings:'lnum';letter-spacing:-0.01em}
+
+/* ─── Editorial type scale ────────────────────────────────────────── */
+/* Hero italic display (60–96px depending on viewport).               */
+.bc-hero{font-family:'Cormorant Garamond',serif;font-style:italic;font-weight:600;letter-spacing:-0.03em;line-height:.92;color:var(--txt)}
+/* Section heading: large italic serif.                                */
+.bc-head{font-family:'Cormorant Garamond',serif;font-weight:600;letter-spacing:-0.01em;line-height:1.05}
+/* Lining numerals, editorial weight — credit balances, quotas, ₡.    */
+.bc-num{font-family:'Playfair Display',serif;font-feature-settings:'lnum' 1, 'tnum' 1;letter-spacing:-0.02em;line-height:1}
+/* Tiny tracked uppercase meta — labels, dates, captions.              */
+.bc-meta{font-family:'Manrope',sans-serif;font-size:9px;font-weight:600;letter-spacing:.3em;text-transform:uppercase;color:var(--dim)}
+/* 1px hairline rule — replaces card borders as a divider.             */
+.bc-rule{height:1px;background:var(--rule);border:0;margin:0}
 .sUp{animation:sUp .3s ease both}
 .fIn{animation:fIn .25s ease both}
 .bIn{animation:bIn .45s cubic-bezier(.34,1.56,.64,1) both}

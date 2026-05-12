@@ -154,33 +154,34 @@ export default function BetCard({bet,user,profiles,cats,onResolve,onReveal,onCou
   );
 
   return(
-    <div ref={cardRef} className={`sUp${isDesktop ? ' card-hover' : ''}`} style={{
-      ...S.card, marginBottom:10, position:"relative", overflow:"hidden",
-      opacity:done?0.78:1,
-      border:`1px solid ${deltaX > 40 ? 'var(--grn)' : deltaX < -40 ? 'var(--red)' : bet.isSecret ? 'var(--gold)44' : 'var(--brd)'}`,
+    <div ref={cardRef} className="sUp" style={{
+      position:"relative", overflow:"hidden",
+      padding:"22px 0 24px 22px", marginBottom:0,
+      borderBottom:`1px solid ${deltaX > 40 ? 'var(--grn)55' : deltaX < -40 ? 'var(--red)55' : 'var(--rule)'}`,
+      opacity:done?0.55:1,
       transform: deltaX !== 0 ? `translateX(${Math.max(-60, Math.min(60, deltaX))}px)` : 'none',
-      transition: deltaX === 0 ? 'transform .3s ease, border-color .2s' : 'border-color .1s',
+      transition: deltaX === 0 ? 'transform .3s ease, border-color .2s, opacity .2s' : 'border-color .1s',
     }}>
-      <div style={{position:"absolute",left:0,top:0,bottom:0,width:3,background:sideColor,borderRadius:"3px 0 0 3px"}}/>
-      <div style={{paddingLeft:12,...(isDesktop?{display:"flex",alignItems:"flex-start",gap:16}:{})}}>
+      {/* Vertical accent rule — gold for vault, category color otherwise. */}
+      <div style={{position:"absolute",left:0,top:22,bottom:24,width:2,background:bet.isSecret?'var(--gold)':sideColor}}/>
+      <div style={{...(isDesktop?{display:"flex",alignItems:"flex-start",gap:24}:{})}}>
         {/* Main content */}
         <div style={{flex:isDesktop?1:undefined,minWidth:0}}>
           {/* Title row */}
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8,marginBottom:8}}>
-            <div style={{flex:1}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,marginBottom:10}}>
+            <div style={{flex:1,minWidth:0}}>
               {bet.isSecret&&!done
-                ?<div style={{...S.row,gap:6}}><span>🔒</span><span style={{fontWeight:600,fontSize:14,color:"var(--gold)"}}>{t('bet_card.secret_label')}</span></div>
-                :<div style={{fontWeight:600,fontSize:14,lineHeight:1.35}}>{bet.title}</div>
+                ?<div style={{...S.row,gap:8}}><span style={{fontSize:18}}>🔒</span><span style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:'italic',fontWeight:600,fontSize:22,color:"var(--gold)"}}>{t('bet_card.secret_label')}</span></div>
+                :<div style={{fontFamily:"'Cormorant Garamond',serif",fontWeight:600,fontSize:22,lineHeight:1.18,letterSpacing:'-0.005em'}}>{bet.title}</div>
               }
-              <div style={{fontSize:11,color:"var(--dim)",marginTop:3}}>
-                {cat.e} {catLabel(cat)} · {fmtD(bet.createdAt,lang)}
+              <div style={{fontSize:9,color:"var(--dim)",marginTop:8,letterSpacing:'.22em',textTransform:'uppercase',fontWeight:600}}>
+                <span style={{color:cat.color}}>{cat.e}</span> {catLabel(cat)} · {fmtD(bet.createdAt,lang)}
                 {!isOwner&&<span style={{color:getC(profiles,bet.creator)}}> · {profiles[bet.creator]?.name}</span>}
               </div>
             </div>
-            {/* Quota top-right: mobile only */}
-            {!isDesktop&&!bet.isSecret&&<div style={{textAlign:"right",flexShrink:0}}>
-              <div style={{fontFamily:"'Playfair Display',serif",fontSize:18,fontWeight:700,color:"var(--gold)"}}>{fmtQ(bet.quota)}×</div>
-              <div style={{fontSize:10,color:"var(--dim)"}}>{qToP(bet.quota)}%</div>
+            {/* Quota top-right: mobile only — bigger, no extra labels */}
+            {!isDesktop&&!bet.isSecret&&<div style={{textAlign:"right",flexShrink:0,paddingTop:2}}>
+              <div style={{fontFamily:"'Playfair Display',serif",fontSize:28,fontWeight:700,color:"var(--gold)",lineHeight:1,letterSpacing:'-0.02em'}}>{fmtQ(bet.quota)}<span style={{fontSize:14,opacity:.7}}>×</span></div>
             </div>}
           </div>
 

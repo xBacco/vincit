@@ -3,11 +3,13 @@ import React from 'react';
 
 // Palette "Lavanda & Ottone" — viola lavanda dominante, ottone spazzolato come accento.
 // In light mode bg = farina d'avena (beige sporco), niente bianco puro.
-export const DARK  = {bg:"#1a1530",surf:"#221c40",card:"#2b2247",brd:"#3a3260",gold:"#c4a878",goldL:"#d6bf94",glow:"rgba(196,168,120,0.18)",grn:"#3dd494",red:"#e26666",blu:"#7aa2ff",pur:"#b794f4",txt:"#ebe5ff",dim:"#9089b8",mut:"#403868",inp:"#1d1838"};
-export const LIGHT = {bg:"#ede8d8",surf:"#f5f0e0",card:"#faf5e5",brd:"#c4bca0",gold:"#7a5e30",goldL:"#946f33",glow:"rgba(122,94,48,0.16)",grn:"#1f9560",red:"#b73a4a",blu:"#3556bb",pur:"#5b3fc4",txt:"#2a2545",dim:"#5f5878",mut:"#bcb39a",inp:"#f0eadc"};
+// `rule` = ultra-soft hairline color (replaces the gray-ish borders), `soft` = barely-visible tint for grouping.
+export const DARK  = {bg:"#1a1530",surf:"#221c40",card:"#2b2247",brd:"#3a3260",rule:"rgba(183,148,244,0.16)",soft:"rgba(183,148,244,0.05)",gold:"#c4a878",goldL:"#d6bf94",glow:"rgba(196,168,120,0.18)",grn:"#3dd494",red:"#e26666",blu:"#7aa2ff",pur:"#b794f4",txt:"#ebe5ff",dim:"#9089b8",mut:"#403868",inp:"#1d1838"};
+export const LIGHT = {bg:"#ede8d8",surf:"#f5f0e0",card:"#faf5e5",brd:"#c4bca0",rule:"rgba(91,63,196,0.18)",soft:"rgba(91,63,196,0.05)",gold:"#7a5e30",goldL:"#946f33",glow:"rgba(122,94,48,0.16)",grn:"#1f9560",red:"#b73a4a",blu:"#3556bb",pur:"#5b3fc4",txt:"#2a2545",dim:"#5f5878",mut:"#bcb39a",inp:"#f0eadc"};
 
 export const rootVars = C => ({
   "--bg":C.bg,"--surf":C.surf,"--card":C.card,"--brd":C.brd,
+  "--rule":C.rule,"--soft":C.soft,
   "--gold":C.gold,"--goldL":C.goldL,"--glow":C.glow,
   "--grn":C.grn,"--red":C.red,"--blu":C.blu,"--pur":C.pur,
   "--txt":C.txt,"--dim":C.dim,"--mut":C.mut,"--inp":C.inp,
@@ -81,33 +83,60 @@ export const isSoon= ts=>ts&&ts>Date.now()&&(ts-Date.now())<86400000;
 export const getC  = (profiles,user)=>COLORS[profiles[user]?.colorKey]||"#5b8af0";
 
 // ─── UI ATOMS ────────────────────────────────────────────────────────────────
+// Editorial-first treatment: containers no longer rely on bordered boxes for
+// structure — they breathe via whitespace + 1px hairlines. The "card" style
+// is preserved for the handful of components that genuinely benefit from a
+// raised surface (modals, the pending-acceptance strip), but every new
+// component should prefer S.section + S.hairline + generous padding.
 const S = {
-  card: {background:"var(--card)",border:"1px solid var(--brd)",borderRadius:16,padding:16},
-  bdg: {display:"inline-flex",alignItems:"center",gap:3,padding:"3px 9px",borderRadius:20,fontSize:11,fontWeight:600},
-  btn: {display:"inline-flex",alignItems:"center",justifyContent:"center",gap:6,padding:"10px 18px",borderRadius:10,border:"none",cursor:"pointer",fontFamily:"'Manrope',sans-serif",fontSize:13,fontWeight:600,transition:"all .18s",userSelect:"none",whiteSpace:"nowrap"},
+  // Used only inside modals + truly raised surfaces. Plain views drop it.
+  card: {background:"var(--card)",border:`1px solid var(--brd)`,borderRadius:14,padding:18},
+  // Editorial section pattern — no box, just rhythm.
+  section: {padding:"28px 0"},
+  // 1px hairline rule. Used as section divider in place of card borders.
+  hairline: {height:1, background:"var(--rule)", border:0, margin:0},
+  // Pill badge, kept compact + tracked.
+  bdg: {display:"inline-flex",alignItems:"center",gap:4,padding:"4px 10px",borderRadius:999,fontSize:10,fontWeight:600,letterSpacing:".06em",textTransform:"uppercase"},
+  // Default button = pill, hard radius, no border. Variants own their color.
+  btn: {display:"inline-flex",alignItems:"center",justifyContent:"center",gap:8,padding:"11px 22px",borderRadius:999,border:"none",cursor:"pointer",fontFamily:"'Manrope',sans-serif",fontSize:13,fontWeight:600,letterSpacing:".02em",transition:"transform .18s ease, filter .18s ease, box-shadow .18s ease",userSelect:"none",whiteSpace:"nowrap"},
   row: {display:"flex",alignItems:"center",gap:10},
   col: {display:"flex",flexDirection:"column",gap:6},
-  lbl: {fontSize:10,color:"var(--dim)",letterSpacing:2,textTransform:"uppercase",display:"block",marginBottom:6},
-  inp: {background:"var(--inp)",border:"1px solid var(--brd)",color:"var(--txt)",borderRadius:10,padding:"10px 14px",fontFamily:"'Manrope',sans-serif",fontSize:14,outline:"none",width:"100%"},
+  // Tiny tracked meta-label. Pair with whitespace, not with boxes.
+  lbl: {fontSize:9,color:"var(--dim)",letterSpacing:".3em",textTransform:"uppercase",fontWeight:600,display:"block",marginBottom:10},
+  // Inputs lose the box. Underline only, lavender on focus.
+  inp: {background:"transparent",border:0,borderBottom:"1px solid var(--brd)",borderRadius:0,color:"var(--txt)",padding:"10px 2px",fontFamily:"'Manrope',sans-serif",fontSize:15,outline:"none",width:"100%",transition:"border-color .18s ease"},
 };
 export const Bdg=({c,bg,children})=><span style={{...S.bdg,background:bg,color:c}}>{children}</span>;
 export const Btn=({variant="ghost",sm,full,onClick,disabled,children,style={}})=>{
   const base={...S.btn,...style};
-  if(sm){base.padding="7px 13px";base.fontSize=12;}
-  if(full){base.width="100%";base.padding="14px 0";base.fontSize=15;}
+  if(sm){base.padding="8px 16px";base.fontSize=12;}
+  if(full){base.width="100%";base.padding="15px 0";base.fontSize=14;}
   if(disabled){base.opacity=.4;base.pointerEvents="none";}
-  const vars={gold:{background:"var(--gold)",color:"#fff"},grn:{background:"var(--grn)",color:"#fff"},red:{background:"var(--red)",color:"#fff"},ghost:{background:"transparent",color:"var(--dim)",border:"1px solid var(--brd)"}};
+  // Primary CTA = solid lavender pill with a soft colored shadow that
+  // belongs to the brand (not a generic black drop-shadow). "gold" remains
+  // the variant name for compatibility but visually it's now lavender —
+  // gold is reserved for typographic accents and rules.
+  const vars = {
+    gold:  {background:"var(--pur)",  color:"#1a1530", boxShadow:"0 10px 28px -10px var(--pur), 0 1px 0 rgba(255,255,255,.12) inset"},
+    pur:   {background:"var(--pur)",  color:"#1a1530", boxShadow:"0 10px 28px -10px var(--pur), 0 1px 0 rgba(255,255,255,.12) inset"},
+    grn:   {background:"var(--grn)",  color:"#0a1f15", boxShadow:"0 10px 28px -12px var(--grn)"},
+    red:   {background:"var(--red)",  color:"#fff",    boxShadow:"0 10px 28px -12px var(--red)"},
+    accent:{background:"transparent", color:"var(--gold)", border:"1px solid var(--gold)44"},
+    ghost: {background:"transparent", color:"var(--txt)"},
+  };
   return <button style={{...base,...(vars[variant]||vars.ghost)}} onClick={onClick}>{children}</button>;
 };
 export const Inp=({style={},value,onChange,placeholder,type="text",min,max,step})=>(
   <input type={type} style={{...S.inp,...style}} value={value} onChange={onChange} placeholder={placeholder} min={min} max={max} step={step}/>
 );
-export const Toggle=({on,onToggle,color="var(--gold)"})=>(
-  <div onClick={onToggle} style={{width:44,height:24,borderRadius:12,background:on?color:"var(--mut)",position:"relative",cursor:"pointer",transition:"background .2s",flexShrink:0}}>
+export const Toggle=({on,onToggle,color="var(--pur)"})=>(
+  <div onClick={onToggle} style={{width:44,height:24,borderRadius:999,background:on?color:"var(--mut)",position:"relative",cursor:"pointer",transition:"background .2s",flexShrink:0}}>
     <div style={{position:"absolute",width:18,height:18,background:"#fff",borderRadius:"50%",top:3,left:on?23:3,transition:"left .2s"}}/>
   </div>
 );
-export const SecLabel=({children,mt=0})=><div style={{fontSize:10,color:"var(--dim)",letterSpacing:2,textTransform:"uppercase",marginBottom:8,marginTop:mt}}>{children}</div>;
+export const SecLabel=({children,mt=0})=><div style={{fontSize:9,color:"var(--dim)",letterSpacing:".3em",textTransform:"uppercase",fontWeight:600,marginBottom:14,marginTop:mt}}>{children}</div>;
+// Thin hairline rule. Pass `mt`/`mb` to push it around the page rhythm.
+export const Rule = ({mt=0,mb=0,color}) => <hr style={{...S.hairline, marginTop:mt, marginBottom:mb, ...(color?{background:color}:{})}}/>;
 
 export function Avatar({profile,size=36}){
   const c=COLORS[profile?.colorKey]||"#5b8af0";

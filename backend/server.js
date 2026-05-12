@@ -80,6 +80,23 @@ app.get('/api/state/stream', authMiddlewareSSE, async (req, res) => {
 // Public routes (no auth)
 app.use('/api/auth', authRouter);
 
+// Health / config diagnostic — public so it can be checked from the browser
+// or curl without a token. Reveals only PRESENCE of secrets, never values.
+const { isConfigured: cldConfigured } = require('./cloudinary.js');
+app.get('/api/health', (req, res) => {
+  res.json({
+    ok: true,
+    server_time: Date.now(),
+    db:         !!process.env.DATABASE_URL,
+    cloudinary: {
+      cloud_name:  !!process.env.CLOUDINARY_CLOUD_NAME,
+      api_key:     !!process.env.CLOUDINARY_API_KEY,
+      api_secret:  !!process.env.CLOUDINARY_API_SECRET,
+      ready:       cldConfigured(),
+    },
+  });
+});
+
 // Protected routes
 const stateRouter    = require('./routes/state.js');
 const groupsRouter   = require('./routes/groups.js');

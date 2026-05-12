@@ -11,7 +11,18 @@ const db = require('./db.js');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(cors({ origin: process.env.ALLOWED_ORIGIN || '*' }));
+function getCorsOrigin() {
+  const isProd = process.env.NODE_ENV === 'production';
+  const raw = (process.env.ALLOWED_ORIGIN || '').trim();
+  if (!isProd) return raw || '*';
+  // In production: never accept the wildcard, build a whitelist
+  const list = raw.split(',').map(s => s.trim()).filter(s => s && s !== '*');
+  if (process.env.RENDER_EXTERNAL_URL && !list.includes(process.env.RENDER_EXTERNAL_URL)) {
+    list.push(process.env.RENDER_EXTERNAL_URL);
+  }
+  return list.length ? list : true; // true = reflect request origin (same-origin only)
+}
+app.use(cors({ origin: getCorsOrigin() }));
 app.use(express.json({ limit: '8mb' })); // larger to allow base64 image uploads
 
 const betLimiter = rateLimit({

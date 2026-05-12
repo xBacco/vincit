@@ -95,6 +95,18 @@ export const removeReaction   = (id, bettor)  => req('DELETE', `/bets/${id}/reac
 export const getNotifPrefs  = (user)        => req('GET',  `/push/prefs/${user}`);
 export const saveNotifPrefs = (prefs)       => req('POST', '/push/prefs', prefs);
 
+// Admin (super-user) — backed by /api/admin/*, gated on is_admin in JWT.
+export const adminUsers          = ()                       => req('GET',  '/admin/users');
+export const adminUserByEmail    = (email)                  => req('GET',  `/admin/users/by-email/${encodeURIComponent(email)}`);
+export const adminIntegrity      = ()                       => req('GET',  '/admin/integrity');
+export const adminGroups         = ()                       => req('GET',  '/admin/groups');
+export const adminDeleteUser     = (id)                     => req('DELETE', `/admin/users/${id}`);
+export const adminClearLegacy    = (id)                     => req('PATCH', `/admin/users/${id}/clear-legacy-room`);
+export const adminAddToGroup     = (groupId, userId)        => req('POST',  `/admin/groups/${groupId}/add-member`, { userId });
+export const adminRemoveFromGroup= (groupId, userId)        => req('DELETE', `/admin/groups/${groupId}/members/${userId}`);
+export const adminRegenCode      = (groupId)                => req('POST',  `/admin/groups/${groupId}/regenerate-code`);
+export const adminSetPassword    = (userId, password)       => req('POST',  `/admin/users/${userId}/set-password`, { password });
+
 export const getAchievements = ()           => req('GET',  '/achievements');
 
 export const listTemplates   = ()           => req('GET',    '/templates');

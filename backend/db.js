@@ -282,6 +282,17 @@ const pool = new Pool({
     CREATE INDEX IF NOT EXISTS idx_friend_requests_to ON friend_requests(to_user_id);
   `);
 
+  // Super-admin flag. Promoted via the ADMIN_EMAIL env var on every boot.
+  await pool.query(`
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT false;
+  `);
+  if (process.env.ADMIN_EMAIL) {
+    await pool.query(
+      'UPDATE users SET is_admin=true WHERE LOWER(email)=LOWER($1)',
+      [process.env.ADMIN_EMAIL.trim()]
+    ).catch(e => console.warn('[admin-promote]', e.message));
+  }
+
   // Friendship has to be EXPLICIT — no auto-friending from shared groups.
   // An earlier version of this migration auto-converted every group overlap
   // into an accepted friendship; that was wrong. The one-shot wipe below

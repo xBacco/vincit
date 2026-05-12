@@ -1,17 +1,35 @@
 'use strict';
 const express = require('express');
-const db = require('../db.js');
+const jwt     = require('jsonwebtoken');
+const bcrypt  = require('bcrypt');
+const db      = require('../db.js');
 
-// All admin endpoints are gated by the same shared secret in
-// process.env.ADMIN_KEY. Pass it via the X-Admin-Key header. If the
-// env var is missing the routes 404 (no leak about their existence).
-function adminGate(req, res, next) {
-  const key = process.env.ADMIN_KEY;
-  if (!key) return res.status(404).json({ error: 'not_found' });
-  if ((req.headers['x-admin-key'] || '') !== key) {
-    return res.status(401).json({ error: 'unauthorized' });
+const SECRET = process.env.JWT_SECRET || 'dev-secret';
+const BCRYPT_ROUNDS = 10;
+
+// Admin gate. Two ways to authenticate, either is enough:
+//   - X-Admin-Key header matching process.env.ADMIN_KEY (for curl/ops)
+//   - A regular Bearer JWT belonging to a user with is_admin=true
+// If neither auth path is configured AND no key is set, the routes 404.
+async function adminGate(req, res, next) {
+  const key  = process.env.ADMIN_KEY;
+  const hkey = req.headers['x-admin-key'];
+  if (key && hkey && hkey === key) return next();
+
+  const auth = req.headers.authorization || '';
+  if (auth.startsWith('Bearer ')) {
+    try {
+      const { userId } = jwt.verify(auth.slice(7), SECRET);
+      const { rows } = await db.query('SELECT is_admin FROM users WHERE id=$1', [userId]);
+      if (rows[0]?.is_admin === true) {
+        req.adminUserId = userId;
+        return next();
+      }
+      return res.status(403).json({ error: 'forbidden' });
+    } catch { /* fall through to 401 */ }
   }
-  next();
+  if (!key) return res.status(404).json({ error: 'not_found' });
+  return res.status(401).json({ error: 'unauthorized' });
 }
 
 const router = express.Router();
@@ -159,6 +177,92 @@ router.get('/integrity', async (req, res) => {
     console.error('[admin:integrity]', e);
     res.status(500).json({ error: 'server_error' });
   }
+});
+
+// GET /api/admin/groups — full room directory + member count
+router.get('/groups', async (req, res) => {
+  try {
+    const { rows } = await db.query(`
+      SELECT r.id, r.name, r.emoji, r.invite_code, r.created_at,
+             (SELECT COUNT(*)::int FROM user_groups WHERE group_id = r.id) AS member_count,
+             (SELECT COUNT(*)::int FROM bets        WHERE room_id  = r.id) AS bet_count
+      FROM rooms r
+      ORDER BY r.created_at DESC
+    `);
+    res.json(rows);
+  } catch (e) { console.error('[admin:groups]', e); res.status(500).json({ error: 'server_error' }); }
+});
+
+// POST /api/admin/groups/:groupId/add-member { userId } — force-add a user
+// to a group bypassing invite codes / size caps. Useful when the morosa
+// can\'t join via the normal flow.
+router.post('/groups/:groupId/add-member', async (req, res) => {
+  try {
+    const groupId = req.params.groupId;
+    const userId  = req.body?.userId;
+    if (!userId) return res.status(400).json({ error: 'missing_user' });
+
+    const { rows: [u] } = await db.query('SELECT id FROM users WHERE id=$1', [userId]);
+    if (!u) return res.status(404).json({ error: 'user_not_found' });
+    const { rows: [g] } = await db.query('SELECT id FROM rooms WHERE id=$1', [groupId]);
+    if (!g) return res.status(404).json({ error: 'group_not_found' });
+
+    await db.query(
+      'INSERT INTO user_groups(group_id, user_id, role, joined_at) VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING',
+      [groupId, userId, 'member', Date.now()]
+    );
+    res.json({ ok: true });
+  } catch (e) { console.error('[admin:add-member]', e); res.status(500).json({ error: 'server_error' }); }
+});
+
+// DELETE /api/admin/groups/:groupId/members/:userId — remove a member.
+router.delete('/groups/:groupId/members/:userId', async (req, res) => {
+  try {
+    await db.query(
+      'DELETE FROM user_groups WHERE group_id=$1 AND user_id=$2',
+      [req.params.groupId, req.params.userId]
+    );
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: 'server_error' }); }
+});
+
+// POST /api/admin/groups/:groupId/regenerate-code — issue a fresh invite code.
+router.post('/groups/:groupId/regenerate-code', async (req, res) => {
+  try {
+    const CHARSET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+    const make = () => Array.from({ length: 6 }, () =>
+      CHARSET[Math.floor(Math.random() * CHARSET.length)]
+    ).join('');
+    let code;
+    for (let i = 0; i < 10; i++) {
+      code = make();
+      const { rows } = await db.query('SELECT 1 FROM rooms WHERE invite_code=$1', [code]);
+      if (!rows.length) break;
+    }
+    await db.query('UPDATE rooms SET invite_code=$1 WHERE id=$2', [code, req.params.groupId]);
+    res.json({ ok: true, invite_code: code });
+  } catch (e) { console.error('[admin:regenerate]', e); res.status(500).json({ error: 'server_error' }); }
+});
+
+// POST /api/admin/users/:id/set-password { password } — directly set a
+// password, no email needed. Lets you unblock someone whose password reset
+// flow is broken (SMTP not configured, link not arriving, etc.).
+router.post('/users/:id/set-password', async (req, res) => {
+  try {
+    const password = req.body?.password;
+    if (typeof password !== 'string' || password.length < 8)
+      return res.status(400).json({ error: 'password_too_short' });
+    const hash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+    await db.transaction(async (client) => {
+      await client.query('UPDATE users SET password_hash=$1 WHERE id=$2', [hash, req.params.id]);
+      // Invalidate any outstanding reset tokens for this user.
+      await client.query(
+        'UPDATE password_resets SET used_at=$1 WHERE user_id=$2 AND used_at IS NULL',
+        [Date.now(), req.params.id]
+      );
+    });
+    res.json({ ok: true });
+  } catch (e) { console.error('[admin:set-password]', e); res.status(500).json({ error: 'server_error' }); }
 });
 
 module.exports = router;

@@ -18,6 +18,7 @@ import BetsHubView from './components/views/BetsHubView.jsx';
 import StatsView from './components/views/StatsView.jsx';
 import TrophiesView from './components/views/TrophiesView.jsx';
 import FriendsView  from './components/views/FriendsView.jsx';
+import AdminView    from './components/views/AdminView.jsx';
 import SettingsView from './components/views/SettingsView.jsx';
 import CreateModal from './components/modals/CreateModal.jsx';
 import CreateGroupModal from './components/modals/CreateGroupModal.jsx';
@@ -554,6 +555,7 @@ export default function App() {
     { id: 'stats', e: '📊', l: t('nav.stats') },
     { id: 'friends', e: '👥', l: t('nav.friends') },
     { id: 'trophies', e: '🏆', l: t('nav.trophies') },
+    ...(authUser?.is_admin ? [{ id: 'admin', e: '🛠', l: 'Admin' }] : []),
     { id: 'settings', e: '⚙️', l: t('nav.settings') },
   ];
 
@@ -693,6 +695,7 @@ export default function App() {
             {view === 'stats'     && <StatsView user={user} profiles={profiles} groupMembers={groupMembers} credits={credits} bets={bets} cats={cats} isDesktop={isDesktop} />}
             {view === 'trophies'  && <TrophiesView bets={bets} isDesktop={isDesktop} />}
             {view === 'friends'   && <FriendsView groups={groups} user={user} onSwitchToGroup={switchGroup} isDesktop={isDesktop} />}
+            {view === 'admin' && authUser?.is_admin && <AdminView isDesktop={isDesktop} />}
             {view === 'settings'  && <SettingsView user={user} profiles={profiles} groupMembers={groupMembers} isDark={isDark} setIsDark={setIsDark} customCats={customCats} credits={credits} bets={bets} onUpdateProfile={handleUpdateProfile} onCreateCategory={handleCreateCategory} onDeleteCategory={handleDeleteCategory} vaultPin={vaultPin} onSetVaultPin={handleSetVaultPin} isDesktop={isDesktop} onReset={handleReset} onTestReset={handleTestReset} onLogout={handleLogout} onOpenProfileEdit={() => setShowProfileEdit(true)} isAdmin={isAdmin} can={can} />}
           </>);
         })()}

@@ -33,6 +33,7 @@ export default function SettingsView({user,profiles,groupMembers,isDark,setIsDar
     on_group_bet:true, on_challenged:true, on_targeted:true,
     on_resolved:true, on_expiry:true,
   });
+  const [membersOpen, setMembersOpen] = useState(false);
   const myProfile = profiles[user];
 
   useEffect(()=>{
@@ -145,25 +146,102 @@ export default function SettingsView({user,profiles,groupMembers,isDark,setIsDar
         </div>
       )}
 
-      {/* PARTNER PROFILES (read-only) */}
-      {Object.keys(profiles).filter(k => k !== user).length > 0 && (
-        <>
-          <SecLabel mt={16}>{t('settings.partner')}</SecLabel>
-          {Object.keys(profiles).filter(k => k !== user).map(k => {
-            const p = profiles[k];
-            return (
-              <div key={k} style={{...S.card,marginBottom:10,opacity:.65}}>
-                <div style={{display:"flex",alignItems:"center",gap:12}}>
-                  <div style={{fontSize:32}}>{p.avatar}</div>
-                  <div style={{flex:1}}>
-                    <div style={{fontWeight:600,fontSize:14}}>{p.name}</div>
+      {/* GROUP MEMBERS (collapsible — read-only) */}
+      {(() => {
+        const partnerIds = Object.keys(profiles).filter(k => k !== user);
+        if (partnerIds.length === 0) return null;
+        return (
+          <>
+            <SecLabel mt={16}>{t('settings.partner')}</SecLabel>
+            <div style={{
+              ...S.card, marginBottom: 12, padding: 0, overflow: 'hidden',
+            }}>
+              <button
+                onClick={() => setMembersOpen(o => !o)}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '12px 14px',
+                  background: 'transparent', border: 'none', cursor: 'pointer',
+                  color: 'var(--txt)', textAlign: 'left',
+                  fontFamily: "'Syne',sans-serif",
+                }}
+              >
+                <div style={{
+                  display: 'flex', alignItems: 'center',
+                }}>
+                  {partnerIds.slice(0, 3).map((id, i) => {
+                    const p = profiles[id];
+                    const color = COLORS[p?.colorKey] || '#5b8af0';
+                    return (
+                      <div key={id} style={{
+                        width: 26, height: 26, borderRadius: '50%',
+                        background: `${color}33`,
+                        border: '2px solid var(--card)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 13, overflow: 'hidden', flexShrink: 0,
+                        marginLeft: i === 0 ? 0 : -8,
+                        zIndex: 5 - i,
+                      }}>
+                        {p?.avatarUrl
+                          ? <img src={p.avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
+                          : (p?.avatar || '😊')}
+                      </div>
+                    );
+                  })}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700 }}>
+                    {partnerIds.length === 1
+                      ? t('settings.members_count_one')
+                      : t('settings.members_count', { n: partnerIds.length })}
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--dim)', marginTop: 2 }}>
+                    {membersOpen ? t('settings.members_hide') : t('settings.members_show')}
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </>
-      )}
+                <span style={{
+                  fontSize: 12, color: 'var(--dim)', flexShrink: 0,
+                  transform: membersOpen ? 'rotate(180deg)' : 'rotate(0)',
+                  transition: 'transform .2s',
+                }}>▾</span>
+              </button>
+
+              {membersOpen && (
+                <div style={{ borderTop: '1px solid var(--brd)' }}>
+                  {partnerIds.map(k => {
+                    const p = profiles[k];
+                    const color = COLORS[p?.colorKey] || '#5b8af0';
+                    return (
+                      <div key={k} style={{
+                        display: 'flex', alignItems: 'center', gap: 10,
+                        padding: '10px 14px',
+                        borderTop: '1px solid var(--brd)33',
+                      }}>
+                        <div style={{
+                          width: 32, height: 32, borderRadius: '50%',
+                          background: `${color}33`, border: `2px solid ${color}66`,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 14, overflow: 'hidden', flexShrink: 0,
+                        }}>
+                          {p?.avatarUrl
+                            ? <img src={p.avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
+                            : (p?.avatar || '😊')}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 600, fontSize: 13,
+                            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {p?.name}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </>
+        );
+      })()}
 
       {/* VAULT PIN */}
       <SecLabel mt={16}>{t('settings.vault_pin')}</SecLabel>

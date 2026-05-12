@@ -67,7 +67,9 @@ const TRANSLATIONS = {
       by_cat:'Per Categoria', hof:'🔥 Hall of Fame', no_bets:'Nessuna bet risolta — inizia a giocare!',
     },
     settings: {
-      title:'⚙️ Impostazioni', profiles:'Profili', my_profile:'Il tuo profilo', partner:'Partner',
+      title:'⚙️ Impostazioni', profiles:'Profili', my_profile:'Il tuo profilo', partner:'Membri del gruppo',
+      members_count_one:'1 altro membro', members_count:'{n} altri membri',
+      members_show:'Tocca per espandere', members_hide:'Tocca per nascondere',
       avatar_label:'Avatar', color_label:'Colore tema', lang_label:'Lingua', lang_desc:"Scegli la lingua dell'app",
       photo_label:'Foto personalizzata', photo_upload:'📷 Carica foto', photo_change:'📷 Cambia foto', photo_remove:'✕ Rimuovi foto', photo_uploading:'caricamento…', photo_fallback:' (fallback)',
       vault_pin:'Vault PIN (mio)', vault_active:'🔒 PIN attivo', vault_none:'🔓 Nessun PIN',
@@ -474,7 +476,9 @@ const TRANSLATIONS = {
       by_cat:'By Category', hof:'🔥 Hall of Fame', no_bets:'No resolved bets yet — start playing!',
     },
     settings: {
-      title:'⚙️ Settings', profiles:'Profiles', my_profile:'Your profile', partner:'Partner',
+      title:'⚙️ Settings', profiles:'Profiles', my_profile:'Your profile', partner:'Group members',
+      members_count_one:'1 other member', members_count:'{n} other members',
+      members_show:'Tap to expand', members_hide:'Tap to collapse',
       avatar_label:'Avatar', color_label:'Theme color', lang_label:'Language', lang_desc:'Choose the app language',
       photo_label:'Custom photo', photo_upload:'📷 Upload photo', photo_change:'📷 Change photo', photo_remove:'✕ Remove photo', photo_uploading:'uploading…', photo_fallback:' (fallback)',
       vault_pin:'Vault PIN (mine)', vault_active:'🔒 PIN active', vault_none:'🔓 No PIN set',

@@ -138,6 +138,23 @@ function useBreakpoint(minWidth) {
   return matches;
 }
 
+// One-shot URL-driven dev-tools toggle.
+// Visit  ?devtools=1  to make the hidden 🧪 Test Reset card reappear,
+// ?devtools=0  to hide it again. The flag persists in localStorage so
+// the URL param only needs to be hit once.
+(function syncDevToolsFromURL() {
+  try {
+    const url = new URL(window.location.href);
+    const v = url.searchParams.get('devtools');
+    if (v === '1') localStorage.setItem('bc_dev_tools', '1');
+    else if (v === '0') localStorage.removeItem('bc_dev_tools');
+    if (v !== null) {
+      url.searchParams.delete('devtools');
+      window.history.replaceState({}, '', url.toString());
+    }
+  } catch {}
+})();
+
 export default function App() {
   const [isDark, setIsDark] = useState(true);
   const C = isDark ? DARK : LIGHT;

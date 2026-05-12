@@ -120,6 +120,7 @@ export default function GroupPicker({
   const chip = (
     <button
       ref={chipRef}
+      data-tour="group-picker"
       onClick={openPicker}
       style={{
         display: 'flex', alignItems: 'center', gap: 9,

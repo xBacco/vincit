@@ -665,12 +665,16 @@ export default function App() {
       {!tourDone && !!profiles[user] && (
         <OnboardingTour
           steps={[
-            { selector: '[data-tour="new-bet"]', title: t('onboarding.step1_title'),
-              body: t('onboarding.step1_body'), place: isDesktop ? 'top' : 'top' },
-            { selector: '[data-tour="nav-bets"]', title: t('onboarding.step2_title'),
-              body: t('onboarding.step2_body'), place: isDesktop ? 'bottom' : 'top' },
-            { selector: '[data-tour="nav-stats"]', title: t('onboarding.step3_title'),
+            { selector: '[data-tour="group-picker"]', title: t('onboarding.step1_title'),
+              body: t('onboarding.step1_body'), place: 'bottom' },
+            { selector: '[data-tour="new-bet"]',     title: t('onboarding.step2_title'),
+              body: t('onboarding.step2_body'), place: 'top' },
+            { selector: '[data-tour="nav-bets"]',    title: t('onboarding.step3_title'),
               body: t('onboarding.step3_body'), place: isDesktop ? 'bottom' : 'top' },
+            { selector: '[data-tour="nav-friends"]', title: t('onboarding.step4_title'),
+              body: t('onboarding.step4_body'), place: isDesktop ? 'bottom' : 'top' },
+            { selector: '[data-tour="nav-stats"]',   title: t('onboarding.step5_title'),
+              body: t('onboarding.step5_body'), place: isDesktop ? 'bottom' : 'top' },
           ]}
           onDone={() => { localStorage.setItem('bc_onboarding_done', '1'); setTourDone(true); }}
         />

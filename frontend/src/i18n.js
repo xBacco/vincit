@@ -168,7 +168,8 @@ const TRANSLATIONS = {
       comeback:'Comeback',                       comeback_desc:'Vittoria dopo 3 sconfitte consecutive',
       comeback_5:'Resurrezione',                 comeback_5_desc:'Vittoria dopo 5 sconfitte consecutive',
       equilibrium:'Equilibrio',                  equilibrium_desc:'Almeno 10 vittorie e 10 sconfitte',
-      balance_500:'Pieno di crediti',            balance_500_desc:'Saldo a 500 ₡ o oltre',
+      earnings_500:'Mezzo migliaio',             earnings_500_desc:'Guadagna 500 ₡ in vincite cumulative',
+      earnings_1000:'Mille ₡',                   earnings_1000_desc:'Guadagna 1000 ₡ in vincite cumulative',
     },
     templates: {
       title_settings:'I miei template', title_picker:'Template salvati',
@@ -413,7 +414,8 @@ const TRANSLATIONS = {
       comeback:'Comeback',                 comeback_desc:'Win after 3 losses in a row',
       comeback_5:'Resurrection',           comeback_5_desc:'Win after 5 losses in a row',
       equilibrium:'Equilibrium',           equilibrium_desc:'At least 10 wins and 10 losses',
-      balance_500:'Loaded',                balance_500_desc:'Balance at 500 ₡ or above',
+      earnings_500:'Half a grand',         earnings_500_desc:'Win 500 ₡ in cumulative earnings',
+      earnings_1000:'Grand',               earnings_1000_desc:'Win 1000 ₡ in cumulative earnings',
     },
     templates: {
       title_settings:'My templates', title_picker:'Saved templates',

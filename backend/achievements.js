@@ -31,11 +31,12 @@ const CATALOG = [
   { id: 'loss_streak_5',  icon: '❄️', tier: 'silver', category: 'shadow' },
   { id: 'loss_streak_10', icon: '💀', tier: 'gold',   category: 'shadow' },
   { id: 'total_losses_25', icon: '📉', tier: 'silver', category: 'shadow' },
-  // Recovery + balance
-  { id: 'comeback',     icon: '⚖',  tier: 'silver', category: 'mission' },
-  { id: 'comeback_5',   icon: '🔥', tier: 'gold',   category: 'mission' },
-  { id: 'equilibrium',  icon: '⚖',  tier: 'silver', category: 'mission' },
-  { id: 'balance_500',  icon: '💎', tier: 'gold',   category: 'positive' },
+  // Recovery + earnings
+  { id: 'comeback',      icon: '⚖',  tier: 'silver', category: 'mission' },
+  { id: 'comeback_5',    icon: '🔥', tier: 'gold',   category: 'mission' },
+  { id: 'equilibrium',   icon: '⚖',  tier: 'silver', category: 'mission' },
+  { id: 'earnings_500',  icon: '💎', tier: 'gold',   category: 'positive' },
+  { id: 'earnings_1000', icon: '👑', tier: 'gold',   category: 'positive' },
 ];
 
 // Returns map { id → { current, target } } so the UI can show progress bars.
@@ -88,9 +89,11 @@ async function computeProgressFor(userId) {
     }
   }
 
-  // Balance
-  const { rows: cr } = await db.query('SELECT amount FROM credits WHERE "user"=$1', [userId]);
-  const balance = cr[0]?.amount ?? 0;
+  // Cumulative net winnings from all won bets (delta = potential_win - stake)
+  const totalEarnings = wins.reduce(
+    (s, b) => s + (Number(b.potential_win) - Number(b.stake)),
+    0
+  );
 
   return {
     first_win:       { current: wins.length,   target: 1 },
@@ -122,7 +125,8 @@ async function computeProgressFor(userId) {
     comeback:        { current: comeback3,     target: 1 },
     comeback_5:      { current: comeback5,     target: 1 },
     equilibrium:     { current: Math.min(wins.length, losses.length), target: 10 },
-    balance_500:     { current: balance,       target: 500 },
+    earnings_500:    { current: totalEarnings,  target: 500 },
+    earnings_1000:   { current: totalEarnings,  target: 1000 },
   };
 }
 

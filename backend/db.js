@@ -180,6 +180,11 @@ const pool = new Pool({
     CREATE INDEX IF NOT EXISTS idx_achievements_user ON achievements(user_id);
   `);
 
+  // Migrate legacy balance_500 (was based on current balance) → earnings_500 (cumulative winnings)
+  await pool.query(`
+    UPDATE achievements SET achievement_id='earnings_500' WHERE achievement_id='balance_500';
+  `).catch(() => { /* nothing to migrate */ });
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS bet_templates (
       id          TEXT PRIMARY KEY,

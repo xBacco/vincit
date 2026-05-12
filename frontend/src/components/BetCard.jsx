@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Btn, Bdg, Avatar, fmtQ, fmtD, tLeft, isSoon, qNo, COLORS } from './Atoms.jsx';
 import { useLang } from '../i18n.js';
-import { fileToSquareDataUrl } from '../imageUtils.js';
+import PhotoCaptureModal from './modals/PhotoCaptureModal.jsx';
 
 const S = {
   card: {background:"var(--card)",border:"1px solid var(--brd)",borderRadius:16,padding:16},
@@ -20,19 +20,15 @@ const VERT_ABORT      = 40;
 export default function BetCard({bet,user,profiles,cats,onResolve,onReveal,onCounter,onFlame,onReaction,onReactionPhoto,reactions,onDelete,onEdit,isDesktop,onAccept,onReject,can}){
   const { t, lang } = useLang();
   const canModerate = typeof can === 'function' && can('moderate_bets');
-  const photoInputRef = useRef(null);
+  const [photoCaptureOpen, setPhotoCaptureOpen] = useState(false);
   const [photoBusy, setPhotoBusy] = useState(false);
   const [lightbox, setLightbox] = useState(null);
 
-  const handlePhotoFile = async e => {
-    const f = e.target.files?.[0];
-    e.target.value = '';
-    if (!f || !onReactionPhoto) return;
+  const handlePhotoCapture = async dataUrl => {
+    if (!onReactionPhoto) return;
     setPhotoBusy(true);
-    try {
-      const dataUrl = await fileToSquareDataUrl(f, 1080, 0.85);
-      await onReactionPhoto(bet.id, dataUrl);
-    } catch (err) { console.error(err); }
+    try { await onReactionPhoto(bet.id, dataUrl); }
+    catch (err) { console.error(err); }
     finally { setPhotoBusy(false); }
   };
   const catLabel = c => DEF_IDS.includes(c.id) ? t('cats.'+c.id) : c.label;
@@ -232,19 +228,17 @@ export default function BetCard({bet,user,profiles,cats,onResolve,onReveal,onCou
                   );
                 })}
                 {onReactionPhoto && (
-                  <>
-                    <input ref={photoInputRef} type="file" accept="image/*" onChange={handlePhotoFile} style={{display:"none"}}/>
-                    <button onClick={()=>photoInputRef.current?.click()} disabled={photoBusy}
-                      title="Reagisci con una foto"
-                      style={{display:"inline-flex",alignItems:"center",gap:3,padding:"4px 8px",borderRadius:20,
-                        border:`1px solid ${myReaction?.image_url?"var(--gold)":"var(--brd)"}`,
-                        background:myReaction?.image_url?"var(--gold)22":"transparent",
-                        cursor:"pointer",fontSize:13,color:myReaction?.image_url?"var(--gold)":"var(--dim)",
-                        fontFamily:"'Syne',sans-serif",fontWeight:600,transition:"all .15s",
-                        opacity:photoBusy?.5:1}}>
-                      📷
-                    </button>
-                  </>
+                  <button onClick={()=>setPhotoCaptureOpen(true)} disabled={photoBusy}
+                    title="Reagisci con una foto"
+                    style={{display:"inline-flex",alignItems:"center",gap:5,padding:"4px 10px 4px 7px",borderRadius:20,
+                      border:`1px solid ${myReaction?.image_url ? 'var(--gold)' : 'var(--gold)44'}`,
+                      background: myReaction?.image_url ? 'var(--gold)22' : 'var(--gold)0d',
+                      cursor:'pointer', fontSize:11, color: myReaction?.image_url ? 'var(--gold)' : 'var(--gold)',
+                      fontFamily:"'Syne',sans-serif", fontWeight:700, letterSpacing:.5,
+                      transition:'all .15s', opacity: photoBusy ? .5 : 1}}>
+                    <span style={{fontSize:13, lineHeight:1}}>📸</span>
+                    <span style={{textTransform:'uppercase'}}>Foto</span>
+                  </button>
                 )}
               </div>
               {photoReactions.length>0 && (
@@ -306,6 +300,13 @@ export default function BetCard({bet,user,profiles,cats,onResolve,onReveal,onCou
         {/* Actions column: desktop right side */}
         {isDesktop&&actions}
       </div>
+
+      {photoCaptureOpen && (
+        <PhotoCaptureModal
+          onCapture={handlePhotoCapture}
+          onClose={() => setPhotoCaptureOpen(false)}
+        />
+      )}
 
       {lightbox && (
         <div onClick={()=>setLightbox(null)} style={{

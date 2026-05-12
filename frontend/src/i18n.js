@@ -215,6 +215,20 @@ const TRANSLATIONS = {
     streak: {
       hot:'Win streak', cold:'Loss streak',
     },
+    profile: {
+      edit_title:'Modifica profilo', tap_to_edit:'Tocca per modificare',
+      cat_game:'Gioco', cat_animals:'Animali', cat_elements:'Elementi',
+      cat_objects:'Oggetti', cat_arts:'Arte', cat_nature:'Natura', cat_food:'Cibo',
+      fallback_hint:"L'avatar emoji apparirà se rimuovi la foto personalizzata.",
+    },
+    photo: {
+      title:'Scatta o carica',
+      shoot:'Scatta', gallery:'Galleria', flip:'Cambia fotocamera',
+      starting:'AVVIO FOTOCAMERA…',
+      no_camera:'Fotocamera non disponibile · usa la galleria',
+      hint:"Scatta al volo o scegli un'immagine dalla galleria",
+      hint_file:"Tocca l'icona galleria per scegliere un'immagine",
+    },
     pairing: {
       your_code:'Il tuo codice', share_hint:'Condividi con il partner',
       copy_btn:'Copia', copied:'Copiato! ✓', or:'oppure',
@@ -492,6 +506,14 @@ const TRANSLATIONS = {
       cat_game:'Game', cat_animals:'Animals', cat_elements:'Elements',
       cat_objects:'Objects', cat_arts:'Arts', cat_nature:'Nature', cat_food:'Food',
       fallback_hint:'The emoji avatar will show if you remove the custom photo.',
+    },
+    photo: {
+      title:'Take or upload',
+      shoot:'Capture', gallery:'Gallery', flip:'Switch camera',
+      starting:'STARTING CAMERA…',
+      no_camera:'Camera unavailable · use the gallery',
+      hint:'Snap one live or pick a picture from your gallery',
+      hint_file:'Tap the gallery icon to pick a picture',
     },
     pairing: {
       your_code:'Your code', share_hint:'Share with your partner',

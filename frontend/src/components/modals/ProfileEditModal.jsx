@@ -58,12 +58,12 @@ export default function ProfileEditModal({ profile, onClose, onSaved }) {
     <div onClick={onClose} style={{
       position:'fixed', inset:0, background:'rgba(0,0,0,.85)',
       display:'flex', alignItems:'center', justifyContent:'center', zIndex:120,
-      padding:'env(safe-area-inset-top, 16px) 12px env(safe-area-inset-bottom, 16px)',
+      padding:16, overflow:'hidden',
     }}>
       <div onClick={e => e.stopPropagation()} className="bIn" style={{
         background:'var(--surf)', border:'1px solid var(--brd)',
         borderRadius:18, width:'100%', maxWidth:520,
-        maxHeight:'92vh', display:'flex', flexDirection:'column',
+        maxHeight:'calc(100dvh - 32px)', display:'flex', flexDirection:'column',
         boxShadow:'0 24px 64px rgba(0,0,0,.6)',
       }}>
         {/* Header */}
@@ -152,27 +152,28 @@ export default function ProfileEditModal({ profile, onClose, onSaved }) {
                 {t('settings.avatar_label')}{avatarUrl ? t('settings.photo_fallback') : ''}
               </label>
             </div>
-            {/* Category tab strip */}
-            <div style={{display:'flex', gap:4, overflowX:'auto', paddingBottom:6, marginBottom:8, scrollbarWidth:'none'}}>
+            {/* Category tab strip — icon-only, all 7 visible on a single row */}
+            <div style={{display:'grid', gridTemplateColumns:`repeat(${AVATAR_CATEGORIES.length}, 1fr)`, gap:4, marginBottom:6}}>
               {AVATAR_CATEGORIES.map(cat => {
                 const active = activeCat === cat.id;
                 return (
                   <button key={cat.id} onClick={() => setActiveCat(cat.id)}
                     title={t('profile.cat_'+cat.id)}
                     style={{
-                      flexShrink:0, padding:'6px 10px', borderRadius:18,
+                      padding:'8px 0', borderRadius:10,
                       border:`1px solid ${active ? 'var(--gold)' : 'var(--brd)'}`,
-                      background: active ? 'var(--gold)22' : 'transparent',
+                      background: active ? 'var(--gold)22' : 'var(--surf)',
                       color: active ? 'var(--gold)' : 'var(--dim)',
-                      cursor:'pointer', fontSize:13, lineHeight:1,
+                      cursor:'pointer', fontSize:20, lineHeight:1, transition:'all .15s',
                     }}>
                     {cat.icon}
-                    <span style={{fontSize:10, marginLeft:5, fontFamily:"'Syne',sans-serif", fontWeight:600, letterSpacing:1, textTransform:'uppercase'}}>
-                      {t('profile.cat_'+cat.id)}
-                    </span>
                   </button>
                 );
               })}
+            </div>
+            {/* Label of the currently-selected category */}
+            <div style={{fontSize:10, color:'var(--dim)', letterSpacing:2, textTransform:'uppercase', fontWeight:700, marginBottom:8, textAlign:'center'}}>
+              {t('profile.cat_'+activeCat)}
             </div>
             {/* Grid */}
             <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(46px, 1fr))', gap:6}}>

@@ -21,7 +21,7 @@ module.exports = function(broadcastUpdate) {
         return res.status(400).json({ error: 'Emoji non valida' });
       }
       const { rows } = await db.query('SELECT room_id FROM bets WHERE id=$1', [req.params.id]);
-      if (!rows[0] || rows[0].room_id !== req.roomId) return res.status(403).json({ error: 'Forbidden' });
+      if (!rows[0] || rows[0].room_id !== req.activeRoomId) return res.status(403).json({ error: 'Forbidden' });
 
       // If the previous reaction had a photo, drop it from Cloudinary
       const prev = await db.query('SELECT image_url FROM reactions WHERE bet_id=$1 AND bettor=$2', [req.params.id, bettor]);
@@ -35,7 +35,7 @@ module.exports = function(broadcastUpdate) {
          ON CONFLICT (bet_id, bettor) DO UPDATE SET emoji = EXCLUDED.emoji, image_url = NULL`,
         [req.params.id, bettor, emoji]
       );
-      broadcastUpdate(req.roomId);
+      broadcastUpdate(req.activeRoomId);
       refreshAchievements(bettor); // first_react milestone
       res.json({ ok: true });
     } catch (err) {
@@ -57,7 +57,7 @@ module.exports = function(broadcastUpdate) {
       if (approxBytes > 5 * 1024 * 1024) return res.status(413).json({ error: 'image_too_large' });
 
       const { rows } = await db.query('SELECT room_id FROM bets WHERE id=$1', [req.params.id]);
-      if (!rows[0] || rows[0].room_id !== req.roomId) return res.status(403).json({ error: 'Forbidden' });
+      if (!rows[0] || rows[0].room_id !== req.activeRoomId) return res.status(403).json({ error: 'Forbidden' });
 
       const result = await uploadDataUrl(dataUrl, {
         folder:   REACTION_FOLDER,
@@ -74,7 +74,7 @@ module.exports = function(broadcastUpdate) {
          ON CONFLICT (bet_id, bettor) DO UPDATE SET emoji = NULL, image_url = EXCLUDED.image_url`,
         [req.params.id, bettor, result.secure_url]
       );
-      broadcastUpdate(req.roomId);
+      broadcastUpdate(req.activeRoomId);
       refreshAchievements(bettor); // first_photo + paparazzo levels
       res.json({ image_url: result.secure_url });
     } catch (err) {
@@ -86,7 +86,7 @@ module.exports = function(broadcastUpdate) {
   router.delete('/:id/reaction/:bettor', async (req, res) => {
     try {
       const { rows } = await db.query('SELECT room_id FROM bets WHERE id=$1', [req.params.id]);
-      if (!rows[0] || rows[0].room_id !== req.roomId) return res.status(403).json({ error: 'Forbidden' });
+      if (!rows[0] || rows[0].room_id !== req.activeRoomId) return res.status(403).json({ error: 'Forbidden' });
       // Best-effort cleanup if was photo
       const prev = await db.query('SELECT image_url FROM reactions WHERE bet_id=$1 AND bettor=$2', [req.params.id, req.userId]);
       if (prev.rows[0]?.image_url) {
@@ -96,7 +96,7 @@ module.exports = function(broadcastUpdate) {
         'DELETE FROM reactions WHERE bet_id = $1 AND bettor = $2',
         [req.params.id, req.userId]
       );
-      broadcastUpdate(req.roomId);
+      broadcastUpdate(req.activeRoomId);
       res.json({ ok: true });
     } catch (err) {
       console.error(err);

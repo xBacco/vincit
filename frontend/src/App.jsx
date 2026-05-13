@@ -337,7 +337,7 @@ function DieRollOverlay({ open, onClose, onEggUnlock }) {
       // the DB but not yet in this client's baseline).
       try { localStorage.setItem(DIE_LS_KEY, '1'); } catch {}
       api.unlockSecretAchievement('egg_dice')
-        .then(() => onEggUnlockRef.current?.())
+        .then(() => onEggUnlockRef.current?.('egg_dice'))
         .catch(e => console.error('[egg_dice] unlock failed', e));
     }, 1300);
     const tClose = setTimeout(() => onCloseRef.current?.(), 4500);
@@ -400,15 +400,14 @@ function CoinFlipOverlay({ open, onClose, onEggUnlock }) {
     setSide(result);
     // Flip lasts 2.6s, settle phase fires when it ends.
     const t1 = setTimeout(() => setPhase('settled'), 2600);
-    // First flip ever → claim the trophy (idempotent server-side).
-    try {
-      if (!localStorage.getItem(COIN_LS_KEY)) {
-        localStorage.setItem(COIN_LS_KEY, '1');
-        api.unlockSecretAchievement('egg_coin')
-          .then(() => onEggUnlockRef.current?.())
-          .catch(e => console.error('[egg_coin] unlock failed', e));
-      }
-    } catch {}
+    // Always call the unlock endpoint — server is idempotent. The old LS
+    // gate caused the trophy to never unlock if the LS key was set but
+    // the trophy was never actually recorded server-side (DB reset,
+    // network hiccup, etc).
+    try { localStorage.setItem(COIN_LS_KEY, '1'); } catch {}
+    api.unlockSecretAchievement('egg_coin')
+      .then(() => onEggUnlockRef.current?.('egg_coin'))
+      .catch(e => console.error('[egg_coin] unlock failed', e));
     const t2 = setTimeout(() => onCloseRef.current?.(), 5000);
     return () => { clearTimeout(t1); clearTimeout(t2); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -444,6 +443,14 @@ function CoinFlipOverlay({ open, onClose, onEggUnlock }) {
     </div>
   );
 }
+
+// Static metadata used by onEggFired to build the synthetic trophy queue
+// entry. Kept at module scope so the useCallback closure is truly stable.
+const EGG_TROPHY_META = {
+  egg_dice:    { icon: '🎲' },
+  egg_coin:    { icon: '🪙' },
+  egg_jackpot: { icon: '🎰' },
+};
 
 const lsGet  = (k, fallback) => { try { const v = localStorage.getItem(k); return v !== null ? JSON.parse(v) : fallback; } catch { return fallback; } };
 const lsSet  = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
@@ -633,7 +640,6 @@ export default function App() {
   const [coinFlipOpen,    setCoinFlipOpen]    = useState(false); // easter egg #2 (coin)
   const [dieRollOpen,     setDieRollOpen]     = useState(false); // easter egg #1 (dice)
   const [eggTick,         setEggTick]         = useState(0);     // bumps after a secret unlock so trophy polling refreshes
-  const bumpEggTick = useCallback(() => setEggTick(n => n + 1), []);
   const [pendingFriendCount, setPendingFriendCount] = useState(0);
 
   useEffect(() => { if (user && groups.length > 0) registerPush(user); }, [user, groups.length]);
@@ -686,7 +692,14 @@ export default function App() {
       if (fresh.length) {
         // Sort by level asc so successive levels of same trophy appear in order
         fresh.sort((a,b) => a.level - b.level);
-        setTrophyQueue(q => [...q, ...fresh]);
+        // Dedup against anything already in the queue (e.g., a synthetic
+        // trophy push from onEggFired that pre-populated this same id).
+        setTrophyQueue(q => {
+          const newOnes = fresh.filter(f =>
+            !q.some(qt => qt.id === f.id && qt.level === f.level)
+          );
+          return newOnes.length ? [...q, ...newOnes] : q;
+        });
       }
       setTrophyBaseline(cur);
     }).catch(() => {});
@@ -694,6 +707,31 @@ export default function App() {
   }, [bets.length, user, eggTick]);
 
   const consumeTrophy = () => setTrophyQueue(q => q.slice(1));
+
+  // Easter egg "fired" channel — every time an egg overlay finishes its
+  // animation it calls onEggFired(id). This DIRECTLY pushes a synthetic
+  // trophy entry to the queue so the user sees the unlock popup even if
+  // the trophy was already unlocked server-side (in which case the
+  // baseline-diff path would silently skip it). We also pre-seed baseline
+  // and bump eggTick so the legacy poll path stays consistent.
+  const onEggFired = useCallback((id) => {
+    const meta = EGG_TROPHY_META[id];
+    if (!meta) return;
+    setTrophyQueue(q => {
+      // Dedup — never queue the same egg twice in a row.
+      if (q.some(t => t.id === id && t.level === 1)) return q;
+      return [...q, { id, icon: meta.icon, level: 1, max_level: 1 }];
+    });
+    setTrophyBaseline(b => {
+      if (!b) return b; // baseline not initialized yet — nothing to keep in sync
+      const key = `${id}:1`;
+      if (b.has(key)) return b;
+      const next = new Set(b);
+      next.add(key);
+      return next;
+    });
+    setEggTick(n => n + 1);
+  }, []);
 
   const notifSince = user ? { [user]: getNotifSince(user) } : {};
 
@@ -1118,7 +1156,7 @@ export default function App() {
             return null;
           }
           return (<>
-            {view === 'dashboard' && <DashboardView user={user} profiles={profiles} groupMembers={groupMembers} credits={credits} bets={bets} cats={cats} onCreate={() => setShowCreate(true)} onResolve={b => setResolveBet(b)} onReveal={b => setRevealBet(b)} onCounter={b => setCounterTarget(b)} onFlame={handleFlame} notifSince={notifSince} isDesktop={isDesktop} reactions={reactions} onReaction={handleReaction} onReactionPhoto={handleReactionPhoto} onDelete={handleDelete} onEdit={b => setEditingBet(b)} onAccept={handleAccept} onReject={handleReject} can={can} onGoToVault={goToVault} onConfirmOutcome={handleConfirmOutcome} onWithdrawResolve={handleWithdrawResolve} onOvertime={b => setOvertimeBet(b)} onEggUnlock={bumpEggTick} onOpenDie={() => setDieRollOpen(true)} />}
+            {view === 'dashboard' && <DashboardView user={user} profiles={profiles} groupMembers={groupMembers} credits={credits} bets={bets} cats={cats} onCreate={() => setShowCreate(true)} onResolve={b => setResolveBet(b)} onReveal={b => setRevealBet(b)} onCounter={b => setCounterTarget(b)} onFlame={handleFlame} notifSince={notifSince} isDesktop={isDesktop} reactions={reactions} onReaction={handleReaction} onReactionPhoto={handleReactionPhoto} onDelete={handleDelete} onEdit={b => setEditingBet(b)} onAccept={handleAccept} onReject={handleReject} can={can} onGoToVault={goToVault} onConfirmOutcome={handleConfirmOutcome} onWithdrawResolve={handleWithdrawResolve} onOvertime={b => setOvertimeBet(b)} onEggUnlock={onEggFired} onOpenDie={() => setDieRollOpen(true)} />}
             {view === 'bets'      && <BetsHubView
                 tab={betsTab} setTab={setBetsTab}
                 user={user} profiles={profiles} bets={bets} cats={cats} isDesktop={isDesktop}
@@ -1190,7 +1228,7 @@ export default function App() {
       )}
 
       {/* Modals */}
-      {showCreate     && <CreateModal user={user} profiles={profiles} groupMembers={groupMembers} maxC={credits[user]??0} cats={cats} settings={settings} onCreate={handleCreate} onClose={() => setShowCreate(false)} onEggUnlock={bumpEggTick} />}
+      {showCreate     && <CreateModal user={user} profiles={profiles} groupMembers={groupMembers} maxC={credits[user]??0} cats={cats} settings={settings} onCreate={handleCreate} onClose={() => setShowCreate(false)} onEggUnlock={onEggFired} />}
       {revealBet      && <RevealModal bet={revealBet} cats={cats} onResolve={handleResolve} onClose={() => setRevealBet(null)} />}
       {resolveBet     && <ResolveModal bet={resolveBet} cats={cats} profiles={profiles} onResolve={handleResolve} onOvertime={b => { setResolveBet(null); setOvertimeBet(b); }} onClose={() => setResolveBet(null)} />}
       {counterTarget  && <CounterModal bet={counterTarget} user={user} profiles={profiles} credits={credits} cats={cats} onPlace={handleCounter} onClose={() => setCounterTarget(null)} />}
@@ -1217,10 +1255,10 @@ export default function App() {
         />
       )}
       {/* Easter egg #2: coin flip overlay */}
-      <CoinFlipOverlay open={coinFlipOpen} onClose={() => setCoinFlipOpen(false)} onEggUnlock={bumpEggTick} />
+      <CoinFlipOverlay open={coinFlipOpen} onClose={() => setCoinFlipOpen(false)} onEggUnlock={onEggFired} />
 
       {/* Easter egg #1: die roll overlay */}
-      <DieRollOverlay open={dieRollOpen} onClose={() => setDieRollOpen(false)} onEggUnlock={bumpEggTick} />
+      <DieRollOverlay open={dieRollOpen} onClose={() => setDieRollOpen(false)} onEggUnlock={onEggFired} />
 
       {/* Trophy unlock animation — small banner top-center, ~3s per unlock */}
       <TrophyUnlockOverlay queue={trophyQueue} onDone={consumeTrophy} />

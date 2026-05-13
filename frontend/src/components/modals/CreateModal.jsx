@@ -322,11 +322,11 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
       setSlotInstance(n => n + 1);
       setJackpotPhase('spinning');
       // Idempotent: server returns alreadyUnlocked:true on repeats. We
-      // chain onEggUnlock so the trophy poller fires immediately rather
-      // than waiting for the bet-insert SSE refresh — that was the cause
-      // of the missing 777 unlock pop-up on desktop.
+      // chain onEggUnlock so the trophy poller fires immediately and the
+      // popup overlay shows even if the trophy was already in the
+      // collection from a previous session.
       api.unlockSecretAchievement('egg_jackpot')
-        .then(() => onEggUnlock?.())
+        .then(() => onEggUnlock?.('egg_jackpot'))
         .catch(e => console.error('[egg_jackpot] unlock failed', e));
       // Phase transition timers — kept in a ref so user-skip can clear them.
       jackpotTimersRef.current.push(setTimeout(() => setJackpotPhase('celebrating'), 3700));

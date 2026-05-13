@@ -206,12 +206,22 @@ function DieRollOverlay({ open, onClose, onEggUnlock }) {
       // We always call onEggUnlock so the trophy poll re-runs even if the
       // unlock fired on a previous device (and is therefore already in
       // the DB but not yet in this client's baseline).
-      try { localStorage.setItem(DIE_LS_KEY, '1'); } catch {}
-      // Gate the popup on the server response: alreadyUnlocked=true means
-      // the trophy was earned previously, so suppress the banner. The
-      // server is the single source of truth — local LS keys aren't.
+      // Always fire the API (idempotent server-side). The popup banner is
+      // gated locally so the user sees it the first time they trigger the
+      // egg on THIS device — even if the trophy is already in their
+      // collection from a previous device/test. The server's
+      // alreadyUnlocked field doesn't match the user's mental model of
+      // "first time I rolled it".
+      let popThisRoll = false;
+      try {
+        if (!localStorage.getItem('bc_egg_dice_popped')) {
+          localStorage.setItem('bc_egg_dice_popped', '1');
+          popThisRoll = true;
+        }
+        localStorage.setItem(DIE_LS_KEY, '1');
+      } catch {}
       api.unlockSecretAchievement('egg_dice')
-        .then(r => { if (!r?.alreadyUnlocked) onEggUnlockRef.current?.('egg_dice'); })
+        .then(() => { if (popThisRoll) onEggUnlockRef.current?.('egg_dice'); })
         .catch(e => console.error('[egg_dice] unlock failed', e));
     }, 1300);
     const tClose = setTimeout(() => onCloseRef.current?.(), 4500);
@@ -278,10 +288,17 @@ function CoinFlipOverlay({ open, onClose, onEggUnlock }) {
     // gate caused the trophy to never unlock if the LS key was set but
     // the trophy was never actually recorded server-side (DB reset,
     // network hiccup, etc).
-    try { localStorage.setItem(COIN_LS_KEY, '1'); } catch {}
-    // Gate the popup on server response — see egg_dice comment above.
+    // See DieRollOverlay for the rationale on per-device LS gating.
+    let popThisFlip = false;
+    try {
+      if (!localStorage.getItem('bc_egg_coin_popped')) {
+        localStorage.setItem('bc_egg_coin_popped', '1');
+        popThisFlip = true;
+      }
+      localStorage.setItem(COIN_LS_KEY, '1');
+    } catch {}
     api.unlockSecretAchievement('egg_coin')
-      .then(r => { if (!r?.alreadyUnlocked) onEggUnlockRef.current?.('egg_coin'); })
+      .then(() => { if (popThisFlip) onEggUnlockRef.current?.('egg_coin'); })
       .catch(e => console.error('[egg_coin] unlock failed', e));
     const t2 = setTimeout(() => onCloseRef.current?.(), 5000);
     return () => { clearTimeout(t1); clearTimeout(t2); };
@@ -824,9 +841,15 @@ export default function App() {
   );
 
   const secretCount = bets.filter(b => b.creator === user && b.isSecret && b.status === 'active').length;
+  // On mobile we reserve room at the bottom for the fixed nav bar PLUS
+  // the iOS home-indicator safe area, so the last bet card is never
+  // clipped behind the nav on iPhone.
   const rootStyle = isDesktop
     ? { ...rootVars(C), minHeight: '100vh', position: 'relative' }
-    : { ...rootVars(C), maxWidth: 480, margin: '0 auto', paddingBottom: 90, position: 'relative' };
+    : {
+        ...rootVars(C), maxWidth: 480, margin: '0 auto', position: 'relative',
+        paddingBottom: 'calc(96px + env(safe-area-inset-bottom))',
+      };
 
   const NAV = [
     { id: 'dashboard', e: '🏠', l: t('nav.dashboard') },
@@ -984,7 +1007,12 @@ export default function App() {
 
       {/* Header: mobile only */}
       {!isDesktop && (
-        <div style={{ position: 'sticky', top: 0, background: C.bg, zIndex: 10, borderBottom: `1px solid ${C.brd}22` }}>
+        <div style={{
+          position: 'sticky', top: 0, background: C.bg, zIndex: 10,
+          borderBottom: `1px solid ${C.brd}22`,
+          // Push the brand below the iPhone notch when present.
+          paddingTop: 'env(safe-area-inset-top)',
+        }}>
           <div style={{ padding: '14px 20px 6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap:10 }}>
             <div style={{ fontFamily:"'Cormorant Garamond',serif", fontStyle:'italic', fontSize: 22, fontWeight: 600, letterSpacing: -0.5 }}>
               <span className="shim">BetCouple</span>
@@ -1054,7 +1082,16 @@ export default function App() {
           different vertical offset so the row reads like a sawtooth instead
           of a rigid grid. Active item floats highest. */}
       {!isDesktop && (
-        <div style={{ position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 480, background: C.surf, borderTop: `1px solid ${C.brd}`, padding: '10px 4px 12px', display: 'flex', justifyContent: 'space-around', alignItems: 'flex-end', zIndex: 50 }}>
+        <div style={{
+          position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
+          width: '100%', maxWidth: 480,
+          background: C.surf, borderTop: `1px solid ${C.brd}`,
+          // 12px bottom padding plus the iOS home-indicator safe area —
+          // otherwise the nav row hides behind the home bar on iPhone.
+          padding: '10px 4px calc(12px + env(safe-area-inset-bottom))',
+          display: 'flex', justifyContent: 'space-around', alignItems: 'flex-end',
+          zIndex: 50,
+        }}>
           {NAV.map((n, idx) => {
             const isActive = view === n.id;
             // Sawtooth vertical offsets — every other item lifted differently.

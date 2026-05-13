@@ -224,10 +224,13 @@ export default function DashboardView({user,profiles,groupMembers,credits,bets,c
   const emptyState = myAct.length+thAct.length+mySec.length===0 && (
     <div style={{
       position:'relative',
-      padding: isDesktop ? '40px 0 72px' : '24px 0 56px',
+      // Extra top padding gives the rotated dice corner room to breathe
+      // — the previous overflow:hidden + top:-6 combo clipped the dice on
+      // mobile (rotated 14deg means the corner sticks out further than
+      // the bounding box).
+      padding: isDesktop ? '48px 0 72px' : '40px 0 56px',
       minHeight: isDesktop ? 320 : 240,
-      // Hide any overflow from the floating dice/banner.
-      overflow:'hidden',
+      overflow:'visible',
     }}>
       {/* Dice — small, rotated, floats top-right. Easter egg #1: tapping
           opens the fullscreen roll overlay. The die itself stays still so
@@ -236,17 +239,20 @@ export default function DashboardView({user,profiles,groupMembers,credits,bets,c
         onClick={onOpenDie}
         style={{
           position:'absolute',
-          top: isDesktop ? 8 : -6,
-          right: isDesktop ? '14%' : '8%',
+          // Positive top + rotate(-14deg) keeps the whole die visible. We
+          // also reserved padding-top on the parent so the dice has room
+          // above the headline.
+          top: isDesktop ? 12 : 6,
+          right: isDesktop ? '14%' : '6%',
           opacity: .85,
           transform: 'rotate(-14deg)',
           animation: 'sUp .6s ease both .1s',
           userSelect: 'none',
-          // Intentionally no cursor:pointer / hover effect — discoverability
-          // is the easter egg's job.
+          touchAction: 'manipulation',
+          WebkitTapHighlightColor: 'transparent',
         }}
       >
-        <DieFace value={3} size={isDesktop ? 84 : 64}/>
+        <DieFace value={3} size={isDesktop ? 84 : 60}/>
       </div>
 
       {/* Gigantic banner — italic Cormorant, italic, breaks into two lines

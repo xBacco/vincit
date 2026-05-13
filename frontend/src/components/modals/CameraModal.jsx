@@ -181,6 +181,15 @@ export default function CameraModal({ onCapture, onClose, size = 1080, quality =
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Lock the body scroll while the modal is open so the user can't
+  // accidentally scroll the dashboard underneath and lose track of where
+  // they are. Also prevents iOS rubber-banding through the overlay.
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
   // Android hardware back button → close cleanly
   useEffect(() => {
     const onPop = () => onClose?.();
@@ -248,10 +257,11 @@ export default function CameraModal({ onCapture, onClose, size = 1080, quality =
 
   // ─── Styles ────────────────────────────────────────────────────────
   // Lens sizing — `vmin` keeps the circle in bounds on landscape mobile
-  // too. Capped at 480px so on wide desktop it doesn't dominate the
-  // viewport; mobile portrait gets a comfortable 78vmin (~290px on iPhone
-  // SE 375×667, ~314px on iPhone 15 Pro).
-  const LENS = 'min(78vmin, 480px)';
+  // too. Capped at 360px so on wide desktop it doesn't dominate the
+  // viewport; mobile portrait gets a comfortable 70vmin (~263px on
+  // iPhone SE 375×667, ~275px on iPhone 15 Pro). Smaller than before to
+  // leave more breathing room for the orbital controls below.
+  const LENS = 'min(70vmin, 360px)';
   const isLive = phase === 'live';
 
   const orbitBtn = (disabled) => ({
@@ -273,13 +283,17 @@ export default function CameraModal({ onCapture, onClose, size = 1080, quality =
       className="cam-overlay"
       style={{
         position: 'fixed', inset: 0, zIndex: 9700,
-        background: 'radial-gradient(circle at 50% 42%, rgba(43,34,71,.92) 0%, rgba(8,6,18,.96) 70%)',
-        backdropFilter: 'blur(24px) saturate(120%)',
-        WebkitBackdropFilter: 'blur(24px) saturate(120%)',
+        background: 'radial-gradient(circle at 50% 42%, rgba(43,34,71,.94) 0%, rgba(8,6,18,.97) 70%)',
+        // Lighter blur than before — 24px chokes some mid-range Androids
+        // and produced perceptible jank during the camera startup.
+        backdropFilter: 'blur(14px) saturate(120%)',
+        WebkitBackdropFilter: 'blur(14px) saturate(120%)',
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
         // dvh = dynamic viewport, hugs the visible area on iOS even when
-        // the URL bar shows/hides; keeps the X reachable.
-        minHeight: '100dvh',
+        // the URL bar shows/hides. Falls back to vh on older browsers.
+        height: '100dvh',
+        maxHeight: '100dvh',
+        overflow: 'hidden',
         padding: 'env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)',
       }}
     >

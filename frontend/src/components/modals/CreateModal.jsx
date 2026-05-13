@@ -321,11 +321,19 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
     if (isMagicTitle(title)) {
       setSlotInstance(n => n + 1);
       setJackpotPhase('spinning');
-      // Server returns { ok, alreadyUnlocked }. Only fire the popup on a
-      // genuine first-time unlock — repeat 777 titles still trigger the
-      // slot animation but don't re-pop the trophy banner.
+      // Pop the trophy banner only on the first 777 ever on this device.
+      // Server-side unlock fires every time (idempotent) but the banner
+      // is gated locally so the user mentally maps "first time" to "I see
+      // the popup" rather than to opaque server state.
+      let popThisJackpot = false;
+      try {
+        if (!localStorage.getItem('bc_egg_jackpot_popped')) {
+          localStorage.setItem('bc_egg_jackpot_popped', '1');
+          popThisJackpot = true;
+        }
+      } catch {}
       api.unlockSecretAchievement('egg_jackpot')
-        .then(r => { if (!r?.alreadyUnlocked) onEggUnlock?.('egg_jackpot'); })
+        .then(() => { if (popThisJackpot) onEggUnlock?.('egg_jackpot'); })
         .catch(e => console.error('[egg_jackpot] unlock failed', e));
       // Phase transition timers — kept in a ref so user-skip can clear them.
       jackpotTimersRef.current.push(setTimeout(() => setJackpotPhase('celebrating'), 3700));

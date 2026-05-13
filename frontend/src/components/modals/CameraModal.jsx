@@ -110,7 +110,16 @@ export default function CameraModal({ onCapture, onClose, size = 1080, quality =
   //   'live'      — stream attached, lens shows the video.
   //   'capturing' — shutter pressed, canvas grab in progress.
   //   'error'     — getUserMedia rejected (denied / no cam / in use).
-  const [phase, setPhase] = useState('gate');
+  //
+  // The rationale gate is shown the FIRST time the user opens the modal
+  // on this device. After they tap Consenti and the camera starts
+  // successfully, we set bc_cam_consent in localStorage; subsequent opens
+  // skip straight to 'starting' so heavy users aren't nagged on every tap.
+  const CONSENT_LS_KEY = 'bc_cam_consent';
+  const [phase, setPhase] = useState(() => {
+    try { return localStorage.getItem(CONSENT_LS_KEY) ? 'starting' : 'gate'; }
+    catch { return 'gate'; }
+  });
   const [error, setError] = useState(null);       // { msg, hint? }
 
   const stopStream = useCallback(() => {
@@ -201,6 +210,12 @@ export default function CameraModal({ onCapture, onClose, size = 1080, quality =
       const actual = track?.getSettings?.().facingMode;
       if (actual === 'user' || actual === 'environment') setFacingMode(actual);
 
+      // Remember that the user has consented once on this device, so the
+      // next open of the modal skips the rationale gate and goes straight
+      // to the camera. Revokes (NotAllowedError) still fall through to
+      // the error panel which handles recovery.
+      try { localStorage.setItem(CONSENT_LS_KEY, '1'); } catch {}
+
       setPhase('live');
     } catch (e) {
       console.error('[Camera]', e);
@@ -210,11 +225,16 @@ export default function CameraModal({ onCapture, onClose, size = 1080, quality =
   }, [facingMode, stopStream, t, buildErr]);
 
   // ─── Lifecycle ─────────────────────────────────────────────────────
-  // No auto-start: the modal opens at the 'gate' phase showing a
-  // permission rationale. The user must tap Consenti to actually call
-  // getUserMedia — that matches native-app UX where every camera access
-  // is preceded by an explicit "may we use the camera?" screen.
+  // First-time users land on the 'gate' phase and must tap Consenti.
+  // Returning users (consent flag in localStorage) bypass the gate — we
+  // initialized phase to 'starting' above, and this effect kicks off the
+  // actual getUserMedia call. Browsers that already remember the grant
+  // do not require a user gesture for getUserMedia after first success,
+  // so the auto-start path works without a prompt.
   useEffect(() => {
+    if (phase === 'starting') {
+      startCamera('environment');
+    }
     return () => stopStream(); // unmount cleanup — turns the LED off
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

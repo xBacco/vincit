@@ -226,16 +226,35 @@ const TRANSLATIONS = {
     onboarding: {
       skip:'Salta', next:'Avanti', done:'Inizia',
       kicker:'Guida rapida',
-      step1_title:'I tuoi gruppi',
-      step1_body:'Da qui passi da un gruppo all\'altro. Tocca la chip per cercare, vedere ultima attività e creare nuovi gruppi. Cmd/Ctrl+K se sei da tastiera.',
-      step2_title:'Crea le tue bet',
-      step2_body:'Tocca qui per creare una bet. Aperta a tutto il gruppo, mirata contro qualcuno, sorpresa (lo scoprono solo dopo), oppure segreta nel tuo Vault.',
-      step3_title:'Bets · aperte e Vault',
-      step3_body:'Tutte le bet del gruppo vivono qui. La tab 🔒 Vault contiene le tue bet segrete — solo tu le vedi finché non le riveli.',
-      step4_title:'Amici tra gruppi',
-      step4_body:'Tutte le persone con cui condividi almeno un gruppo. Le inviti al volo in altri gruppi dove sei admin, senza scambiare codici.',
-      step5_title:'Stats e Trofei',
-      step5_body:'In Stats trovi classifica del gruppo, win rate e andamento del saldo. In Trofei i tuoi obiettivi sbloccati — restano tuoi anche tra una stagione e l\'altra.',
+    },
+    tour: {
+      skip:'Salta', next:'Avanti', prev:'Indietro',
+      start_app:'Entra',
+      demo_open:'Aprilo ora',
+
+      page_kicker_welcome:'Benvenuto',
+      page_kicker_groups:'Il gruppo',
+      page_kicker_create:'Le bet',
+      page_kicker_play:'Vinci o perdi',
+      page_kicker_ready:'Pronto',
+
+      welcome_title:'Le scommesse tra amici, prese sul serio.',
+      welcome_body:'Niente soldi veri. Crediti virtuali, gruppi privati, trofei da conquistare. Ti faccio vedere il giro in trenta secondi — oppure salta tutto e parti dritto.',
+
+      groups_title:'Ogni gruppo è una bolla a sé.',
+      groups_body:'Coppia, gli amici delle medie, la famiglia, il club fantacalcio: ogni gruppo ha le sue regole, i suoi crediti, le sue bet. Cambi gruppo dalla chip in alto, e i numeri si aggiornano subito.',
+      groups_hint:'Suggerimento: Cmd/Ctrl+K per la ricerca rapida tra i gruppi',
+
+      create_title:'Quattro modi per scommettere.',
+      create_body:'Aperta a tutto il gruppo, mirata contro qualcuno, sorpresa (lo scoprono solo dopo), o segreta nel tuo Vault. Il pulsante "+" in fondo alla schermata è il punto di partenza.',
+      create_hint:'Apri il popup vero per vedere i campi reali',
+
+      play_title:'Vinci, perdi, accumuli streak.',
+      play_body:'Ogni bet risolta sposta crediti. Tre vittorie consecutive accendono il 🔥, tre sconfitte fanno calare il ❄️. La tua streak vive nella home — e qualche segreto si nasconde dietro a quei numeri.',
+      play_hint:'PS — gli easter egg si attivano con 3 click su certe emoji…',
+
+      ready_title:'Pronto a iniziare?',
+      ready_body:'Crea la tua prima bet, sfida un amico, raccogli i tuoi trofei. Buon divertimento.',
     },
     stats_group: { title:'🏆 Classifica gruppo', balance:'Saldo', win_rate:'WR', wins:'V', losses:'P', best_win:'Migliore', net:'Net', no_data:'Nessuna bet risolta nel gruppo' },
     h2h: { title:'⚔️ Testa a testa', you:'Tu', net_me:'Bilancio per me', bets:'Bet', no_data:'Nessuna bet diretta tra voi' },
@@ -736,16 +755,35 @@ const TRANSLATIONS = {
     onboarding: {
       skip:'Skip', next:'Next', done:'Start',
       kicker:'Quick tour',
-      step1_title:'Your groups',
-      step1_body:'Switch between groups from here. Tap the chip to search, see last activity, and create new ones. Cmd/Ctrl+K from the keyboard.',
-      step2_title:'Create your bets',
-      step2_body:'Tap here to create a bet. Open to the whole group, targeted at a member, a surprise (they find out only after) or sealed in your Vault.',
-      step3_title:'Bets · open and Vault',
-      step3_body:'Every group bet lives here. The 🔒 Vault tab holds your private bets — only you see them until you reveal.',
-      step4_title:'Friends across groups',
-      step4_body:'Everyone you share at least one group with. Invite them into any of your other groups where you are admin — no invite codes needed.',
-      step5_title:'Stats and Trophies',
-      step5_body:'Stats has the group leaderboard, your win rate and balance over time. Trophies has every milestone you unlocked — they stick with you across seasons.',
+    },
+    tour: {
+      skip:'Skip', next:'Next', prev:'Back',
+      start_app:'Enter',
+      demo_open:'Open it now',
+
+      page_kicker_welcome:'Welcome',
+      page_kicker_groups:'The group',
+      page_kicker_create:'The bets',
+      page_kicker_play:'Win or lose',
+      page_kicker_ready:'Ready',
+
+      welcome_title:'Friendly bets, played for real.',
+      welcome_body:'No real money. Virtual credits, private groups, trophies to chase. Thirty seconds and you\'re in — or skip the whole thing and dive straight ahead.',
+
+      groups_title:'Each group is its own little world.',
+      groups_body:'Your partner, your high-school crew, your family, your fantasy-football club: every group has its own rules, credits, bets. Switch group from the chip up top and the numbers update instantly.',
+      groups_hint:'Pro tip: Cmd/Ctrl+K for the quick group search',
+
+      create_title:'Four ways to place a bet.',
+      create_body:'Open to the whole group, targeted at one member, a surprise (they find out only after), or sealed inside your Vault. The "+" button at the bottom is where it starts.',
+      create_hint:'Open the real popup to see the actual fields',
+
+      play_title:'Win, lose, build streaks.',
+      play_body:'Every resolved bet moves credits. Three wins in a row light up the 🔥, three losses cool it to ❄️. Your streak lives on the home — and a few secrets hide behind those numbers.',
+      play_hint:'PS — some easter eggs trigger with 3 taps on certain emoji…',
+
+      ready_title:'Ready to start?',
+      ready_body:'Place your first bet, challenge a friend, collect your trophies. Have fun.',
     },
     stats_group: { title:'🏆 Group leaderboard', balance:'Balance', win_rate:'WR', wins:'W', losses:'L', best_win:'Best', net:'Net', no_data:'No resolved bets in the group' },
     h2h: { title:'⚔️ Head to head', you:'You', net_me:'Net for me', bets:'Bets', no_data:'No direct bets between you' },

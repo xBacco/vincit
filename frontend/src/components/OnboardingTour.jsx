@@ -1,129 +1,247 @@
-import React, { useEffect, useState, useLayoutEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useLang } from '../i18n.js';
 
-// Spotlights an element on the page and shows a short caption.
-// steps: [{ selector, title, body, place: 'bottom'|'top' }]
-export default function OnboardingTour({ steps, onDone }) {
+// Editorial fullscreen onboarding — five hero pages in the same broken-grid
+// Lavanda+Ottone language as the rest of the app. Each page is a poster:
+// italic Cormorant headline, Manrope body, big emoji/composition, with
+// "Salta" always visible top-right. The "Crea bet" step exposes an
+// `onOpenCreate` callback so the user can pop the real CreateModal as a
+// hands-on demo and come back to the tour where they left off.
+
+const CSS = `
+@keyframes bcOnbBgIn  { from { opacity: 0 } to { opacity: 1 } }
+@keyframes bcOnbBgOut { to   { opacity: 0 } }
+@keyframes bcOnbPageIn {
+  0%   { transform: translateY(28px) scale(.96); opacity: 0; filter: blur(8px) }
+  100% { transform: translateY(0)    scale(1);   opacity: 1; filter: blur(0) }
+}
+@keyframes bcOnbHeroEmoji {
+  0%, 100% { transform: translateY(0) rotate(0deg) }
+  50%      { transform: translateY(-8px) rotate(2deg) }
+}
+@keyframes bcOnbShimmer {
+  0%   { background-position: -200% 0 }
+  100% { background-position:  200% 0 }
+}
+`;
+
+// Static page definitions — kept in module scope so the component reads as
+// declarative content + chrome. Each page maps to an i18n group.
+const PAGES = [
+  { id: 'welcome', kicker: 'page_kicker_welcome', emoji: '🃏',  cta: 'next' },
+  { id: 'groups',  kicker: 'page_kicker_groups',  emoji: '👥',  cta: 'next' },
+  { id: 'create',  kicker: 'page_kicker_create',  emoji: '🎯',  cta: 'demo' }, // opens CreateModal
+  { id: 'play',    kicker: 'page_kicker_play',    emoji: '⚡',  cta: 'next' },
+  { id: 'ready',   kicker: 'page_kicker_ready',   emoji: '✨',  cta: 'done' },
+];
+
+export default function OnboardingTour({ onDone, onOpenCreate }) {
   const { t } = useLang();
-  const [i, setI] = useState(0);
-  const [rect, setRect] = useState(null);
+  const [idx, setIdx] = useState(0);
+  const [exiting, setExiting] = useState(false);
 
-  // Recompute the spotlight rect when step changes or window resizes.
-  useLayoutEffect(() => {
-    function measure() {
-      const sel = steps[i]?.selector;
-      if (!sel) { setRect(null); return; }
-      const el = document.querySelector(sel);
-      if (!el) { setRect(null); return; }
-      const r = el.getBoundingClientRect();
-      setRect({ x: r.left, y: r.top, w: r.width, h: r.height });
-      // Bring the target into view if hidden
-      if (r.top < 80 || r.bottom > window.innerHeight - 80) {
-        el.scrollIntoView({ block: 'center', behavior: 'smooth' });
-      }
-    }
-    measure();
-    window.addEventListener('resize', measure);
-    const id = setInterval(measure, 200); // tracks layout shifts (e.g. when SSE updates)
-    return () => { window.removeEventListener('resize', measure); clearInterval(id); };
-  }, [i, steps]);
-
-  // ESC to skip
+  // ESC anywhere = skip the whole tour
   useEffect(() => {
-    const k = e => { if (e.key === 'Escape') onDone?.(); };
+    const k = e => { if (e.key === 'Escape') skip(); };
     window.addEventListener('keydown', k);
     return () => window.removeEventListener('keydown', k);
-  }, [onDone]);
+  }, []);
 
-  if (!steps?.length) return null;
-  const step = steps[i];
-  const last = i === steps.length - 1;
+  const total = PAGES.length;
+  const page = PAGES[idx];
+  const isLast = idx === total - 1;
 
-  // Caption placement: prefer below the spotlight; fall back to above if no room
-  const pad = 8;
-  let cx = 16, cy = 80, cw = Math.min(360, window.innerWidth - 32);
-  if (rect) {
-    cw = Math.min(360, window.innerWidth - 32);
-    cx = Math.min(Math.max(8, rect.x + rect.w / 2 - cw / 2), window.innerWidth - cw - 8);
-    const wantBelow = step.place !== 'top';
-    const below = rect.y + rect.h + 14;
-    const above = rect.y - 14 - 140; // approximate caption height
-    cy = wantBelow && below + 140 < window.innerHeight - 16 ? below : Math.max(16, above);
-  }
+  const skip = () => {
+    setExiting(true);
+    setTimeout(() => onDone?.(), 280);
+  };
+  const next = () => {
+    if (isLast) { skip(); return; }
+    setIdx(i => Math.min(total - 1, i + 1));
+  };
+  const prev = () => setIdx(i => Math.max(0, i - 1));
 
-  return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 8000, pointerEvents: 'auto' }}>
-      <style>{`
-        @keyframes spotlightPulse { 0%,100% { box-shadow: 0 0 0 4px rgba(200,151,63,.55), 0 0 0 9999px rgba(0,0,0,.72) }
-                                    50%      { box-shadow: 0 0 0 6px rgba(232,184,75,.85), 0 0 0 9999px rgba(0,0,0,.72) } }
-        @keyframes tourPop { from { opacity:0; transform: translateY(8px) } to { opacity:1; transform: translateY(0) } }
-      `}</style>
+  // "Demo" CTA on the create page: close the tour cleanly so the CreateModal
+  // gets centered focus, then trigger the App-level callback. Don't auto-
+  // resume — the user can re-run the tour from settings if they want.
+  const triggerDemo = () => {
+    setExiting(true);
+    setTimeout(() => {
+      onDone?.();
+      onOpenCreate?.();
+    }, 280);
+  };
 
-      {/* Full dim if we couldn't locate the target */}
-      {!rect && <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,.72)' }}/>}
+  // Body text comes from i18n: tour.{pageId}_title / tour.{pageId}_body /
+  // tour.{pageId}_hint (optional)
+  const title = t(`tour.${page.id}_title`);
+  const body  = t(`tour.${page.id}_body`);
+  const hint  = t(`tour.${page.id}_hint`);
 
-      {/* Spotlight cutout */}
-      {rect && (
-        <div style={{
-          position: 'absolute',
-          left: rect.x - pad, top: rect.y - pad,
-          width: rect.w + pad * 2, height: rect.h + pad * 2,
-          borderRadius: 14,
-          animation: 'spotlightPulse 1.6s ease-in-out infinite',
-          pointerEvents: 'none',
-        }}/>
-      )}
+  const overlay = (
+    <div
+      style={{
+        position: 'fixed', inset: 0, zIndex: 9300,
+        background: 'radial-gradient(circle at 50% 35%, var(--card) 0%, var(--bg) 75%)',
+        animation: exiting ? 'bcOnbBgOut .28s ease forwards' : 'bcOnbBgIn .3s ease both',
+        display: 'flex', flexDirection: 'column',
+        fontFamily: "'Manrope', sans-serif",
+        overflow: 'hidden',
+      }}
+    >
+      <style>{CSS}</style>
 
-      {/* Skip top-right */}
-      <button onClick={() => onDone?.()} style={{
-        position: 'absolute', top: 16, right: 16,
-        padding: '6px 12px', borderRadius: 16,
-        background: 'rgba(0,0,0,.5)', border: '1px solid rgba(255,255,255,.18)',
-        color: 'rgba(255,255,255,.85)', fontSize: 11, fontWeight: 600,
-        letterSpacing: 1, cursor: 'pointer', fontFamily: "'Manrope',sans-serif",
-      }}>
-        {t('onboarding.skip')}
-      </button>
-
-      {/* Caption bubble */}
+      {/* Top chrome: step counter (left) + Skip (right) */}
       <div style={{
-        position: 'absolute', left: cx, top: cy, width: cw,
-        background: 'var(--surf)', border: '1px solid var(--gold)55',
-        borderRadius: 14, padding: '14px 16px',
-        boxShadow: '0 16px 48px rgba(0,0,0,.55)',
-        animation: 'tourPop .25s ease-out both',
+        position: 'absolute', top: 0, left: 0, right: 0,
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        padding: '18px 24px',
+        zIndex: 2,
       }}>
         <div style={{
-          fontSize: 10, color: 'var(--gold)',
-          letterSpacing: 2, textTransform: 'uppercase',
-          fontFamily: "'Manrope',sans-serif", marginBottom: 4, fontWeight: 700,
+          fontSize: 10, color: 'var(--dim)',
+          letterSpacing: '.3em', textTransform: 'uppercase', fontWeight: 700,
         }}>
-          {i + 1} / {steps.length} · {step.kicker || t('onboarding.kicker')}
+          {String(idx + 1).padStart(2, '0')} / {String(total).padStart(2, '0')} · {t(`tour.${page.kicker}`)}
         </div>
+        <button onClick={skip} style={{
+          padding: '8px 16px', borderRadius: 999,
+          background: 'transparent', border: '1px solid var(--brd)',
+          color: 'var(--dim)', cursor: 'pointer',
+          fontFamily: "'Manrope',sans-serif", fontSize: 11, fontWeight: 700,
+          letterSpacing: '.12em', textTransform: 'uppercase',
+          WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation',
+        }}>{t('tour.skip')}</button>
+      </div>
+
+      {/* Page body — re-mounts on every idx change for the enter animation */}
+      <div key={idx} style={{
+        flex: 1, display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        padding: '72px 24px 120px',
+        animation: 'bcOnbPageIn .45s cubic-bezier(.34,1.56,.64,1) both',
+      }}>
+        {/* Hero emoji */}
+        <div style={{
+          fontSize: 'clamp(96px, 22vw, 180px)',
+          lineHeight: 1, marginBottom: 24,
+          animation: 'bcOnbHeroEmoji 3s ease-in-out infinite',
+          filter: 'drop-shadow(0 12px 36px var(--glow))',
+        }}>{page.emoji}</div>
+
+        {/* Italic Cormorant headline — broken-grid hero size */}
         <div style={{
           fontFamily: "'Cormorant Garamond', serif",
-          fontSize: 22, fontWeight: 600, color: 'var(--txt)', marginBottom: 6,
-        }}>{step.title}</div>
-        <div style={{ fontSize: 13, color: 'var(--dim)', lineHeight: 1.5 }}>
-          {step.body}
+          fontStyle: 'italic',
+          fontSize: 'clamp(36px, 7vw, 72px)',
+          fontWeight: 600,
+          lineHeight: 1.02,
+          letterSpacing: '-0.02em',
+          color: 'var(--txt)',
+          textAlign: 'center',
+          maxWidth: 720,
+          marginBottom: 18,
+        }}>{title}</div>
+
+        {/* Body copy — Manrope, generous line-height, dim */}
+        <div style={{
+          fontSize: 'clamp(14px, 2vw, 17px)',
+          color: 'var(--dim)',
+          lineHeight: 1.6,
+          textAlign: 'center',
+          maxWidth: 540,
+          fontWeight: 500,
+        }}>{body}</div>
+
+        {/* Optional hint — small gold pill below the body when defined */}
+        {hint && hint !== `tour.${page.id}_hint` && (
+          <div style={{
+            marginTop: 18, padding: '8px 14px', borderRadius: 999,
+            background: 'var(--gold)18', border: '1px solid var(--gold)44',
+            color: 'var(--gold)', fontSize: 11, fontWeight: 700,
+            letterSpacing: '.06em', maxWidth: 520, textAlign: 'center',
+          }}>{hint}</div>
+        )}
+      </div>
+
+      {/* Bottom chrome: progress dots + nav buttons */}
+      <div style={{
+        position: 'absolute', bottom: 0, left: 0, right: 0,
+        padding: '20px 24px calc(20px + env(safe-area-inset-bottom))',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18,
+        zIndex: 2,
+      }}>
+        {/* Dots — clickable for direct jumps */}
+        <div style={{ display: 'flex', gap: 8 }}>
+          {PAGES.map((p, i) => (
+            <button key={p.id} onClick={() => setIdx(i)}
+              aria-label={`Step ${i + 1}`}
+              style={{
+                width: i === idx ? 22 : 8, height: 8,
+                borderRadius: 4, padding: 0, border: 'none',
+                background: i === idx ? 'var(--gold)' : 'var(--brd)',
+                cursor: 'pointer',
+                transition: 'width .25s, background .25s',
+                WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation',
+              }}/>
+          ))}
         </div>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
-          {!last && (
-            <button onClick={() => setI(i + 1)} style={{
-              padding: '8px 18px', borderRadius: 10, border: 'none',
-              background: 'var(--gold)', color: '#07060f',
-              fontFamily: "'Manrope',sans-serif", fontSize: 13, fontWeight: 700, cursor: 'pointer',
-            }}>{t('onboarding.next')} →</button>
+
+        {/* Nav row */}
+        <div style={{ display: 'flex', gap: 12, width: '100%', maxWidth: 480, justifyContent: 'center' }}>
+          {idx > 0 && (
+            <button onClick={prev} style={{
+              padding: '12px 22px', borderRadius: 999,
+              background: 'transparent', border: '1px solid var(--brd)',
+              color: 'var(--dim)', cursor: 'pointer',
+              fontFamily: "'Manrope',sans-serif", fontSize: 12, fontWeight: 700,
+              letterSpacing: '.08em', textTransform: 'uppercase',
+              WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation',
+            }}>← {t('tour.prev')}</button>
           )}
-          {last && (
-            <button onClick={() => onDone?.()} style={{
-              padding: '8px 18px', borderRadius: 10, border: 'none',
-              background: 'var(--gold)', color: '#07060f',
-              fontFamily: "'Manrope',sans-serif", fontSize: 13, fontWeight: 700, cursor: 'pointer',
-            }}>{t('onboarding.done')} ✓</button>
+          {page.cta === 'demo' ? (
+            <>
+              <button onClick={triggerDemo} style={{
+                padding: '12px 26px', borderRadius: 999, border: 'none',
+                background: 'linear-gradient(90deg, var(--gold) 0%, var(--goldL) 50%, var(--gold) 100%)',
+                backgroundSize: '200% 100%',
+                animation: 'bcOnbShimmer 3s linear infinite',
+                color: '#1a1530',
+                cursor: 'pointer', flex: idx > 0 ? 'unset' : 1,
+                fontFamily: "'Manrope',sans-serif", fontSize: 13, fontWeight: 800,
+                letterSpacing: '.08em', textTransform: 'uppercase',
+                WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation',
+              }}>{t('tour.demo_open')}</button>
+              <button onClick={next} style={{
+                padding: '12px 22px', borderRadius: 999,
+                background: 'transparent', border: '1px solid var(--brd)',
+                color: 'var(--dim)', cursor: 'pointer',
+                fontFamily: "'Manrope',sans-serif", fontSize: 12, fontWeight: 700,
+                letterSpacing: '.08em', textTransform: 'uppercase',
+                WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation',
+              }}>{t('tour.next')} →</button>
+            </>
+          ) : (
+            <button onClick={next} style={{
+              padding: '12px 26px', borderRadius: 999, border: 'none',
+              background: 'linear-gradient(90deg, var(--gold) 0%, var(--goldL) 50%, var(--gold) 100%)',
+              backgroundSize: '200% 100%',
+              animation: 'bcOnbShimmer 3s linear infinite',
+              color: '#1a1530',
+              cursor: 'pointer', flex: idx > 0 ? 'unset' : 1,
+              fontFamily: "'Manrope',sans-serif", fontSize: 13, fontWeight: 800,
+              letterSpacing: '.08em', textTransform: 'uppercase',
+              WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation',
+            }}>{isLast ? `${t('tour.start_app')} →` : `${t('tour.next')} →`}</button>
           )}
         </div>
       </div>
     </div>
   );
+
+  // Portal so the overlay escapes any parent transform context (the `sUp`
+  // animation on view roots creates a containing block that would otherwise
+  // pin position:fixed to the scrolled page).
+  return typeof document !== 'undefined' ? createPortal(overlay, document.body) : overlay;
 }

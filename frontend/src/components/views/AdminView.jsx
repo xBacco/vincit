@@ -447,6 +447,52 @@ export default function AdminView({ isDesktop }) {
               ? <div style={{ fontSize: 12, color: 'var(--grn)' }}>✓ nessuno</div>
               : <pre style={S.pre}>{JSON.stringify(integrity.orphan_user_groups, null, 2)}</pre>}
           </div>
+
+          {/* Reset my trophies — dev tool. Wipes the trophy table for the
+              admin's own user AND clears every local LS flag tied to the
+              easter-egg popups + onboarding tour, so each animation and
+              first-time-tip can fire again from scratch. */}
+          <div style={{ ...S.raised, borderColor: 'var(--gold)55', background: 'var(--gold)0a', marginTop: 14 }}>
+            <div style={{ ...S.label, color: 'var(--gold)' }}>🏆 Reset miei trofei</div>
+            <div style={{ fontSize: 11, color: 'var(--mut)', marginTop: 4, marginBottom: 10, lineHeight: 1.5 }}>
+              Cancella TUTTI i trofei sbloccati sul tuo account (anche i 5 segreti) e azzera i flag locali degli easter egg + del tutorial onboarding. Dopo potrai re-triggerare ogni animazione e ogni notifica trofeo dall'inizio.
+              <br/><span style={{ color: 'var(--gold)' }}>Tocca solo il tuo account.</span>
+            </div>
+            <button
+              disabled={busy}
+              onClick={async () => {
+                if (!window.confirm("Cancellare TUTTI i tuoi trofei (compresi i segreti) e azzerare i flag locali?\n\nGli altri account NON sono toccati.")) return;
+                setBusy(true);
+                try {
+                  const r = await api.resetMyAchievements();
+                  // Local cleanup: every gating LS key tied to the easter-egg
+                  // popups + the onboarding tour completion flag. The user
+                  // gets a clean slate next reload.
+                  const keys = [
+                    'bc_egg_dice_popped_v2', 'bc_egg_dice_rolled',
+                    'bc_egg_coin_popped_v2', 'bc_egg_coin_flipped',
+                    'bc_egg_ice_popped_v2',
+                    'bc_egg_phoenix_popped_v2',
+                    'bc_egg_streak_tip_shown',
+                    'bc_onboarding_done',
+                  ];
+                  for (const k of keys) { try { localStorage.removeItem(k); } catch {} }
+                  toast.success(`Trofei azzerati (${r.deleted}). Ricarico…`);
+                  setTimeout(() => window.location.reload(), 700);
+                } catch (e) {
+                  console.error('[reset-trophies]', e);
+                  toast.error(e?.message || 'errore');
+                } finally { setBusy(false); }
+              }}
+              style={{
+                ...S.btn(),
+                background: 'var(--gold)',
+                color: '#1a1530',
+                width: '100%', padding: '12px 0', fontSize: 13,
+              }}>
+              {busy ? '…' : 'Azzera trofei + flag easter egg'}
+            </button>
+          </div>
         </>
       )}
 

@@ -1260,58 +1260,40 @@ export default function App() {
       {/* Easter egg #1: die roll overlay */}
       <DieRollOverlay open={dieRollOpen} onClose={() => setDieRollOpen(false)} onEggUnlock={onEggFired} />
 
-      {/* Easter egg #4: ❄️ ice — 3 taps on the loss-streak emoji */}
+      {/* Easter egg #4: ❄️ ice — 3 taps on the loss-streak emoji.
+          Unlike egg_dice/egg_coin which gate the popup to first-trigger-per-
+          device (those eggs are largely incidental, you don't usually re-roll
+          a die to chase the popup), the streak eggs are explicitly opt-in —
+          the user fires them deliberately with a 3-tap combo — so we always
+          re-fire the trophy popup on each trigger. The trophy queue already
+          dedups same-id entries so spam-tapping won't stack popups. */}
       <IceEggOverlay open={iceEggOpen} onClose={() => {
         setIceEggOpen(false);
-        // Idempotent server unlock + one-shot local popup gating (same
-        // pattern used by egg_dice / egg_coin: set the LS flag only AFTER
-        // the synthetic queue push runs so a failure doesn't burn the popup).
-        let popThis = false;
-        try { if (!localStorage.getItem('bc_egg_ice_popped_v2')) popThis = true; } catch {}
         api.unlockSecretAchievement('egg_ice')
-          .then(() => {
-            if (popThis) {
-              onEggFired('egg_ice');
-              try { localStorage.setItem('bc_egg_ice_popped_v2', '1'); } catch {}
-            }
-          })
+          .then(() => onEggFired('egg_ice'))
           .catch(e => console.error('[egg_ice] unlock failed', e));
       }} />
 
-      {/* Easter egg #5: 🦅 phoenix — 3 taps on the win-streak emoji */}
+      {/* Easter egg #5: 🔥 inferno — 3 taps on the win-streak emoji (same
+          always-fire-popup pattern as egg_ice above). */}
       <PhoenixEggOverlay open={phoenixEggOpen} onClose={() => {
         setPhoenixEggOpen(false);
-        let popThis = false;
-        try { if (!localStorage.getItem('bc_egg_phoenix_popped_v2')) popThis = true; } catch {}
         api.unlockSecretAchievement('egg_phoenix')
-          .then(() => {
-            if (popThis) {
-              onEggFired('egg_phoenix');
-              try { localStorage.setItem('bc_egg_phoenix_popped_v2', '1'); } catch {}
-            }
-          })
+          .then(() => onEggFired('egg_phoenix'))
           .catch(e => console.error('[egg_phoenix] unlock failed', e));
       }} />
 
       {/* Trophy unlock animation — small banner top-center, ~3s per unlock */}
       <TrophyUnlockOverlay queue={trophyQueue} onDone={consumeTrophy} />
 
-      {/* Onboarding tour — shown once on first login per device, only after data is ready */}
+      {/* Onboarding — editorial fullscreen tour, shown once per device on
+          first sign-in. Component manages its own pages and the "open create
+          demo" CTA hands off to setShowCreate so the user can play with the
+          real CreateModal before continuing on their own. */}
       {!tourDone && !!profiles[user] && (
         <OnboardingTour
-          steps={[
-            { selector: '[data-tour="group-picker"]', title: t('onboarding.step1_title'),
-              body: t('onboarding.step1_body'), place: 'bottom' },
-            { selector: '[data-tour="new-bet"]',     title: t('onboarding.step2_title'),
-              body: t('onboarding.step2_body'), place: 'top' },
-            { selector: '[data-tour="nav-bets"]',    title: t('onboarding.step3_title'),
-              body: t('onboarding.step3_body'), place: isDesktop ? 'bottom' : 'top' },
-            { selector: '[data-tour="nav-friends"]', title: t('onboarding.step4_title'),
-              body: t('onboarding.step4_body'), place: isDesktop ? 'bottom' : 'top' },
-            { selector: '[data-tour="nav-stats"]',   title: t('onboarding.step5_title'),
-              body: t('onboarding.step5_body'), place: isDesktop ? 'bottom' : 'top' },
-          ]}
           onDone={() => { localStorage.setItem('bc_onboarding_done', '1'); setTourDone(true); }}
+          onOpenCreate={() => setShowCreate(true)}
         />
       )}
 

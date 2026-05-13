@@ -114,6 +114,7 @@ export const adminNuke           = ()                       => req('POST', '/adm
 
 export const getAchievements = ()           => req('GET',  '/achievements');
 export const unlockSecretAchievement = (id) => req('POST', `/achievements/secret/${id}/unlock`);
+export const resetMyAchievements = ()       => req('DELETE', '/achievements/mine');
 
 // Comment thread under a bet — everyone in the room can read & post.
 export const getBetMessages   = (betId)         => req('GET',    `/bets/${betId}/messages`);

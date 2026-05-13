@@ -625,10 +625,16 @@ module.exports = function(broadcastUpdate) {
       if (bet.room_id !== req.activeRoomId)                  return res.status(403).json({ error: 'Forbidden' });
       if (!['active','pending'].includes(bet.status))        return res.status(403).json({ error: 'Already resolved' });
 
-      // Owner of the bet within the 60s window: free pass.
-      // Otherwise (someone else, or past window): require moderate_bets permission.
-      const ownerWindow = bet.creator === me && (Date.now() - bet.created_at <= 60 * 1000);
-      if (!ownerWindow) {
+      // Owner cancel rules:
+      //   - PENDING (opponent hasn't accepted yet): always allowed — no one
+      //     else has committed credits, so no harm.
+      //   - ACTIVE (already accepted / counter-betted): 60s window only.
+      // Anyone else (or owner past window on active): need moderate_bets.
+      const isOwner    = bet.creator === me;
+      const isPending  = bet.status === 'pending';
+      const inWindow   = Date.now() - bet.created_at <= 60 * 1000;
+      const ownerPass  = isOwner && (isPending || inWindow);
+      if (!ownerPass) {
         if (!(await requirePermission(req, res, 'moderate_bets'))) return;
       }
 

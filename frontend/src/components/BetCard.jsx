@@ -61,10 +61,15 @@ export default function BetCard({bet,user,profiles,cats,onResolve,onReveal,onCou
     return () => clearInterval(id);
   }, [isOwner, done, createdAtMs]);
 
-  // Owner of the bet: 60s window. Moderator (co-admin with moderate_bets, or owner of group): always.
+  // Owner cancel rules:
+  //   - Pending (waiting for opponent): always cancellable — no one else
+  //     has committed credits yet, so cancel-anytime is safe.
+  //   - Active (already accepted): 60s window. Past that, moderator only.
+  //   Moderators (co-admin with moderate_bets, group owner) can always cancel.
   const msLeft       = Math.max(0, createdAtMs + CANCEL_MS - nowTs);
   const withinWindow = msLeft > 0;
-  const canCancel    = !done && !!onDelete && ((isOwner && withinWindow) || canModerate);
+  const ownerCanCancel = isOwner && (isPending || withinWindow);
+  const canCancel    = !done && !!onDelete && (ownerCanCancel || canModerate);
   const canEditBet   = !done && !!onEdit   && ((isOwner && withinWindow) || canModerate);
   const secsLeft     = Math.ceil(msLeft / 1000);
   const mm           = Math.floor(secsLeft / 60);

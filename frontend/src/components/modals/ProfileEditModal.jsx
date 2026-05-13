@@ -19,6 +19,11 @@ export default function ProfileEditModal({ profile, onClose, onSaved }) {
   const [busy,        setBusy]        = useState(false);
   const [photoBusy,   setPhotoBusy]   = useState(false);
   const [cropSrc,     setCropSrc]     = useState(null); // { img, dataUrl } when crop modal is open
+  // When a photo is uploaded the emoji acts as a silent fallback. If the user
+  // taps an emoji we treat that as an intent to actually use it: stash the
+  // pending pick and ask whether to also drop the photo. If they decline, the
+  // emoji is still saved as the fallback.
+  const [pendingEmoji, setPendingEmoji] = useState(null);
   const fileRef = useRef(null);
 
   const c = COLORS[colorKey] || '#5b8af0';
@@ -70,6 +75,30 @@ export default function ProfileEditModal({ profile, onClose, onSaved }) {
     } catch (err) {
       reportPhotoError(err);
     } finally { setPhotoBusy(false); }
+  };
+
+  // Emoji tile click. If there's no photo, just update the state. If there
+  // IS a photo, stage the pick and surface a small prompt so the user can
+  // choose to actually use the emoji (drops the photo) or keep it as fallback.
+  const handlePickEmoji = (em) => {
+    setAvatar(em);
+    if (avatarUrl) setPendingEmoji(em);
+  };
+
+  const confirmReplaceWithEmoji = async () => {
+    if (!avatarUrl) { setPendingEmoji(null); return; }
+    setPhotoBusy(true);
+    try {
+      await api.deleteAvatar();
+      setAvatarUrl(null);
+      toast.success(t('profile.ok_removed'));
+    } catch (err) {
+      console.error('[profile-avatar-replace]', err);
+      toast.error(t('profile.err_remove'));
+    } finally {
+      setPhotoBusy(false);
+      setPendingEmoji(null);
+    }
   };
 
   const removePhoto = async () => {
@@ -222,12 +251,51 @@ export default function ProfileEditModal({ profile, onClose, onSaved }) {
             <div style={{fontSize:10, color:'var(--dim)', letterSpacing:2, textTransform:'uppercase', fontWeight:700, marginBottom:8, textAlign:'center'}}>
               {t('profile.cat_'+activeCat)}
             </div>
+
+            {/* Replace-photo prompt — only when user taps emoji while a photo
+                is uploaded. Lets them either drop the photo or keep the emoji
+                as silent fallback. */}
+            {pendingEmoji && avatarUrl && (
+              <div style={{
+                marginBottom:10, padding:'10px 12px',
+                borderRadius:10, background:'var(--gold)11',
+                border:'1px solid var(--gold)44',
+                display:'flex', alignItems:'center', gap:10, flexWrap:'wrap',
+              }}>
+                <div style={{fontSize:24, lineHeight:1}}>{pendingEmoji}</div>
+                <div style={{flex:1, minWidth:120, fontSize:12, color:'var(--txt)'}}>
+                  {t('profile.replace_q')}
+                </div>
+                <div style={{display:'flex', gap:6, flexShrink:0}}>
+                  <button onClick={() => setPendingEmoji(null)} disabled={photoBusy}
+                    style={{
+                      padding:'6px 12px', borderRadius:999,
+                      background:'transparent', border:'1px solid var(--brd)',
+                      color:'var(--dim)', fontSize:11, fontWeight:600,
+                      cursor: photoBusy ? 'wait' : 'pointer',
+                      fontFamily:"'Manrope',sans-serif",
+                    }}>{t('profile.replace_no')}</button>
+                  <button onClick={confirmReplaceWithEmoji} disabled={photoBusy}
+                    style={{
+                      padding:'6px 12px', borderRadius:999,
+                      background:'var(--gold)', border:'none',
+                      color:'#1a1530', fontSize:11, fontWeight:700,
+                      cursor: photoBusy ? 'wait' : 'pointer',
+                      fontFamily:"'Manrope',sans-serif",
+                    }}>{t('profile.replace_yes')}</button>
+                </div>
+              </div>
+            )}
             {/* Grid */}
             <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(46px, 1fr))', gap:6}}>
               {activeItems.map(em => {
-                const sel = avatar === em && !avatarUrl;
+                // Always reflect the selected emoji visually, even when a photo
+                // is uploaded — otherwise clicking emojis appears to do nothing
+                // (the photo overrides the preview and the selection ring was
+                // suppressed). The fallback hint below explains the precedence.
+                const sel = avatar === em;
                 return (
-                  <div key={em} onClick={() => { setAvatar(em); }}
+                  <div key={em} onClick={() => { handlePickEmoji(em); }}
                     style={{
                       aspectRatio:'1/1', borderRadius:10, display:'flex',
                       alignItems:'center', justifyContent:'center', fontSize:24,
@@ -235,6 +303,9 @@ export default function ProfileEditModal({ profile, onClose, onSaved }) {
                       background: sel ? 'var(--gold)22' : 'var(--surf)',
                       border: `1px solid ${sel ? 'var(--gold)' : 'var(--brd)'}`,
                       transition:'all .12s',
+                      WebkitTapHighlightColor:'transparent',
+                      touchAction:'manipulation',
+                      userSelect:'none',
                     }}>{em}</div>
                 );
               })}

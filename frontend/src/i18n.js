@@ -330,6 +330,9 @@ const TRANSLATIONS = {
       err_too_big:'Foto troppo grande. Massimo 20 MB.',
       err_unavailable:'Caricamento foto non disponibile al momento.',
       err_remove:'Errore durante la rimozione della foto.',
+      replace_q:'Sostituisci la foto con questa emoji?',
+      replace_yes:'Sì, usa emoji',
+      replace_no:'No, tienila come fallback',
     },
     photo: {
       title:'Scatta o carica',
@@ -818,6 +821,9 @@ const TRANSLATIONS = {
       err_too_big:'Photo too large. 20 MB max.',
       err_unavailable:'Photo upload is currently unavailable.',
       err_remove:'Failed to remove the photo.',
+      replace_q:'Replace your photo with this emoji?',
+      replace_yes:'Yes, use emoji',
+      replace_no:'No, keep as fallback',
     },
     photo: {
       title:'Take or upload',

@@ -537,7 +537,10 @@ export default function DashboardView({user,profiles,groupMembers,credits,bets,c
           — {t('app.credits')}
         </div>
       </div>
-      {/* Quick stats — staggered vertically: each cell at a different y. */}
+      {/* Quick stats — staggered vertically AND horizontally inside each
+          cell: every cell sits in a different spot (anchor + nudge) so the
+          row reads as a deliberately broken grid instead of a flush-left
+          rack. */}
       {totalMy > 0 && (() => {
         const cells = [
           {l:t('stats_view.won'),   v:myWon.length,  c:'var(--grn)'},
@@ -545,9 +548,16 @@ export default function DashboardView({user,profiles,groupMembers,credits,bets,c
           {l:t('stats_view.win_rate'), v:`${wr}%`,   c: wr>=50 ? 'var(--grn)' : 'var(--red)'},
           {l:t('dashboard.total_bets'), v:totalMy + myAct.length + mySec.length, c:'var(--gold)'},
         ];
-        // Stagger offsets — never identical, never centered.
+        // Vertical stagger — keeps the "movement" the user liked.
         const yOffsets = isDesktop ? [0, 22, 8, 30] : [0, 14, 4, 18];
-        const indents  = isDesktop ? [0, 8, 32, 4]  : [0, 4, 16, 2];
+        // Per-cell horizontal anchor: each one sits in a different spot
+        // inside its column instead of being flush-left. Order chosen so the
+        // row scans as: anchor-left → center-tilt → right-perch → center-drop.
+        const anchors  = ['flex-start', 'center', 'flex-end', 'center'];
+        const aligns   = ['left',       'center', 'right',    'center'];
+        // Small horizontal nudges so "center" cells don't feel mathematically
+        // perfect — keep the asymmetric editorial feel.
+        const nudges   = isDesktop ? [0, -6, 0, 10] : [0, -3, 0, 6];
         return (
           <div style={{
             display:'flex', gap:0, marginTop: isDesktop ? 44 : 28,
@@ -556,10 +566,13 @@ export default function DashboardView({user,profiles,groupMembers,credits,bets,c
           }}>
             {cells.map((s, idx) => (
               <div key={s.l} style={{
-                flex:1,
-                paddingLeft: idx === 0 ? 0 : indents[idx],
+                flex:1, minWidth:0,
                 paddingTop: yOffsets[idx],
-                textAlign: idx === 0 ? 'left' : 'left',
+                paddingLeft: 6, paddingRight: 6,
+                display:'flex', flexDirection:'column',
+                alignItems: anchors[idx],
+                textAlign: aligns[idx],
+                transform: `translateX(${nudges[idx]}px)`,
                 borderLeft: idx === 0 ? 'none' : '1px solid var(--rule)',
               }}>
                 <div className="bc-num" style={{fontSize: 'clamp(22px, 5vw, 34px)', color:s.c, lineHeight:1}}>{s.v}</div>

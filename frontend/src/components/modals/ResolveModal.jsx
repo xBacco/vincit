@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Btn, Avatar, fmtQ, qToP, COLORS } from '../Atoms.jsx';
 import { useLang } from '../../i18n.js';
+import Coin3D, { CoinFaceTesta } from '../Coin.jsx';
 
 // Shared modal shell — dark overlay, centered editorial panel.
 const OVERLAY = {position:"fixed",inset:0,background:"rgba(15,11,35,.78)",backdropFilter:"blur(6px)",WebkitBackdropFilter:"blur(6px)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100,padding:24};
@@ -83,15 +84,25 @@ export function ResolveModal({bet,cats,profiles,onResolve,onOvertime,onClose}){
 
 export function OvertimeModal({bet,profiles,onResult,onClose}){
   const { t } = useLang();
-  const [phase,setPhase]=useState("ready");
+  const [phase,setPhase]=useState("ready");      // 'ready' | 'flipping' | 'result'
   const [winner,setWinner]=useState(null);
+  const [coinSide,setCoinSide]=useState(null);   // 'testa' (creator) | 'croce' (opponent)
+  const [flipKey,setFlipKey]=useState(0);        // bumps every flip so Coin3D remounts and replays the animation
+  const FLIP_MS = 2600;                          // matches Coin3D's default 2600ms
+
   const flip=()=>{
+    const otherId = Object.keys(profiles).find(k => k !== bet.creator) ?? bet.creator;
+    const creatorWins = Math.random() < 0.5;
+    setCoinSide(creatorWins ? 'testa' : 'croce');
+    setWinner(creatorWins ? bet.creator : otherId);
+    setFlipKey(k => k + 1);
     setPhase("flipping");
-    setTimeout(()=>{
-      const w=Math.random()<.5?bet.creator:(Object.keys(profiles).find(k=>k!==bet.creator)??bet.creator);
-      setWinner(w);setPhase("result");
-    },1600);
+    setTimeout(() => setPhase("result"), FLIP_MS + 200);
   };
+
+  // Coin size — kept compact so it fits the modal panel comfortably.
+  const COIN_SIZE = 150;
+
   return(
     <div style={OVERLAY} onClick={onClose}>
       <div className="bIn" style={{...PANEL,width:"100%",maxWidth:380,textAlign:"center"}} onClick={e=>e.stopPropagation()}>
@@ -101,7 +112,20 @@ export function OvertimeModal({bet,profiles,onResult,onClose}){
         </div>
         <div style={{fontSize:12,color:"var(--dim)",marginBottom:28,letterSpacing:".02em"}}>{t('overtime.desc')}</div>
 
-        <div style={{fontSize:88,marginBottom:28,display:"inline-block"}} className={phase==="flipping"?"spinC":""}>🪙</div>
+        {/* Coin: static testa face before flip, animating Coin3D during &
+            after the flip. The key forces a remount so the keyframe re-runs. */}
+        <div style={{
+          marginBottom:28, display:'flex', justifyContent:'center',
+          filter: phase === 'flipping' ? 'drop-shadow(0 0 18px rgba(196,168,120,.5))' : 'none',
+        }}>
+          {phase === 'ready' ? (
+            <div style={{width:COIN_SIZE,height:COIN_SIZE}}>
+              <CoinFaceTesta size={COIN_SIZE}/>
+            </div>
+          ) : (
+            <Coin3D key={flipKey} result={coinSide || 'testa'} size={COIN_SIZE}/>
+          )}
+        </div>
 
         {phase==="ready" && <Btn variant="gold" style={{padding:"13px 36px"}} onClick={flip}>{t('overtime.flip')}</Btn>}
         {phase==="flipping" && <div className="bc-meta" style={{fontSize:11}}>{t('overtime.flipping')}</div>}

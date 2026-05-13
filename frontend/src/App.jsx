@@ -9,6 +9,7 @@ import SplashScreen from './components/SplashScreen.jsx';
 import OnboardingTour from './components/OnboardingTour.jsx';
 import TrophyUnlockOverlay from './components/TrophyUnlockOverlay.jsx';
 import DieFace from './components/DieFace.jsx';
+import Coin3D from './components/Coin.jsx';
 import { SkeletonDashboard, SkeletonList } from './components/Skeleton.jsx';
 import { useToast } from './Toast.jsx';
 import AuthView from './components/views/AuthView.jsx';
@@ -171,138 +172,8 @@ const CSS_BASE = `
 // unlocks the secret trophy `egg_coin`; subsequent flips are pure fun.
 const COIN_LS_KEY = 'bc_egg_coin_flipped';
 
-// Shared "blank" coin disk: gold radial gradient, embossed rim, twin inner
-// rings. Both testa and croce reuse this so the disk feels consistent
-// regardless of which side is showing.
-function CoinDisk({ size, children }) {
-  return (
-    <div style={{
-      width: '100%', height: '100%', borderRadius: '50%',
-      background: 'radial-gradient(circle at 35% 28%, #fbeaa6 0%, #e2c172 30%, #b4892f 70%, #6f4f1a 100%)',
-      border: `${Math.max(3, size * 0.025)}px solid #e2c886`,
-      boxShadow:
-        'inset 0 -10px 22px rgba(60,30,5,.42), ' +
-        'inset 0 8px 16px rgba(255,255,255,.45), ' +
-        '0 20px 42px rgba(0,0,0,.5)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      position: 'relative', overflow: 'hidden',
-    }}>
-      {/* Outer rim engraving */}
-      <div style={{position:'absolute', inset: size*0.05, borderRadius:'50%',
-        border:'1.5px solid rgba(50,25,8,.4)'}}/>
-      {/* Inner hairline */}
-      <div style={{position:'absolute', inset: size*0.12, borderRadius:'50%',
-        border:'1px solid rgba(50,25,8,.22)'}}/>
-      {children}
-    </div>
-  );
-}
-
-// CROCE — the "tails" / design side. Decorative monogram BC (the app
-// brand) framed by 12 small dots like a clock face, with sweeping laurel
-// curves at the bottom for that classic numismatic feel.
-function CoinFaceCroce({ size }) {
-  return (
-    <CoinDisk size={size}>
-      {/* SVG decorations — 12 rim dots + laurel sweep */}
-      <svg viewBox="-50 -50 100 100" style={{position:'absolute', inset:0, width:'100%', height:'100%'}} aria-hidden>
-        {/* 12 dots like clock positions */}
-        {Array.from({length:12}).map((_,i) => {
-          const ang = (i * 30) * Math.PI / 180;
-          const r = 41;
-          const x = Math.sin(ang) * r;
-          const y = -Math.cos(ang) * r;
-          return <circle key={i} cx={x} cy={y} r="1.3" fill="#3d2412" opacity=".55"/>;
-        })}
-        {/* Laurel sweep — a thin curve hugging the bottom rim */}
-        <path d="M -32,18 Q 0,42 32,18" stroke="#3d2412" strokeWidth="1" opacity=".4" fill="none"/>
-        {/* Tiny leaves on the sweep */}
-        {[-26,-18,-10,10,18,26].map(x => (
-          <ellipse key={x} cx={x} cy={28} rx="2" ry="3.5"
-            transform={`rotate(${x*1.5} ${x} 28)`} fill="#3d2412" opacity=".5"/>
-        ))}
-      </svg>
-      {/* BC monogram center */}
-      <div style={{
-        fontFamily:"'Cormorant Garamond',serif", fontStyle:'italic', fontWeight:700,
-        fontSize: size * 0.42, lineHeight: 1, letterSpacing: '-0.04em',
-        color:'#3d2412',
-        textShadow: '0 1px 0 rgba(255,255,255,.55), 0 -1px 0 rgba(0,0,0,.35)',
-        position:'relative', zIndex: 1,
-        transform: `translateY(${-size * 0.05}px)`,
-      }}>BC</div>
-    </CoinDisk>
-  );
-}
-
-// TESTA — the "heads" / value side. Big "1 €" denomination centered with
-// the brand arched around the top rim and a small subtitle below.
-function CoinFaceTesta({ size }) {
-  return (
-    <CoinDisk size={size}>
-      {/* Arched rim text */}
-      <svg viewBox="-50 -50 100 100" style={{position:'absolute', inset:0, width:'100%', height:'100%'}} aria-hidden>
-        <defs>
-          <path id="coinTopArc" d="M -38,2 A 38,38 0 0 1 38,2" fill="none"/>
-          <path id="coinBotArc" d="M -34,2 A 34,34 0 0 0 34,2" fill="none"/>
-        </defs>
-        <text fontSize="6" fontWeight="700" letterSpacing="3" fill="#3d2412"
-              fontFamily="Manrope,sans-serif" opacity=".7">
-          <textPath href="#coinTopArc" startOffset="50%" textAnchor="middle">★ BETCOUPLE ★</textPath>
-        </text>
-        <text fontSize="4" fontWeight="600" letterSpacing="2.5" fill="#3d2412"
-              fontFamily="Manrope,sans-serif" opacity=".55">
-          <textPath href="#coinBotArc" startOffset="50%" textAnchor="middle">UN CREDITO</textPath>
-        </text>
-      </svg>
-      {/* Center denomination "1 €" */}
-      <div style={{
-        display:'flex', alignItems:'baseline', gap: size*0.015,
-        fontFamily:"'Playfair Display',serif", fontWeight: 900,
-        fontSize: size * 0.46, lineHeight: 1, letterSpacing: '-0.04em',
-        color: '#3d2412',
-        textShadow: '0 1px 0 rgba(255,255,255,.55), 0 -1px 0 rgba(0,0,0,.35)',
-        position: 'relative', zIndex: 1,
-      }}>
-        <span>1</span>
-        <span style={{fontSize: size*0.22, fontWeight: 700, fontStyle:'italic'}}>€</span>
-      </div>
-    </CoinDisk>
-  );
-}
-
-// 3D coin: two stacked faces, one on each side of an invisible card. The
-// parent rotates on X-axis with CSS keyframes — during the flip the user
-// actually sees TESTA → edge → CROCE → edge → TESTA alternate. Final
-// rotation lands the chosen face forward.
-function Coin3D({ result, size }) {
-  const animName = result === 'croce' ? 'coinFlip3dCroce' : 'coinFlip3dTesta';
-  return (
-    <div style={{ width: size, height: size, perspective: 1200 }}>
-      <div style={{
-        position:'relative', width:'100%', height:'100%',
-        transformStyle:'preserve-3d',
-        animation: `${animName} 2.6s cubic-bezier(.34,1.05,.55,1) forwards`,
-      }}>
-        {/* TESTA face — front (rotateX 0deg) */}
-        <div style={{
-          position:'absolute', inset:0,
-          backfaceVisibility:'hidden', WebkitBackfaceVisibility:'hidden',
-        }}>
-          <CoinFaceTesta size={size}/>
-        </div>
-        {/* CROCE face — back (rotated 180deg around X) */}
-        <div style={{
-          position:'absolute', inset:0,
-          backfaceVisibility:'hidden', WebkitBackfaceVisibility:'hidden',
-          transform:'rotateX(180deg)',
-        }}>
-          <CoinFaceCroce size={size}/>
-        </div>
-      </div>
-    </div>
-  );
-}
+// Coin design now lives in components/Coin.jsx and is shared with the
+// OvertimeModal so the same coin appears wherever a flip happens.
 
 // Easter egg #1: fullscreen die roll overlay. Triggered by tapping the
 // small static die in the dashboard empty state. The face cycles rapidly

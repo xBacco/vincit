@@ -84,7 +84,9 @@ export default function BetCard({bet,user,profiles,cats,onResolve,onReveal,onCou
   // Swipe-to-resolve
   const cardRef  = useRef(null);
   const swipeRef = useRef(null);
+  const deltaRef = useRef(0);
   const [deltaX, setDeltaX] = useState(0);
+  const setDelta = (v) => { deltaRef.current = v; setDeltaX(v); };
 
   useEffect(() => {
     if (isDesktop || !isOwner || done || isPending || hasProposal || isDisputed || !onResolve) return;
@@ -92,21 +94,22 @@ export default function BetCard({bet,user,profiles,cats,onResolve,onReveal,onCou
     if (!el) return;
 
     const onStart = e => {
+      if (!e.touches || !e.touches[0]) return;
       swipeRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, active: true };
-      setDeltaX(0);
+      setDelta(0);
     };
     const onMove = e => {
-      if (!swipeRef.current?.active) return;
+      if (!swipeRef.current?.active || !e.touches || !e.touches[0]) return;
       const dx = e.touches[0].clientX - swipeRef.current.x;
       const dy = Math.abs(e.touches[0].clientY - swipeRef.current.y);
-      if (dy > VERT_ABORT) { swipeRef.current.active = false; setDeltaX(0); return; }
+      if (dy > VERT_ABORT) { swipeRef.current.active = false; setDelta(0); return; }
       e.preventDefault();
-      setDeltaX(dx);
+      setDelta(dx);
     };
     const onEnd = () => {
-      if (swipeRef.current?.active && Math.abs(deltaX) >= SWIPE_THRESHOLD) onResolve(bet);
+      if (swipeRef.current?.active && Math.abs(deltaRef.current) >= SWIPE_THRESHOLD) onResolve(bet);
       swipeRef.current = null;
-      setDeltaX(0);
+      setDelta(0);
     };
 
     el.addEventListener('touchstart', onStart, { passive: true });
@@ -117,7 +120,7 @@ export default function BetCard({bet,user,profiles,cats,onResolve,onReveal,onCou
       el.removeEventListener('touchmove',  onMove);
       el.removeEventListener('touchend',   onEnd);
     };
-  }, [isDesktop, isOwner, done, onResolve, deltaX, bet]);
+  }, [isDesktop, isOwner, done, isPending, hasProposal, isDisputed, onResolve, bet]);
 
   const actions=isOwner&&!done&&!isPending&&(
     <div style={{display:"flex",gap:8,...(isDesktop?{flexDirection:"column",alignItems:"stretch",flexShrink:0,justifyContent:"center"}:{})}}>

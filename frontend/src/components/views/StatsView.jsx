@@ -345,7 +345,7 @@ export default function StatsView({user,profiles,groupMembers,credits,bets,cats,
               <div key={r.id} style={{
                 position:'relative',
                 display:'flex', alignItems:'baseline', justifyContent:'space-between',
-                gap:14, paddingLeft: tier.indent, padding: tier.pad,
+                gap:14, padding: tier.pad,
                 marginTop: tier.myTop,
                 // Subtle gold tint only when it's me — no full background, no box.
                 borderLeft: r.isMe ? '2px solid var(--gold)' : 'none',

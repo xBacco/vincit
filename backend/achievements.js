@@ -10,39 +10,40 @@ const CATALOG = [
   { id: 'first_bet',      icon: '🌱', category: 'positive',  levels: [1, 10, 50, 100, 250] },     // 5 — total bets created
   { id: 'wins',           icon: '🏆', category: 'positive',  levels: [1, 5, 25, 100, 250] },       // 5
   { id: 'win_streak',     icon: '🔥', category: 'positive',  levels: [3, 5, 10, 15, 25] },        // 5
-  { id: 'volume',         icon: '🎲', category: 'positive',  levels: [10, 50, 150, 400] },        // 4
-  { id: 'earnings',       icon: '💎', category: 'positive',  levels: [100, 500, 2000, 5000] },    // 4
+  { id: 'volume',         icon: '🎲', category: 'positive',  levels: [10, 50, 150, 400, 1000] },  // 5 — total resolved bets
+  { id: 'earnings',       icon: '💎', category: 'positive',  levels: [100, 500, 2000, 5000, 15000] }, // 5
 
   // ─── Challenge ─────────────────────────────────────────────────────
   { id: 'high_odds',      icon: '🌠', category: 'challenge', levels: [2, 3, 5, 10, 20] },         // 5
-  { id: 'daredevil',      icon: '🪂', category: 'challenge', levels: [3, 10, 25] },               // 3
-  { id: 'safe_bet',       icon: '🛡', category: 'challenge', levels: [10, 30, 75, 150] },         // 4
-  { id: 'single_win',     icon: '💰', category: 'challenge', levels: [25, 100, 300, 800] },       // 4
-  { id: 'high_roller',    icon: '🪙', category: 'challenge', levels: [100, 500, 2000] },          // 3
+  { id: 'daredevil',      icon: '🪂', category: 'challenge', levels: [3, 10, 25, 60, 150] },      // 5 — wins on odds ≥ 5
+  { id: 'safe_bet',       icon: '🛡', category: 'challenge', levels: [10, 30, 75, 150, 300] },    // 5 — wins on odds ≤ 1.30
+  { id: 'single_win',     icon: '💰', category: 'challenge', levels: [25, 100, 300, 800, 2500] }, // 5
+  { id: 'high_roller',    icon: '🪙', category: 'challenge', levels: [100, 500, 2000, 5000, 12000] }, // 5
 
   // ─── Mission ───────────────────────────────────────────────────────
-  { id: 'surprise',       icon: '🤫', category: 'mission',   levels: [1, 5, 15] },                 // 3
-  { id: 'pegno',          icon: '🎁', category: 'mission',   levels: [1, 5, 15, 40] },             // 4
-  { id: 'night_owl',      icon: '🦉', category: 'mission',   levels: [3, 15, 40] },                // 3
-  { id: 'early_bird',     icon: '🌅', category: 'mission',   levels: [3, 15, 40] },                // 3
-  { id: 'marathon',       icon: '🏃', category: 'mission',   levels: [10, 20, 35] },               // 3
+  { id: 'surprise',       icon: '🤫', category: 'mission',   levels: [1, 5, 15, 40, 100] },        // 5
+  { id: 'pegno',          icon: '🎁', category: 'mission',   levels: [1, 5, 15, 40, 100] },        // 5
+  { id: 'night_owl',      icon: '🦉', category: 'mission',   levels: [3, 15, 40, 100, 250] },     // 5
+  { id: 'early_bird',     icon: '🌅', category: 'mission',   levels: [3, 15, 40, 100, 250] },     // 5
+  { id: 'marathon',       icon: '🏃', category: 'mission',   levels: [10, 20, 35, 60, 100] },     // 5
   { id: 'commentator',    icon: '💬', category: 'mission',   levels: [5, 20, 50, 150, 400] },     // 5 — counts comments in the bet message thread
-  { id: 'quick_resolve',  icon: '⏱️', category: 'mission',   levels: [3, 10, 25] },                // 3
-  { id: 'comeback',       icon: '💪', category: 'mission',   levels: [3, 5, 8, 12] },              // 4
-  { id: 'equilibrium',    icon: '☯',  category: 'mission',   levels: [10, 30, 80] },               // 3
+  { id: 'quick_resolve',  icon: '⏱️', category: 'mission',   levels: [3, 10, 25, 60, 150] },      // 5
+  { id: 'comeback',       icon: '💪', category: 'mission',   levels: [3, 5, 8, 12, 20] },         // 5
+  { id: 'equilibrium',    icon: '☯',  category: 'mission',   levels: [10, 30, 80, 200, 500] },    // 5
 
   // ─── Shadow ────────────────────────────────────────────────────────
-  { id: 'losses',         icon: '🥀', category: 'shadow',    levels: [1, 10, 30, 75] },            // 4
-  { id: 'loss_streak',    icon: '❄️', category: 'shadow',    levels: [3, 7, 15] },                 // 3
-  { id: 'worst_loss',     icon: '💸', category: 'shadow',    levels: [50, 150, 500] },             // 3
-  { id: 'outsider_lost',  icon: '💔', category: 'shadow',    levels: [1, 3, 8] },                  // 3
+  { id: 'losses',         icon: '🥀', category: 'shadow',    levels: [1, 10, 30, 75, 200] },      // 5
+  { id: 'loss_streak',    icon: '❄️', category: 'shadow',    levels: [3, 7, 15, 25, 40] },        // 5
+  { id: 'worst_loss',     icon: '💸', category: 'shadow',    levels: [50, 150, 500, 1500, 5000] },// 5
+  { id: 'outsider_lost',  icon: '💔', category: 'shadow',    levels: [1, 3, 8, 20, 50] },         // 5
 
   // ─── Social ────────────────────────────────────────────────────────
   { id: 'flamed',         icon: '⭐', category: 'social',    levels: [3, 15, 40, 100, 250] },     // 5
   { id: 'paparazzo',      icon: '📷', category: 'social',    levels: [3, 15, 40, 100, 250] },     // 5
   { id: 'reactor',        icon: '👋', category: 'social',    levels: [5, 25, 100, 250, 500] },    // 5 — reactions you've GIVEN (emoji + photo)
-  { id: 'counter_winner', icon: '🥊', category: 'social',    levels: [3, 15, 40, 100] },           // 4
-  { id: 'targeted',       icon: '🎯', category: 'social',    levels: [1, 5, 15, 40] },             // 4
+  { id: 'counter_winner', icon: '🥊', category: 'social',    levels: [3, 15, 40, 100, 250] },     // 5
+  { id: 'targeted',       icon: '🎯', category: 'social',    levels: [1, 5, 15, 40, 100] },       // 5
+  // Group milestones stay 3-level — depends on group dynamics, not effort
   { id: 'multi_group',    icon: '🌐', category: 'social',    levels: [2, 4, 8] },                  // 3
   { id: 'recruiter',      icon: '📣', category: 'social',    levels: [1, 3, 8] },                  // 3
 

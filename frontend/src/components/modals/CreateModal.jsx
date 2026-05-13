@@ -705,8 +705,8 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
       </div>
 
       {/* Preset chips — underline pills */}
-      <div style={{display:"flex", gap:'clamp(14px, 4vw, 24px)', borderBottom:'1px solid var(--rule)', paddingBottom:10, marginBottom:14}}>
-        {[5,10,20,50].map(s=>{
+      <div style={{display:"flex", flexWrap:'wrap', gap:'clamp(10px, 3vw, 18px)', borderBottom:'1px solid var(--rule)', paddingBottom:10, marginBottom:14}}>
+        {[5,10,20,50,75,100].map(s=>{
           const active = stake===s;
           const disabled = s > maxStake;
           return (

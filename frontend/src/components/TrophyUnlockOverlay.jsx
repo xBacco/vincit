@@ -70,7 +70,7 @@ export default function TrophyUnlockOverlay({ queue, onDone }) {
   const tier = TIER_BY_LEVEL[current.level] || '#b87333';
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 9500, pointerEvents: 'none' }}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, pointerEvents: 'none' }}>
       <style>{CSS}</style>
       <div
         onClick={dismissNow}

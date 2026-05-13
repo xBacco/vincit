@@ -436,8 +436,8 @@ export default function SettingsView({user,profiles,groupMembers,isDark,setIsDar
                       <div style={{fontSize:12,color:"var(--gold)",fontWeight:700}}>{t('settings.balance')} {Math.round(credits[k]||0)} ₡</div>
                     </div>
                   </div>
-                  {!isMe && creditErr[k]&&<div style={{fontSize:12,color:"var(--red)",marginBottom:6}}>{creditErr[k]}</div>}
-                  {!isMe && (creditConfirm?.user===k?(
+                  {creditErr[k]&&<div style={{fontSize:12,color:"var(--red)",marginBottom:6}}>{creditErr[k]}</div>}
+                  {(creditConfirm?.user===k?(
                     <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
                       <div style={{fontSize:13,color:"var(--dim)",flex:1}}>
                         {t('settings.credits_confirm_q',{amount:creditConfirm.amount,name:p.name})}

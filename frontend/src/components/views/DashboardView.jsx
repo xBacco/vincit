@@ -318,6 +318,19 @@ export default function DashboardView({user,profiles,groupMembers,credits,bets,c
   const hour = new Date().getHours();
   const greeting = hour < 6 ? '🌙' : hour < 12 ? '☀️' : hour < 18 ? '👋' : '✨';
   const totalMy = myWon.length + myLost.length;
+
+  // Desktop top-right "status spine" — fills the editorial empty space
+  // beside the giant italic name. Three quick reads: streak, today's
+  // group activity, latest visible bet title. All derived locally from
+  // existing data — no extra API call.
+  const myStreaks = currentStreaks(bets, user);
+  const todayKey  = new Date().toDateString();
+  const todayCount = bets.filter(b => new Date(b.createdAt).toDateString() === todayKey).length;
+  const latestBet = [...bets]
+    .filter(b => !b.isSecret && b.status === 'active')
+    .sort((a,b) => (b.createdAt || 0) - (a.createdAt || 0))[0];
+  const fireLevel = Math.max(myStreaks.winStreak, myStreaks.lossStreak);
+  const fireKind  = myStreaks.winStreak > myStreaks.lossStreak ? 'win' : 'loss';
   // Broken-grid hero — name escapes its grid cell, credit balance floats
   // diagonally below to the right with a deliberate stagger, KPI strip below
   // skews each cell vertically so it never reads as a clean grid.
@@ -342,9 +355,83 @@ export default function DashboardView({user,profiles,groupMembers,credits,bets,c
         whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
         // Pull baseline slightly down so the next block (credit) overlaps it.
         marginBottom: isDesktop ? -28 : -16,
+        // Cap the name's width on desktop so the status spine on the right
+        // has room to breathe instead of being shoved off-screen.
+        maxWidth: isDesktop ? '70%' : undefined,
       }}>
         {myProfile.name}
       </div>
+
+      {/* Desktop-only status spine — pinned top-right, fills the editorial
+          gap to the right of the giant italic name. Three quick reads:
+          streak indicator, today's group activity, latest live bet. */}
+      {isDesktop && (
+        <div style={{
+          position:'absolute', top: 48, right: 0,
+          width: 240,
+          display:'flex', flexDirection:'column', gap: 16,
+          alignItems:'flex-end', textAlign:'right',
+          pointerEvents:'auto',
+        }}>
+          {fireLevel > 0 && (
+            <div style={{
+              display:'flex', alignItems:'baseline', gap: 8,
+            }}>
+              <span style={{fontSize: 28, lineHeight: 1}}>
+                {fireKind === 'win' ? '🔥' : '❄️'}
+              </span>
+              <div>
+                <div className="bc-num" style={{
+                  fontSize: 'clamp(28px, 3.4vw, 44px)',
+                  color: fireKind === 'win'
+                    ? (fireLevel >= 5 ? 'var(--red)' : 'var(--gold)')
+                    : 'var(--blu)',
+                  lineHeight: 1,
+                }}>{fireLevel}</div>
+                <div className="bc-meta" style={{marginTop: 4, fontSize: 7}}>
+                  {fireKind === 'win' ? t('dashboard.streak') : 'STREAK NEG.'}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {todayCount > 0 && (
+            <div>
+              <div className="bc-num" style={{
+                fontSize: 'clamp(22px, 2.6vw, 32px)',
+                color: 'var(--txt)',
+                lineHeight: 1,
+              }}>
+                {todayCount}<span style={{fontSize:'0.55em', color:'var(--dim)', marginLeft: 4, fontWeight: 400}}>
+                  {todayCount === 1 ? 'bet' : 'bets'}
+                </span>
+              </div>
+              <div className="bc-meta" style={{marginTop: 4, fontSize: 7}}>OGGI · GRUPPO</div>
+            </div>
+          )}
+
+          {latestBet && (
+            <div style={{
+              maxWidth: 240,
+              paddingTop: 12,
+              borderTop: '1px solid var(--rule)',
+              opacity: .88,
+            }}>
+              <div className="bc-meta" style={{fontSize: 7, marginBottom: 4}}>— LIVE NEL GRUPPO</div>
+              <div style={{
+                fontFamily:"'Cormorant Garamond',serif", fontStyle:'italic',
+                fontSize: 'clamp(16px, 1.4vw, 20px)', fontWeight: 500,
+                color: 'var(--gold)', lineHeight: 1.2,
+                whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
+                letterSpacing:'-0.01em',
+              }}>"{latestBet.title}"</div>
+              <div className="bc-meta" style={{fontSize: 7, marginTop: 4, opacity: .7}}>
+                {profiles[latestBet.creator]?.name ?? '...'}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
       {/* Credit balance — drifts right + drops below the name, intentionally
           breaking the horizontal axis. Tracked meta sits beneath, not above,
           so the giant number leads. */}

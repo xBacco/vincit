@@ -68,6 +68,8 @@ const CATALOG = [
   { id: 'egg_dice',       icon: '🎲', category: 'secret',    levels: [1], secret: true }, // all 6 faces rolled on the empty-state die
   { id: 'egg_coin',       icon: '🪙', category: 'secret',    levels: [1], secret: true }, // first toss of the header credit-symbol coin
   { id: 'egg_jackpot',    icon: '🎰', category: 'secret',    levels: [1], secret: true }, // create a bet titled "777" / "JACKPOT" / "💎💎💎"
+  { id: 'egg_ice',        icon: '❄️', category: 'secret',    levels: [1], secret: true }, // triple-tap the ❄️ on the loss-streak pill
+  { id: 'egg_phoenix',    icon: '🦅', category: 'secret',    levels: [1], secret: true }, // triple-tap the 🔥 on the win-streak pill
 ];
 
 // Whitelist of secret achievement IDs that the easter-egg endpoint accepts.

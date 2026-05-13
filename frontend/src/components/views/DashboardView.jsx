@@ -50,8 +50,14 @@ const S = {
 // here intentionally stays still — the animation lives in the overlay so
 // the dashboard stays visually clean.
 
-export default function DashboardView({user,profiles,groupMembers,credits,bets,cats,onCreate,onResolve,onReveal,onCounter,onFlame,notifSince,isDesktop,reactions,onReaction,onReactionPhoto,onDelete,onEdit,onAccept,onReject,can,onGoToVault,onConfirmOutcome,onWithdrawResolve,onOvertime,onEggUnlock,onOpenDie}){
+export default function DashboardView({user,profiles,groupMembers,credits,bets,cats,onCreate,onResolve,onReveal,onCounter,onFlame,notifSince,isDesktop,reactions,onReaction,onReactionPhoto,onDelete,onEdit,onAccept,onReject,can,onGoToVault,onConfirmOutcome,onWithdrawResolve,onOvertime,onEggUnlock,onOpenDie,onOpenIceEgg,onOpenPhoenixEgg}){
   const { t, lang } = useLang();
+  // 3-tap activation state for the streak-emoji easter eggs (ice / phoenix).
+  // Each tap pulses the emoji + resets a 1.8s timeout; the 3rd tap inside
+  // that window opens the matching overlay. Counter resets after firing.
+  const [streakTapCount, setStreakTapCount] = useState(0);
+  const streakTapTimerRef = React.useRef(null);
+  const [streakPulseKey, setStreakPulseKey] = useState(0);
   // Multi-member ranking: include every profile in the group, sorted by wins desc
   const allMemberIds = (groupMembers && groupMembers.length
     ? groupMembers.map(m => m.id)
@@ -331,6 +337,32 @@ export default function DashboardView({user,profiles,groupMembers,credits,bets,c
     .sort((a,b) => (b.createdAt || 0) - (a.createdAt || 0))[0];
   const fireLevel = Math.max(myStreaks.winStreak, myStreaks.lossStreak);
   const fireKind  = myStreaks.winStreak > myStreaks.lossStreak ? 'win' : 'loss';
+
+  // Last 5 resolved bets (won/lost) for the W/L "form guide" trail under the
+  // streak pill. Oldest-left, newest-right — same convention as football form.
+  const lastFive = [...bets]
+    .filter(b => b.creator === user && ['won','lost'].includes(b.status))
+    .sort((a,b) => (a.resolvedAt || a.createdAt || 0) - (b.resolvedAt || b.createdAt || 0))
+    .slice(-5)
+    .map(b => b.status);
+
+  // 3-tap handler — triggers the matching egg overlay on the third tap within
+  // 1.8s. Resets after firing OR after the window expires. Pulse animation
+  // on each tap to confirm the input registered.
+  const handleStreakTap = () => {
+    if (fireLevel < 1) return;
+    setStreakPulseKey(k => k + 1);
+    const next = streakTapCount + 1;
+    if (streakTapTimerRef.current) clearTimeout(streakTapTimerRef.current);
+    if (next >= 3) {
+      setStreakTapCount(0);
+      if (fireKind === 'loss') onOpenIceEgg?.();
+      else                     onOpenPhoenixEgg?.();
+      return;
+    }
+    setStreakTapCount(next);
+    streakTapTimerRef.current = setTimeout(() => setStreakTapCount(0), 1800);
+  };
   // Broken-grid hero — name escapes its grid cell, credit balance floats
   // diagonally below to the right with a deliberate stagger, KPI strip below
   // skews each cell vertically so it never reads as a clean grid.
@@ -376,10 +408,24 @@ export default function DashboardView({user,profiles,groupMembers,credits,bets,c
             pointerEvents:'auto',
           }}>
             {fireLevel > 0 && (
-              <div style={{
-                display:'flex', alignItems:'baseline', gap: 8,
-              }}>
-                <span style={{fontSize: 28, lineHeight: 1}}>
+              <div
+                onClick={handleStreakTap}
+                style={{
+                  position:'relative',
+                  display:'flex', alignItems:'baseline', gap: 8,
+                  cursor:'pointer', userSelect:'none',
+                  WebkitTapHighlightColor:'transparent', touchAction:'manipulation',
+                  padding:'4px 8px', margin:'-4px -8px', borderRadius:10,
+                  boxShadow: streakTapCount > 0
+                    ? `0 0 0 2px ${fireKind === 'win' ? 'var(--gold)' : 'var(--blu)'}66`
+                    : 'none',
+                  transition:'box-shadow .2s',
+                }}>
+                <span key={streakPulseKey} style={{
+                  fontSize: 28, lineHeight: 1,
+                  display: 'inline-block',
+                  animation: streakPulseKey > 0 ? 'bcStreakTap .35s cubic-bezier(.3,1.6,.5,1) both' : 'none',
+                }}>
                   {fireKind === 'win' ? '🔥' : '❄️'}
                 </span>
                 <div>
@@ -394,6 +440,14 @@ export default function DashboardView({user,profiles,groupMembers,credits,bets,c
                     {fireKind === 'win' ? t('dashboard.streak') : 'STREAK NEG.'}
                   </div>
                 </div>
+                {streakTapCount > 0 && (
+                  <span style={{
+                    position:'absolute', top: -2, right: -2,
+                    fontSize: 8, fontWeight: 800,
+                    fontFamily:"'Manrope',sans-serif", letterSpacing:'.1em',
+                    color: fireKind === 'win' ? 'var(--gold)' : 'var(--blu)',
+                  }}>{streakTapCount}/3</span>
+                )}
               </div>
             )}
 
@@ -449,31 +503,78 @@ export default function DashboardView({user,profiles,groupMembers,credits,bets,c
             marginBottom: 6,
             opacity: .95,
           }}>
-            {fireLevel > 0 && (
-              <div style={{
-                display:'flex', alignItems:'center', gap: 6,
-                padding:'6px 14px 6px 10px',
-                background: fireKind === 'win'
-                  ? (fireLevel >= 5 ? 'var(--red)22' : 'var(--gold)22')
-                  : 'var(--blu)22',
-                border: `1px solid ${fireKind === 'win'
-                  ? (fireLevel >= 5 ? 'var(--red)44' : 'var(--gold)44')
-                  : 'var(--blu)44'}`,
-                borderRadius: 999,
-              }}>
-                <span style={{fontSize: 18, lineHeight: 1}}>
-                  {fireKind === 'win' ? '🔥' : '❄️'}
-                </span>
-                <span style={{
-                  fontFamily:"'Playfair Display',serif",
-                  fontSize: 20, fontWeight: 700, letterSpacing:'-0.01em',
-                  color: fireKind === 'win'
-                    ? (fireLevel >= 5 ? 'var(--red)' : 'var(--gold)')
-                    : 'var(--blu)',
-                  lineHeight: 1,
-                }}>{fireLevel}</span>
-              </div>
-            )}
+            {fireLevel > 0 && (() => {
+              const isWin = fireKind === 'win';
+              const isHot = isWin && fireLevel >= 5;
+              const accent = isWin ? (isHot ? 'var(--red)' : 'var(--gold)') : 'var(--blu)';
+              return (
+                <div
+                  onClick={handleStreakTap}
+                  style={{
+                    position:'relative',
+                    display:'flex', flexDirection:'column', alignItems:'center',
+                    gap: 4, padding:'10px 14px 10px 14px',
+                    background: `${accent}1f`,
+                    border: `1px solid ${accent}55`,
+                    borderRadius: 18, minWidth: 96,
+                    cursor: 'pointer', userSelect: 'none',
+                    WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation',
+                    transition: 'transform .2s, box-shadow .2s',
+                    boxShadow: streakTapCount > 0 ? `0 0 0 2px ${accent}66` : 'none',
+                  }}>
+                  {/* Emoji — pulses on each tap. The key forces React to
+                      restart the animation by re-mounting. */}
+                  <span key={streakPulseKey} style={{
+                    fontSize: 26, lineHeight: 1,
+                    display: 'inline-block',
+                    animation: streakPulseKey > 0 ? 'bcStreakTap .35s cubic-bezier(.3,1.6,.5,1) both' : 'none',
+                  }}>
+                    {isWin ? '🔥' : '❄️'}
+                  </span>
+                  {/* Number — big editorial */}
+                  <span style={{
+                    fontFamily:"'Playfair Display',serif",
+                    fontSize: 26, fontWeight: 700, letterSpacing:'-0.02em',
+                    color: accent, lineHeight: 1,
+                  }}>{fireLevel}</span>
+                  {/* Label — tiny tracked */}
+                  <span style={{
+                    fontFamily:"'Manrope',sans-serif",
+                    fontSize: 8, letterSpacing: '.18em', fontWeight: 700,
+                    color: 'var(--dim)', textTransform: 'uppercase',
+                  }}>{t('dashboard_extra.streak_short')}</span>
+                  {/* W/L trail — last 5, oldest left → newest right */}
+                  {lastFive.length > 0 && (
+                    <span style={{
+                      display:'flex', gap: 4, marginTop: 4,
+                    }}>
+                      {lastFive.map((s, i) => (
+                        <span key={i} style={{
+                          width: 9, height: 9, borderRadius: '50%',
+                          background: s === 'won' ? 'var(--grn)' : 'var(--red)',
+                          // Faintest opacity for older, full opacity for newest
+                          opacity: 0.4 + (i / Math.max(1, lastFive.length - 1)) * 0.6,
+                          // Newest one slightly bigger for emphasis
+                          transform: i === lastFive.length - 1 ? 'scale(1.15)' : 'scale(1)',
+                          boxShadow: i === lastFive.length - 1
+                            ? `0 0 6px ${s === 'won' ? 'var(--grn)' : 'var(--red)'}88`
+                            : 'none',
+                        }}/>
+                      ))}
+                    </span>
+                  )}
+                  {/* Tap counter hint — only visible while tapping (1 or 2/3) */}
+                  {streakTapCount > 0 && (
+                    <span style={{
+                      position:'absolute', top: 4, right: 8,
+                      fontSize: 8, color: accent, fontWeight: 800,
+                      fontFamily:"'Manrope',sans-serif",
+                      letterSpacing: '.1em',
+                    }}>{streakTapCount}/3</span>
+                  )}
+                </div>
+              );
+            })()}
 
             {todayCount > 0 && (
               <div style={{

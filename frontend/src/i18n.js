@@ -302,8 +302,15 @@ const TRANSLATIONS = {
       egg_dice:'Tira il dado',          egg_dice_desc:'Hai lanciato il dado per la prima volta',
       egg_coin:'Testa o croce',         egg_coin_desc:'Hai lanciato la moneta per la prima volta',
       egg_jackpot:'Jackpot',            egg_jackpot_desc:'Hai creato una bet col titolo magico',
+      egg_ice:'Nice',                   egg_ice_desc:'Hai sciolto il gelo della loss streak',
+      egg_phoenix:'Fenice',             egg_phoenix_desc:'Sei rinato dalle ceneri della tua streak',
       secret_locked:'???',              secret_locked_desc:'Trofeo segreto · ancora da scoprire',
       secret_category:'Segreti',
+      egg_first_tip:'✨ Questi easter egg si attivano con 3 click sull\'emoji',
+    },
+    dashboard_extra: {
+      streak_short:'GIORNI',
+      trail_label:'ULTIME 5',
     },
     templates: {
       title_settings:'I miei template', title_picker:'Template salvati',
@@ -793,8 +800,15 @@ const TRANSLATIONS = {
       egg_dice:'Roll the die',           egg_dice_desc:'You rolled the die for the first time',
       egg_coin:'Heads or tails',         egg_coin_desc:'You flipped the coin for the first time',
       egg_jackpot:'Jackpot',             egg_jackpot_desc:'You created a bet with the magic title',
+      egg_ice:'Nice',                    egg_ice_desc:'You melted the frost of your loss streak',
+      egg_phoenix:'Phoenix',             egg_phoenix_desc:'Reborn from the ashes of your streak',
       secret_locked:'???',               secret_locked_desc:'Secret trophy · still to discover',
       secret_category:'Secrets',
+      egg_first_tip:'✨ These easter eggs trigger with 3 taps on the emoji',
+    },
+    dashboard_extra: {
+      streak_short:'DAY STREAK',
+      trail_label:'LAST 5',
     },
     templates: {
       title_settings:'My templates', title_picker:'Saved templates',

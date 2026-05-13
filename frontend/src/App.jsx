@@ -6,6 +6,8 @@ import { DARK, LIGHT, AMBER, rootVars, DEF_CATS, COLORS } from './components/Ato
 import { useLang } from './i18n.js';
 import WinOverlay from './components/WinOverlay.jsx';
 import SplashScreen from './components/SplashScreen.jsx';
+import IceEggOverlay from './components/IceEggOverlay.jsx';
+import PhoenixEggOverlay from './components/PhoenixEggOverlay.jsx';
 import OnboardingTour from './components/OnboardingTour.jsx';
 import TrophyUnlockOverlay from './components/TrophyUnlockOverlay.jsx';
 import DieFace from './components/DieFace.jsx';
@@ -80,6 +82,7 @@ const CSS_BASE = `
 @keyframes spinC{0%{transform:rotateY(0deg)}100%{transform:rotateY(1800deg)}}
 @keyframes confA{0%{transform:translateY(0) rotate(0deg);opacity:1}100%{transform:translateY(90px) rotate(720deg);opacity:0}}
 @keyframes confB{0%{transform:translate(0,0) rotate(0deg) scale(1);opacity:1}100%{transform:translate(var(--ex),var(--ey)) rotate(var(--rot,720deg)) scale(.4);opacity:0}}
+@keyframes bcStreakTap{0%{transform:scale(1)}40%{transform:scale(1.35) rotate(-8deg)}100%{transform:scale(1) rotate(0deg)}}
 .bc *{box-sizing:border-box;margin:0;padding:0}
 .bc{font-family:'Manrope',sans-serif;transition:background .25s,color .25s}
 
@@ -358,6 +361,8 @@ const EGG_TROPHY_META = {
   egg_dice:    { icon: '🎲' },
   egg_coin:    { icon: '🪙' },
   egg_jackpot: { icon: '🎰' },
+  egg_ice:     { icon: '❄️' },
+  egg_phoenix: { icon: '🦅' },
 };
 
 const lsGet  = (k, fallback) => { try { const v = localStorage.getItem(k); return v !== null ? JSON.parse(v) : fallback; } catch { return fallback; } };
@@ -561,6 +566,8 @@ export default function App() {
   const [showProfileEdit, setShowProfileEdit] = useState(false);
   const [coinFlipOpen,    setCoinFlipOpen]    = useState(false); // easter egg #2 (coin)
   const [dieRollOpen,     setDieRollOpen]     = useState(false); // easter egg #1 (dice)
+  const [iceEggOpen,      setIceEggOpen]      = useState(false); // easter egg #4 (❄️ streak)
+  const [phoenixEggOpen,  setPhoenixEggOpen]  = useState(false); // easter egg #5 (🔥 streak)
   const [eggTick,         setEggTick]         = useState(0);     // bumps after a secret unlock so trophy polling refreshes
   const [pendingFriendCount, setPendingFriendCount] = useState(0);
 
@@ -660,10 +667,21 @@ export default function App() {
   const onEggFired = useCallback((id) => {
     const meta = EGG_TROPHY_META[id];
     if (!meta) return;
+    // First-time tip for the 3-tap streak eggs (ice/phoenix). One LS flag
+    // covers both so the user reads it only once across the two eggs.
+    let attachTip = false;
+    if (id === 'egg_ice' || id === 'egg_phoenix') {
+      try {
+        if (!localStorage.getItem('bc_egg_streak_tip_shown')) {
+          attachTip = true;
+          localStorage.setItem('bc_egg_streak_tip_shown', '1');
+        }
+      } catch {}
+    }
     setTrophyQueue(q => {
       // Dedup — never queue the same egg twice in a row.
       if (q.some(t => t.id === id && t.level === 1)) return q;
-      return [...q, { id, icon: meta.icon, level: 1, max_level: 1 }];
+      return [...q, { id, icon: meta.icon, level: 1, max_level: 1, tip: attachTip ? 'egg_first_tip' : null }];
     });
     setTrophyBaseline(b => {
       if (!b) return b; // baseline not initialized yet — nothing to keep in sync
@@ -1129,7 +1147,7 @@ export default function App() {
             return null;
           }
           return (<>
-            {view === 'dashboard' && <DashboardView user={user} profiles={profiles} groupMembers={groupMembers} credits={credits} bets={bets} cats={cats} onCreate={() => setShowCreate(true)} onResolve={b => setResolveBet(b)} onReveal={b => setRevealBet(b)} onCounter={b => setCounterTarget(b)} onFlame={handleFlame} notifSince={notifSince} isDesktop={isDesktop} reactions={reactions} onReaction={handleReaction} onReactionPhoto={handleReactionPhoto} onDelete={handleDelete} onEdit={b => setEditingBet(b)} onAccept={handleAccept} onReject={handleReject} can={can} onGoToVault={goToVault} onConfirmOutcome={handleConfirmOutcome} onWithdrawResolve={handleWithdrawResolve} onOvertime={b => setOvertimeBet(b)} onEggUnlock={onEggFired} onOpenDie={() => setDieRollOpen(true)} />}
+            {view === 'dashboard' && <DashboardView user={user} profiles={profiles} groupMembers={groupMembers} credits={credits} bets={bets} cats={cats} onCreate={() => setShowCreate(true)} onResolve={b => setResolveBet(b)} onReveal={b => setRevealBet(b)} onCounter={b => setCounterTarget(b)} onFlame={handleFlame} notifSince={notifSince} isDesktop={isDesktop} reactions={reactions} onReaction={handleReaction} onReactionPhoto={handleReactionPhoto} onDelete={handleDelete} onEdit={b => setEditingBet(b)} onAccept={handleAccept} onReject={handleReject} can={can} onGoToVault={goToVault} onConfirmOutcome={handleConfirmOutcome} onWithdrawResolve={handleWithdrawResolve} onOvertime={b => setOvertimeBet(b)} onEggUnlock={onEggFired} onOpenDie={() => setDieRollOpen(true)} onOpenIceEgg={() => setIceEggOpen(true)} onOpenPhoenixEgg={() => setPhoenixEggOpen(true)} />}
             {view === 'bets'      && <BetsHubView
                 tab={betsTab} setTab={setBetsTab}
                 user={user} profiles={profiles} bets={bets} cats={cats} isDesktop={isDesktop}
@@ -1241,6 +1259,39 @@ export default function App() {
 
       {/* Easter egg #1: die roll overlay */}
       <DieRollOverlay open={dieRollOpen} onClose={() => setDieRollOpen(false)} onEggUnlock={onEggFired} />
+
+      {/* Easter egg #4: ❄️ ice — 3 taps on the loss-streak emoji */}
+      <IceEggOverlay open={iceEggOpen} onClose={() => {
+        setIceEggOpen(false);
+        // Idempotent server unlock + one-shot local popup gating (same
+        // pattern used by egg_dice / egg_coin: set the LS flag only AFTER
+        // the synthetic queue push runs so a failure doesn't burn the popup).
+        let popThis = false;
+        try { if (!localStorage.getItem('bc_egg_ice_popped_v2')) popThis = true; } catch {}
+        api.unlockSecretAchievement('egg_ice')
+          .then(() => {
+            if (popThis) {
+              onEggFired('egg_ice');
+              try { localStorage.setItem('bc_egg_ice_popped_v2', '1'); } catch {}
+            }
+          })
+          .catch(e => console.error('[egg_ice] unlock failed', e));
+      }} />
+
+      {/* Easter egg #5: 🦅 phoenix — 3 taps on the win-streak emoji */}
+      <PhoenixEggOverlay open={phoenixEggOpen} onClose={() => {
+        setPhoenixEggOpen(false);
+        let popThis = false;
+        try { if (!localStorage.getItem('bc_egg_phoenix_popped_v2')) popThis = true; } catch {}
+        api.unlockSecretAchievement('egg_phoenix')
+          .then(() => {
+            if (popThis) {
+              onEggFired('egg_phoenix');
+              try { localStorage.setItem('bc_egg_phoenix_popped_v2', '1'); } catch {}
+            }
+          })
+          .catch(e => console.error('[egg_phoenix] unlock failed', e));
+      }} />
 
       {/* Trophy unlock animation — small banner top-center, ~3s per unlock */}
       <TrophyUnlockOverlay queue={trophyQueue} onDone={consumeTrophy} />

@@ -114,6 +114,16 @@ export default function TrophyUnlockOverlay({ queue, onDone }) {
             fontSize: 11, color: 'var(--dim)', marginTop: 2, lineHeight: 1.3,
             display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
           }}>{t('trophies.' + current.id + '_desc')}</div>
+          {/* One-shot tip — fires on the first streak-egg unlock to explain
+              the 3-tap activation pattern. App.jsx attaches `tip` to the
+              queue entry; LS guarantees it shows only once. */}
+          {current.tip && (
+            <div style={{
+              fontSize: 10, color: 'var(--gold)', marginTop: 6, lineHeight: 1.35,
+              fontFamily: "'Manrope',sans-serif", fontWeight: 600,
+              paddingTop: 6, borderTop: '1px solid var(--rule)',
+            }}>{t('trophies.' + current.tip)}</div>
+          )}
         </div>
       </div>
     </div>

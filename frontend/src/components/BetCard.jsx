@@ -179,15 +179,20 @@ export default function BetCard({bet,user,profiles,cats,onResolve,onReveal,onCou
                 {!isOwner&&<span style={{color:getC(profiles,bet.creator)}}> · {profiles[bet.creator]?.name}</span>}
               </div>
             </div>
-            {/* Quota top-right: mobile only — bigger, no extra labels */}
+            {/* Win amount top-right: mobile only — green, no quota label.
+                Quota is now hidden everywhere; the visible primary number
+                is "what you cash in" instead of an abstract multiplier. */}
             {!isDesktop&&!bet.isSecret&&<div style={{textAlign:"right",flexShrink:0,paddingTop:2}}>
-              <div style={{fontFamily:"'Playfair Display',serif",fontSize:28,fontWeight:700,color:"var(--gold)",lineHeight:1,letterSpacing:'-0.02em'}}>{fmtQ(bet.quota)}<span style={{fontSize:14,opacity:.7}}>×</span></div>
+              <div style={{fontFamily:"'Playfair Display',serif",fontSize:26,fontWeight:700,color:"var(--grn)",lineHeight:1,letterSpacing:'-0.02em'}}>
+                {bet.potentialWin}<span style={{fontSize:13,opacity:.7,marginLeft:3}}>₡</span>
+              </div>
+              <div className="bc-meta" style={{fontSize:7,marginTop:3}}>{t('bet_card.win')}</div>
             </div>}
           </div>
 
-          {/* Badges */}
+          {/* Badges — stake on the left, win on the right. No more
+              quota multiplier badge (users don't think in 1.5×). */}
           <div style={{display:"flex",flexWrap:"wrap",gap:5,marginBottom:8}}>
-            {isDesktop&&!bet.isSecret&&<Bdg bg="var(--gold)22" c="var(--gold)">{fmtQ(bet.quota)}× · {qToP(bet.quota)}%</Bdg>}
             {!bet.isSecret&&<><Bdg bg="var(--mut)44" c="var(--dim)">{t('bet_card.stake')} {bet.stake} ₡</Bdg><Bdg bg="var(--grn)22" c="var(--grn)">{t('bet_card.win')} {bet.potentialWin} ₡</Bdg></>}
             {bet.pegno&&<Bdg bg="var(--gold)22" c="var(--gold)">🎁 {bet.pegno}</Bdg>}
             {bet.isSurprise && (isOwner || user === bet.opponent) && !done && <Bdg bg="var(--pur)22" c="var(--pur)">{t('bet_card.surprise_label')}</Bdg>}
@@ -293,16 +298,17 @@ export default function BetCard({bet,user,profiles,cats,onResolve,onReveal,onCou
             </div>
           )}
 
-          {/* Counter-bet section */}
+          {/* Counter-bet section. Positions are shown as absolute payouts
+              ("YES · 25 ₡") instead of quota multipliers. */}
           {!bet.isSecret&&!done&&bet.isCounterable&&(
             <div style={{borderTop:"1px solid var(--brd)",paddingTop:8,marginBottom:8}}>
               <div style={{fontSize:10,color:"var(--dim)",letterSpacing:1,textTransform:"uppercase",marginBottom:6}}>{t('bet_card.challenge')}</div>
               <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:6}}>
-                <Bdg bg="var(--grn)22" c="var(--grn)">{profiles[bet.creator]?.avatar} {t('bet_card.yes')} @ {fmtQ(bet.quota)}×</Bdg>
-                {theirCounter&&<Bdg bg={theirCounter.side==="yes"?"var(--grn)22":"var(--red)22"} c={theirCounter.side==="yes"?"var(--grn)":"var(--red)"}>{profiles[theirCounter.bettor]?.avatar} {theirCounter.side==="yes"?t('bet_card.yes'):t('bet_card.no')} @ {fmtQ(theirCounter.quotaUsed)}×</Bdg>}
+                <Bdg bg="var(--grn)22" c="var(--grn)">{profiles[bet.creator]?.avatar} {t('bet_card.yes')} · {bet.potentialWin} ₡</Bdg>
+                {theirCounter&&<Bdg bg={theirCounter.side==="yes"?"var(--grn)22":"var(--red)22"} c={theirCounter.side==="yes"?"var(--grn)":"var(--red)"}>{profiles[theirCounter.bettor]?.avatar} {theirCounter.side==="yes"?t('bet_card.yes'):t('bet_card.no')} · {Math.round((theirCounter.stake||0)*(parseFloat(theirCounter.quotaUsed)||1))} ₡</Bdg>}
               </div>
-              {!isOwner&&!myCounter&&<Btn variant="ghost" sm full onClick={()=>onCounter(bet)}>{t('bet_card.counter_cta',{qy:fmtQ(bet.quota),qn:fmtQ(qNo(bet.quota))})}</Btn>}
-              {!isOwner&&myCounter&&<div style={{fontSize:12,color:"var(--dim)",fontStyle:"italic"}}>{t('bet_card.my_pos')} {myCounter.side==="yes"?t('bet_card.side_yes'):t('bet_card.side_no')} @ {fmtQ(myCounter.quotaUsed)}× · {myCounter.stake} ₡</div>}
+              {!isOwner&&!myCounter&&<Btn variant="ghost" sm full onClick={()=>onCounter(bet)}>{t('bet_card.counter_cta_simple')}</Btn>}
+              {!isOwner&&myCounter&&<div style={{fontSize:12,color:"var(--dim)",fontStyle:"italic"}}>{t('bet_card.my_pos')} {myCounter.side==="yes"?t('bet_card.side_yes'):t('bet_card.side_no')} · {myCounter.stake} ₡</div>}
             </div>
           )}
 

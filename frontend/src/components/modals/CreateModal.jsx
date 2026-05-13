@@ -32,10 +32,10 @@ function useBreakpoint(minWidth = 768) {
   return matches;
 }
 
-// Live preview — same editorial language as BetCard: thin colored rule on
-// the left, italic Cormorant title (quoted), Playfair numerals for quota,
-// tracked uppercase meta. No card box, just the rule + content.
-function LivePreview({ title, quota, stake, potWin, cat, catLabel, isSecret, isCnt, pegno, exp, profile, opponentProfile, t }) {
+// Live preview — same editorial language as BetCard but expressed in
+// absolute amounts (stake + win), never as a quota multiplier. The "×N"
+// number was confusing users for non-sports bets — gone.
+function LivePreview({ title, stake, potWin, cat, catLabel, isSecret, isCnt, pegno, exp, profile, opponentProfile, t }) {
   const sideColor = isSecret ? "var(--gold)" : (cat?.color ?? "var(--blu)");
   const tlValue = exp ? new Date(exp).getTime() : null;
   const titleDisplay = title.trim()
@@ -65,10 +65,10 @@ function LivePreview({ title, quota, stake, potWin, cat, catLabel, isSecret, isC
         </div>
         {!isSecret && (
           <div style={{textAlign:"right", flexShrink:0, paddingTop:2}}>
-            <div className="bc-num" style={{fontSize:24, color:"var(--gold)", lineHeight:1}}>
-              {fmtQ(quota)}<span style={{fontSize:'0.55em', opacity:.7}}>×</span>
+            <div className="bc-num" style={{fontSize:24, color:"var(--grn)", lineHeight:1}}>
+              {potWin}<span style={{fontSize:'0.55em', opacity:.7, marginLeft:3}}>₡</span>
             </div>
-            <div className="bc-meta" style={{fontSize:7, marginTop:4}}>{qToP(quota)}%</div>
+            <div className="bc-meta" style={{fontSize:7, marginTop:4}}>{t('create.win_short')}</div>
           </div>
         )}
       </div>
@@ -84,8 +84,8 @@ function LivePreview({ title, quota, stake, potWin, cat, catLabel, isSecret, isC
         <div style={{borderTop:"1px solid var(--rule)", paddingTop:10, marginTop:10}}>
           <div className="bc-meta" style={{fontSize:8, marginBottom:8}}>{t('bet_card.challenge')}</div>
           <div style={{display:"flex", gap:6, flexWrap:"wrap"}}>
-            <Bdg bg="var(--grn)18" c="var(--grn)">{profile?.avatar} {t('bet_card.yes')} @ {fmtQ(quota)}×</Bdg>
-            <Bdg bg="var(--red)18" c="var(--red)">{opponentProfile.avatar} {t('bet_card.no')} @ {fmtQ(qNo(quota))}×</Bdg>
+            <Bdg bg="var(--grn)18" c="var(--grn)">{profile?.avatar} {t('bet_card.yes')} · {potWin}₡</Bdg>
+            <Bdg bg="var(--red)18" c="var(--red)">{opponentProfile.avatar} {t('bet_card.no')} · {Math.max(0, potWin - stake)}₡</Bdg>
           </div>
         </div>
       )}
@@ -186,8 +186,11 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
   ).filter(m => m.id !== user);
 
   const [title,setTitle]=useState("");
-  const [quota,setQuota]=useState(1.50);
+  // The user no longer sets a "quota" directly — they set "I bet X" (stake)
+  // and "I win Y" (potWin). We compute quota = potWin/stake internally for
+  // the API. Default winStr = 1.5× the default stake (probable-ish bet).
   const [stakeStr,setStakeStr]=useState("10");
+  const [winStr,setWinStr]=useState("15");
   const [cat,setCat]=useState(cats[0]?.id||"scherzi");
   // betType: 'vault' | 'open' | 'targeted' | 'surprise'
   const [betType,setBetType]=useState('open');
@@ -212,8 +215,12 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
 
   const applyTemplate = (tpl) => {
     setTitle(tpl.title || "");
-    setQuota(parseFloat(tpl.quota) || 1.5);
-    setStakeStr(String(tpl.stake ?? 10));
+    const tplStake = parseFloat(tpl.stake) || 10;
+    const tplQuota = parseFloat(tpl.quota) || 1.5;
+    setStakeStr(String(tplStake));
+    // Backward-compat: templates were stored with a quota field; convert
+    // back to a concrete win amount so the user sees it as "se vinco N".
+    setWinStr(String(Math.round(tplStake * tplQuota)));
     if (tpl.category) setCat(tpl.category);
     if (tpl.bet_type && ['vault','open','targeted','surprise'].includes(tpl.bet_type)) setBetType(tpl.bet_type);
     setPegno(tpl.pegno || "");
@@ -257,10 +264,17 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
   const maxStake=Math.min(maxC, settings.max_stake ?? maxC);
   const threshold=settings.acceptance_threshold ?? Infinity;
   const stake=Math.max(0,parseFloat(stakeStr)||0);
-  const prob=qToP(quota); const potWin=Math.round(stake*quota);
-  const probC=prob>=70?"var(--grn)":prob>=40?"var(--gold)":"var(--red)";
+  const potWin=Math.max(0,parseFloat(winStr)||0);
+  // Quota lives inside the math now — never shown to the user. We need it
+  // only for the API + trophies/stats backward compat.
+  const quota = stake > 0 ? Math.max(1.05, potWin / stake) : 1.5;
   const needsApproval=needsOpponent && stake>=threshold;
   const selectedCat = cats.find(c=>c.id===cat) || cats[0];
+
+  // Hard cap on participants in an open bet — creator + 7 others = 8 max.
+  // Above-cap groups must use subset mode.
+  const MAX_PARTICIPANTS = 8;
+  const maxOthers = MAX_PARTICIPANTS - 1;
 
   // Easter egg #3: JACKPOT titles trigger a slot-machine overlay BEFORE the
   // bet is actually submitted. The flow is now a three-phase one so the
@@ -316,6 +330,8 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
   const submit=()=>{
     if(!title.trim()){toast.error(t('create.err_title'));return;}
     if(stake<=0||stake>maxStake){toast.error(t('create.err_stake',{max:Math.round(maxStake)}));return;}
+    if(potWin<=0){toast.error(t('create.err_win'));return;}
+    if(potWin<stake){toast.error(t('create.err_win_min',{stake:Math.round(stake)}));return;}
     if(needsOpponent && !opponentId){toast.error(t('create.opponent_pick'));return;}
 
     if (isMagicTitle(title)) {
@@ -475,29 +491,46 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
   // Subset selector: only relevant for OPEN bets when the group has 3+ members.
   // The "all" mode is the default (empty set). Toggling individuals switches
   // to "only these" mode. Selecting everyone collapses back to "all" on submit.
+  // Groups larger than MAX_PARTICIPANTS-1 force the creator to pick a
+  // subset — "tutti" can't include 8+ people. For smaller groups, "tutti"
+  // is still valid and the cap is implicit.
+  const mustUseSubset = others.length > maxOthers;
   const SubsetBlock = betType === 'open' && others.length >= 2 && (
     <div style={{ marginBottom: 14 }}>
-      <label style={S.lbl}>{t('create.subset_label')}</label>
+      <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:10}}>
+        <label style={{...S.lbl, marginBottom:0}}>{t('create.subset_label')}</label>
+        <span className="bc-meta" style={{fontSize:8}}>
+          {t('create.subset_cap', { current: allowedSet.size, max: maxOthers })}
+        </span>
+      </div>
       <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:6 }}>
-        <button onClick={() => setAllowedSet(new Set())}
-          style={{
-            padding:'8px 14px', borderRadius:24,
-            border:`1px solid ${allowedSet.size === 0 ? 'var(--gold)' : 'var(--brd)'}`,
-            background: allowedSet.size === 0 ? 'var(--gold)1a' : 'transparent',
-            color: allowedSet.size === 0 ? 'var(--gold)' : 'var(--dim)',
-            cursor:'pointer', fontFamily:"'Manrope',sans-serif", fontSize:13, fontWeight:600,
-          }}>{t('create.subset_all')}</button>
+        {!mustUseSubset && (
+          <button onClick={() => setAllowedSet(new Set())}
+            style={{
+              padding:'8px 14px', borderRadius:24,
+              border:`1px solid ${allowedSet.size === 0 ? 'var(--gold)' : 'var(--brd)'}`,
+              background: allowedSet.size === 0 ? 'var(--gold)1a' : 'transparent',
+              color: allowedSet.size === 0 ? 'var(--gold)' : 'var(--dim)',
+              cursor:'pointer', fontFamily:"'Manrope',sans-serif", fontSize:13, fontWeight:600,
+            }}>{t('create.subset_all')}</button>
+        )}
         {others.map(m => {
           const active = allowedSet.has(m.id);
+          // When the user is at the cap, disable every non-selected chip.
+          const disabledByCap = !active && allowedSet.size >= maxOthers;
           return (
-            <button key={m.id} onClick={() => toggleAllowed(m.id)}
+            <button key={m.id}
+              onClick={() => { if (!disabledByCap) toggleAllowed(m.id); }}
+              disabled={disabledByCap}
               style={{
                 display:'inline-flex', alignItems:'center', gap:8,
                 padding:'8px 14px 8px 8px', borderRadius:24,
                 border:`1px solid ${active ? 'var(--gold)' : 'var(--brd)'}`,
                 background: active ? 'var(--gold)1a' : 'transparent',
                 color: active ? 'var(--gold)' : 'var(--dim)',
-                cursor:'pointer', fontFamily:"'Manrope',sans-serif", fontSize:13, fontWeight:600,
+                cursor: disabledByCap ? 'not-allowed' : 'pointer',
+                opacity: disabledByCap ? .4 : 1,
+                fontFamily:"'Manrope',sans-serif", fontSize:13, fontWeight:600,
               }}>
               {m.avatarUrl
                 ? <img src={m.avatarUrl} alt="" style={{width:24,height:24,borderRadius:'50%',objectFit:'cover'}}/>
@@ -509,9 +542,11 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
         })}
       </div>
       <div style={{ fontSize: 11, color: 'var(--mut)' }}>
-        {allowedSet.size === 0
-          ? t('create.subset_hint_all')
-          : t('create.subset_hint_some', { n: allowedSet.size })}
+        {mustUseSubset
+          ? t('create.subset_hint_cap', { max: maxOthers })
+          : allowedSet.size === 0
+            ? t('create.subset_hint_all')
+            : t('create.subset_hint_some', { n: allowedSet.size })}
       </div>
     </div>
   );
@@ -592,63 +627,66 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
     </div>
   );
 
-  // Probability becomes the hero — giant Playfair number drives the visual
-  // weight. Preset chips become small underline pills, slider stays as
-  // accent. Direct-quota input lives in a tiny side label.
-  const QuotaBlock = (
+  // ─── Win block — "se vinco" with 6 ratio chips ─────────────────────
+  // No quota numbers anywhere. The user thinks in absolute amounts:
+  // "I bet 10, I win Y". Six preset chips multiply the current stake to
+  // give a quick win amount; manual input is always available too.
+  const WIN_PRESETS = [
+    { label: 'Pari', ratio: 1.0,  color: 'var(--mut)' },
+    { label: '+20%', ratio: 1.2,  color: 'var(--grn)' },
+    { label: '+50%', ratio: 1.5,  color: 'var(--grn)' },
+    { label: '×2',   ratio: 2.0,  color: 'var(--gold)' },
+    { label: '×4',   ratio: 4.0,  color: 'var(--gold)' },
+    { label: '×8',   ratio: 8.0,  color: 'var(--red)' },
+  ];
+  const actualRatio = stake > 0 ? potWin / stake : 1;
+  const netGain = potWin - stake;
+  const WinBlock = (
     <div style={{marginBottom:24}}>
-      <label style={S.lbl}>{t('create.quota_label')}</label>
-
-      {/* Giant probability + payoff multiplier */}
-      <div style={{display:'flex', alignItems:'baseline', justifyContent:'space-between', gap:18, marginBottom:14}}>
-        <div className="bc-num" style={{fontSize:'clamp(42px, 10vw, 72px)', color:probC, lineHeight:.9}}>
-          {prob}<span style={{fontSize:'0.45em', color:'var(--dim)', marginLeft:3, fontWeight:400}}>%</span>
-        </div>
-        <div style={{textAlign:'right', flexShrink:0, transform:'translateY(-4px)'}}>
-          <div className="bc-meta" style={{fontSize:8, marginBottom:4}}>Quota</div>
-          <div className="bc-num" style={{fontSize:'clamp(22px, 5vw, 32px)', color:'var(--gold)'}}>
-            {fmtQ(quota)}<span style={{fontSize:'0.55em', opacity:.6}}>×</span>
-          </div>
-        </div>
+      <div style={{display:"flex", justifyContent:"space-between", alignItems:"flex-end", marginBottom:14}}>
+        <label style={{...S.lbl, marginBottom:0}}>{t('create.win_label')}</label>
+        <span className="bc-meta" style={{fontSize:8}}>
+          {netGain >= 0 ? '+' : ''}{netGain}<span style={{fontSize:10, marginLeft:2}}>₡</span>
+          <span style={{marginLeft:6, opacity:.6}}>{t('create.net')}</span>
+        </span>
       </div>
 
-      {/* Slider, hairline rule treatment */}
-      <input type="range" min="5" max="95" step="1" className="bc" value={clamp(prob,5,95)}
-        onChange={e=>setQuota(pToQ(parseInt(e.target.value)))}
-        style={{marginBottom:6, width:"100%", height:4, borderRadius:999, outline:"none", cursor:"pointer", accentColor:"var(--pur)"}}/>
-      <div className="bc-meta" style={{display:"flex", justifyContent:"space-between", fontSize:8, marginBottom:16, textTransform:'none', letterSpacing:'.18em'}}>
-        <span>{t('create.impossible')}</span><span>{t('create.certain')}</span>
+      {/* Hero win number */}
+      <div className="bc-num" style={{
+        fontSize:'clamp(42px, 10vw, 72px)', color:'var(--grn)', lineHeight:.9, marginBottom:14,
+      }}>
+        {potWin || 0}<span style={{fontSize:'0.45em', color:'var(--dim)', marginLeft:3, fontWeight:400}}>₡</span>
       </div>
 
-      {/* Presets — sit on a hairline, marked active by underline */}
-      <div style={{display:"flex", flexWrap:"wrap", gap:'clamp(10px, 3vw, 18px)', borderBottom:'1px solid var(--rule)', paddingBottom:10, marginBottom:14}}>
-        {Q_PRE.map(p=>{
-          const active = Math.abs(quota-p.q)<.06;
+      {/* Ratio preset chips — tap to set win = stake × ratio */}
+      <div style={{
+        display:'flex', flexWrap:'wrap',
+        gap:'clamp(10px, 3vw, 18px)',
+        borderBottom:'1px solid var(--rule)', paddingBottom:10, marginBottom:14,
+      }}>
+        {WIN_PRESETS.map(p => {
+          const isActive = Math.abs(actualRatio - p.ratio) < 0.04 && stake > 0;
           return (
-            <button key={p.q} type="button" onClick={()=>setQuota(p.q)} style={{
-              padding:'2px 0', background:'transparent', border:'none', cursor:'pointer',
-              fontFamily:"'Manrope',sans-serif", fontSize:10, fontWeight: active ? 700 : 600,
-              letterSpacing:'.2em', textTransform:'uppercase',
-              color: active ? 'var(--gold)' : 'var(--dim)',
-              borderBottom: `2px solid ${active ? 'var(--gold)' : 'transparent'}`,
-              marginBottom:-11, transition:'all .18s',
-            }}>{t('qpre.'+p.key)}</button>
+            <button key={p.label} type="button"
+              onClick={() => setWinStr(String(Math.max(1, Math.round(stake * p.ratio))))}
+              style={{
+                padding:'2px 0', background:'transparent', border:'none', cursor:'pointer',
+                fontFamily:"'Manrope',sans-serif",
+                fontSize:11, fontWeight: isActive ? 700 : 600,
+                letterSpacing:'.18em',
+                color: isActive ? 'var(--gold)' : 'var(--dim)',
+                borderBottom: `2px solid ${isActive ? 'var(--gold)' : 'transparent'}`,
+                marginBottom:-11, transition:'all .18s',
+                WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation',
+              }}>{p.label}</button>
           );
         })}
       </div>
 
-      {/* Direct numeric tweak — tiny inline */}
-      <div style={{display:"flex", alignItems:"center", gap:14}}>
-        <span className="bc-meta" style={{fontSize:8}}>{t('create.direct_quota')}</span>
-        <Inp type="number" step=".05" min="1.05" max="50" value={quota}
-          onChange={e=>{const v=parseFloat(e.target.value);if(!isNaN(v)&&v>=1.05&&v<=50)setQuota(parseFloat(v.toFixed(2)));}}
-          style={{width:96, fontFamily:"'Playfair Display',serif", fontSize:18, padding:'4px 2px'}}/>
-        {!isSecret&&isCnt&&(
-          <span className="bc-meta" style={{fontSize:8}}>
-            {t('create.no_label')} <span style={{color:"var(--red)", fontWeight:700, fontFamily:"'Playfair Display',serif", fontSize:14, letterSpacing:'-0.02em', marginLeft:4}}>{fmtQ(qNo(quota))}×</span>
-          </span>
-        )}
-      </div>
+      {/* Free numeric override */}
+      <Inp type="number" min="1" step="1" value={winStr}
+        onChange={e=>setWinStr(e.target.value)}
+        placeholder={t('create.win_placeholder')}/>
     </div>
   );
 
@@ -874,8 +912,8 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
               {SubsetBlock}
               {TargetBlock}
               {TitleBlock}
-              {QuotaBlock}
               {StakeBlock}
+              {WinBlock}
               {CategoryBlock}
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
                 {PegnoBlock}
@@ -885,7 +923,7 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
             <div style={{padding:"22px 24px",borderLeft:"1px solid var(--brd)",background:"linear-gradient(135deg,var(--card),var(--surf))",overflowY:"auto"}}>
               <SecLabel>{t('create.preview')}</SecLabel>
               <LivePreview
-                title={title} quota={quota} stake={stake} potWin={potWin}
+                title={title} stake={stake} potWin={potWin}
                 cat={selectedCat} catLabel={catLabel}
                 isSecret={isSecret} isCnt={isCnt}
                 pegno={pegno} exp={exp}

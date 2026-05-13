@@ -591,6 +591,7 @@ export default function App() {
   // bets list changes (which happens on every SSE refresh) and queue an
   // animated overlay for each freshly-earned level.
   const [trophyQueue, setTrophyQueue] = useState([]);
+  const [navHover, setNavHover] = useState(-1); // desktop nav dock-zoom hover index
   const [trophyBaseline, setTrophyBaseline] = useState(null); // Set<"id:level"> | null
   useEffect(() => {
     if (!user || !profiles[user]) return;
@@ -980,8 +981,13 @@ export default function App() {
           )}
           {/* Broken-grid nav — each item lives at its own indent + font size,
               with a couple of items shifted vertically so the column zig-zags
-              instead of stepping down on a perfect ladder. */}
-          <div style={{ flex: 1, padding: '12px 0 0', position: 'relative' }}>
+              instead of stepping down on a perfect ladder.
+              On hover, items dock-zoom: hovered grows biggest, neighbors
+              slightly less, distant ones stay put. Mac-style magnification. */}
+          <div
+            style={{ flex: 1, padding: '12px 0 0', position: 'relative' }}
+            onMouseLeave={() => setNavHover(-1)}
+          >
             {NAV.map((n, idx) => {
               // Per-item offsets keep the menu intentionally uneven.
               const offsets = [
@@ -995,8 +1001,18 @@ export default function App() {
               ];
               const o = offsets[idx] || offsets[offsets.length - 1];
               const isActive = view === n.id;
+              // Dock zoom: hovered = 1.22, neighbor = 1.10, two-away = 1.03
+              const dist = navHover < 0 ? 99 : Math.abs(idx - navHover);
+              const zoom = navHover < 0
+                ? 1
+                : dist === 0 ? 1.22
+                : dist === 1 ? 1.10
+                : dist === 2 ? 1.03
+                : 1;
               return (
-                <div key={n.id} data-tour={`nav-${n.id}`} onClick={() => setView(n.id)} className="nav-item" style={{
+                <div key={n.id} data-tour={`nav-${n.id}`} onClick={() => setView(n.id)}
+                  onMouseEnter={() => setNavHover(idx)}
+                  className="nav-item" style={{
                   display: 'flex', alignItems: 'center', gap: 10,
                   padding: '8px 14px 8px ' + o.px + 'px',
                   marginTop: o.mt,
@@ -1009,9 +1025,13 @@ export default function App() {
                   color: isActive ? 'var(--gold)' : 'var(--dim)',
                   background: 'transparent',
                   borderLeft: isActive ? '2px solid var(--gold)' : '2px solid transparent',
-                  transition: 'all .2s ease', userSelect: 'none', position: 'relative',
+                  transform: `scale(${zoom})`,
+                  transformOrigin: 'left center',
+                  transition: 'transform .25s cubic-bezier(.34,1.56,.64,1), color .2s, font-size .2s',
+                  userSelect: 'none', position: 'relative',
+                  willChange: 'transform',
                 }}>
-                  <span style={{ fontSize: 17 }}>{n.e}</span>
+                  <span style={{ fontSize: 17, transition: 'font-size .2s' }}>{n.e}</span>
                   {n.l}
                   {n.id === 'bets' && secretCount > 0 && (
                     <div title="Vault" style={{ position: 'absolute', right: 14, width: 6, height: 6, borderRadius: 999, background: 'var(--gold)' }}/>

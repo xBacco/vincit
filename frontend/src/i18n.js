@@ -288,7 +288,6 @@ const TRANSLATIONS = {
 
       // Unique milestones
       first_react:'Ciao mondo',         first_react_desc:'Hai aggiunto la tua prima reazione',
-      first_photo:'Click',              first_photo_desc:'Hai inviato la tua prima foto-reazione',
       first_vault:'Vault aperto',       first_vault_desc:'Hai creato la tua prima bet segreta',
       first_pegno_set:'In pegno',       first_pegno_set_desc:'Hai creato una bet con pegno',
       first_join:'Tra amici',           first_join_desc:'Sei entrato in un gruppo creato da altri',
@@ -779,7 +778,6 @@ const TRANSLATIONS = {
 
       // Unique milestones
       first_react:'Hello world',         first_react_desc:'You added your first reaction',
-      first_photo:'Click',               first_photo_desc:'You sent your first photo reaction',
       first_vault:'Vault opened',        first_vault_desc:'You created your first secret bet',
       first_pegno_set:'Forfeit set',     first_pegno_set_desc:'You created a bet with a forfeit',
       first_join:'Among friends',        first_join_desc:"You joined a group you didn't create",

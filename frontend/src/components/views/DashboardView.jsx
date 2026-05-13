@@ -362,75 +362,156 @@ export default function DashboardView({user,profiles,groupMembers,credits,bets,c
         {myProfile.name}
       </div>
 
-      {/* Desktop-only status spine — pinned top-right, fills the editorial
-          gap to the right of the giant italic name. Three quick reads:
-          streak indicator, today's group activity, latest live bet. */}
-      {isDesktop && (
-        <div style={{
-          position:'absolute', top: 48, right: 0,
-          width: 240,
-          display:'flex', flexDirection:'column', gap: 16,
-          alignItems:'flex-end', textAlign:'right',
-          pointerEvents:'auto',
-        }}>
-          {fireLevel > 0 && (
-            <div style={{
-              display:'flex', alignItems:'baseline', gap: 8,
-            }}>
-              <span style={{fontSize: 28, lineHeight: 1}}>
-                {fireKind === 'win' ? '🔥' : '❄️'}
-              </span>
+      {/* Status spine — desktop pinned top-right (fills editorial gap next
+          to giant name); mobile compressed into a single inline pill row
+          floating above the credit balance. Three quick reads: streak,
+          today's group activity, latest live bet. */}
+      {isDesktop ? (
+        (fireLevel > 0 || todayCount > 0 || latestBet) && (
+          <div style={{
+            position:'absolute', top: 48, right: 0,
+            width: 240,
+            display:'flex', flexDirection:'column', gap: 16,
+            alignItems:'flex-end', textAlign:'right',
+            pointerEvents:'auto',
+          }}>
+            {fireLevel > 0 && (
+              <div style={{
+                display:'flex', alignItems:'baseline', gap: 8,
+              }}>
+                <span style={{fontSize: 28, lineHeight: 1}}>
+                  {fireKind === 'win' ? '🔥' : '❄️'}
+                </span>
+                <div>
+                  <div className="bc-num" style={{
+                    fontSize: 'clamp(28px, 3.4vw, 44px)',
+                    color: fireKind === 'win'
+                      ? (fireLevel >= 5 ? 'var(--red)' : 'var(--gold)')
+                      : 'var(--blu)',
+                    lineHeight: 1,
+                  }}>{fireLevel}</div>
+                  <div className="bc-meta" style={{marginTop: 4, fontSize: 7}}>
+                    {fireKind === 'win' ? t('dashboard.streak') : 'STREAK NEG.'}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {todayCount > 0 && (
               <div>
                 <div className="bc-num" style={{
-                  fontSize: 'clamp(28px, 3.4vw, 44px)',
+                  fontSize: 'clamp(22px, 2.6vw, 32px)',
+                  color: 'var(--txt)',
+                  lineHeight: 1,
+                }}>
+                  {todayCount}<span style={{fontSize:'0.55em', color:'var(--dim)', marginLeft: 4, fontWeight: 400}}>
+                    {todayCount === 1 ? 'bet' : 'bets'}
+                  </span>
+                </div>
+                <div className="bc-meta" style={{marginTop: 4, fontSize: 7}}>OGGI · GRUPPO</div>
+              </div>
+            )}
+
+            {latestBet && (
+              <div style={{
+                maxWidth: 240,
+                paddingTop: 12,
+                borderTop: '1px solid var(--rule)',
+                opacity: .88,
+              }}>
+                <div className="bc-meta" style={{fontSize: 7, marginBottom: 4}}>— LIVE NEL GRUPPO</div>
+                <div style={{
+                  fontFamily:"'Cormorant Garamond',serif", fontStyle:'italic',
+                  fontSize: 'clamp(16px, 1.4vw, 20px)', fontWeight: 500,
+                  color: 'var(--gold)', lineHeight: 1.2,
+                  whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
+                  letterSpacing:'-0.01em',
+                }}>"{latestBet.title}"</div>
+                <div className="bc-meta" style={{fontSize: 7, marginTop: 4, opacity: .7}}>
+                  {profiles[latestBet.creator]?.name ?? '...'}
+                </div>
+              </div>
+            )}
+          </div>
+        )
+      ) : (
+        // Mobile mini-spine: inline pill row above the credit balance.
+        // Compact (icon + number, no labels) so it doesn't compete with
+        // the giant "Tomas" name. Hidden entirely if there's nothing to show.
+        (fireLevel > 0 || todayCount > 0 || latestBet) && (
+          <div style={{
+            display:'flex', flexWrap:'wrap', justifyContent:'flex-end',
+            alignItems:'center', gap: 8,
+            paddingRight: 2,
+            // Clear the giant name (which has marginBottom: -16 to overlap
+            // with the credit balance below). Push the spine into safe space.
+            marginTop: 36,
+            marginBottom: 4,
+            opacity: .92,
+          }}>
+            {fireLevel > 0 && (
+              <div style={{
+                display:'flex', alignItems:'center', gap: 4,
+                padding:'3px 9px 3px 6px',
+                background: fireKind === 'win'
+                  ? (fireLevel >= 5 ? 'var(--red)22' : 'var(--gold)22')
+                  : 'var(--blu)22',
+                border: `1px solid ${fireKind === 'win'
+                  ? (fireLevel >= 5 ? 'var(--red)44' : 'var(--gold)44')
+                  : 'var(--blu)44'}`,
+                borderRadius: 999,
+              }}>
+                <span style={{fontSize: 12, lineHeight: 1}}>
+                  {fireKind === 'win' ? '🔥' : '❄️'}
+                </span>
+                <span style={{
+                  fontFamily:"'Playfair Display',serif",
+                  fontSize: 13, fontWeight: 700, letterSpacing:'-0.01em',
                   color: fireKind === 'win'
                     ? (fireLevel >= 5 ? 'var(--red)' : 'var(--gold)')
                     : 'var(--blu)',
-                  lineHeight: 1,
-                }}>{fireLevel}</div>
-                <div className="bc-meta" style={{marginTop: 4, fontSize: 7}}>
-                  {fireKind === 'win' ? t('dashboard.streak') : 'STREAK NEG.'}
-                </div>
+                }}>{fireLevel}</span>
               </div>
-            </div>
-          )}
+            )}
 
-          {todayCount > 0 && (
-            <div>
-              <div className="bc-num" style={{
-                fontSize: 'clamp(22px, 2.6vw, 32px)',
-                color: 'var(--txt)',
-                lineHeight: 1,
-              }}>
-                {todayCount}<span style={{fontSize:'0.55em', color:'var(--dim)', marginLeft: 4, fontWeight: 400}}>
-                  {todayCount === 1 ? 'bet' : 'bets'}
-                </span>
-              </div>
-              <div className="bc-meta" style={{marginTop: 4, fontSize: 7}}>OGGI · GRUPPO</div>
-            </div>
-          )}
-
-          {latestBet && (
-            <div style={{
-              maxWidth: 240,
-              paddingTop: 12,
-              borderTop: '1px solid var(--rule)',
-              opacity: .88,
-            }}>
-              <div className="bc-meta" style={{fontSize: 7, marginBottom: 4}}>— LIVE NEL GRUPPO</div>
+            {todayCount > 0 && (
               <div style={{
-                fontFamily:"'Cormorant Garamond',serif", fontStyle:'italic',
-                fontSize: 'clamp(16px, 1.4vw, 20px)', fontWeight: 500,
-                color: 'var(--gold)', lineHeight: 1.2,
-                whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
-                letterSpacing:'-0.01em',
-              }}>"{latestBet.title}"</div>
-              <div className="bc-meta" style={{fontSize: 7, marginTop: 4, opacity: .7}}>
-                {profiles[latestBet.creator]?.name ?? '...'}
+                display:'flex', alignItems:'baseline', gap: 4,
+                padding:'3px 9px',
+                background: 'var(--mut)22',
+                border: '1px solid var(--brd)',
+                borderRadius: 999,
+              }}>
+                <span style={{
+                  fontFamily:"'Playfair Display',serif",
+                  fontSize: 13, fontWeight: 700,
+                  color: 'var(--txt)', lineHeight: 1,
+                }}>{todayCount}</span>
+                <span className="bc-meta" style={{fontSize: 7}}>OGGI</span>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+
+            {latestBet && (
+              <div style={{
+                display:'flex', alignItems:'center', gap: 5,
+                padding:'3px 10px',
+                background: 'var(--gold)11',
+                border: '1px solid var(--gold)33',
+                borderRadius: 999,
+                maxWidth: 'min(60vw, 200px)',
+                overflow:'hidden',
+              }}>
+                <span style={{fontSize: 8, color:'var(--gold)', opacity:.7, letterSpacing: 1}}>LIVE</span>
+                <span style={{
+                  fontFamily:"'Cormorant Garamond',serif", fontStyle:'italic',
+                  fontSize: 12, fontWeight: 500,
+                  color: 'var(--gold)',
+                  whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
+                }}>"{latestBet.title}"</span>
+              </div>
+            )}
+          </div>
+        )
       )}
       {/* Credit balance — drifts right + drops below the name, intentionally
           breaking the horizontal axis. Tracked meta sits beneath, not above,

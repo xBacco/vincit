@@ -76,7 +76,7 @@ module.exports = function(broadcastUpdate) {
         [req.params.id, bettor, result.secure_url]
       );
       broadcastUpdate(req.activeRoomId);
-      refreshAchievements(bettor); // first_photo + paparazzo levels
+      refreshAchievements(bettor); // paparazzo + reactor levels
       res.json({ image_url: result.secure_url });
     } catch (err) {
       console.error('reaction photo upload failed', err);

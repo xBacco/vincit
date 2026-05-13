@@ -175,6 +175,16 @@ export default function FriendsView({ groups, user, onSwitchToGroup, isDesktop }
   const [inviting,   setInviting]   = useState(null);
   const [busyIds,    setBusyIds]    = useState(new Set());
   const [openProfile, setOpenProfile] = useState(null);  // friend object whose profile is open
+  const [myAch, setMyAch] = useState(null); // my own achievements catalog/unlocked/progress — passed to FriendProfileModal for vs-me comparison
+
+  // Fetch my achievements once for trophy comparison in the friend profile.
+  useEffect(() => {
+    let cancelled = false;
+    api.getAchievements()
+      .then(d => { if (!cancelled) setMyAch(d); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   const setBusy = (id, busy) => setBusyIds(prev => {
     const next = new Set(prev);
@@ -588,6 +598,7 @@ export default function FriendsView({ groups, user, onSwitchToGroup, isDesktop }
       {openProfile && (
         <FriendProfileModal
           friend={openProfile}
+          myAch={myAch}
           onClose={() => setOpenProfile(null)}
           onSwitchToGroup={onSwitchToGroup}
           t={t}
@@ -601,10 +612,11 @@ export default function FriendsView({ groups, user, onSwitchToGroup, isDesktop }
 // Tap on a friend's row → this modal opens. Shows their trophy collection
 // (grouped by tier), joint stats vs me (h2h W:L, total stake moved, best
 // shared bet), and a "Crea bet con [nome]" CTA.
-function FriendProfileModal({ friend, onClose, onSwitchToGroup, t }) {
+function FriendProfileModal({ friend, myAch, onClose, onSwitchToGroup, t }) {
   const [data, setData]       = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(null);
+  const [expandedId, setExpandedId] = useState(null); // trophy id whose detail is shown
 
   useEffect(() => {
     let cancelled = false;
@@ -627,6 +639,45 @@ function FriendProfileModal({ friend, onClose, onSwitchToGroup, t }) {
     : level >= 2 ? '#c0c4d0'
     : level >= 1 ? '#b87333'
     : 'var(--mut)';
+
+  // Build my-vs-friend trophy lookup ({ id → maxLevel }) for comparison block.
+  const friendById = useMemo(() => {
+    if (!data?.unlocked) return {};
+    const m = {};
+    for (const u of data.unlocked) {
+      if (!m[u.achievement_id] || m[u.achievement_id] < u.level) m[u.achievement_id] = u.level;
+    }
+    return m;
+  }, [data]);
+
+  const myById = useMemo(() => {
+    if (!myAch?.unlocked) return {};
+    const m = {};
+    for (const u of myAch.unlocked) {
+      if (!m[u.achievement_id] || m[u.achievement_id] < u.level) m[u.achievement_id] = u.level;
+    }
+    return m;
+  }, [myAch]);
+
+  const myStats = useMemo(() => {
+    const ids = Object.keys(myById);
+    let points = 0, gold = 0;
+    for (const id of ids) {
+      const lvl = myById[id];
+      points += lvl;
+      if (lvl >= 4) gold++;
+    }
+    return { points, gold, count: ids.length };
+  }, [myById]);
+
+  const friendStats = useMemo(() => {
+    const ids = Object.keys(friendById);
+    let gold = 0;
+    for (const id of ids) {
+      if (friendById[id] >= 4) gold++;
+    }
+    return { points: data?.trophyPoints ?? 0, gold, count: ids.length };
+  }, [friendById, data]);
 
   return createPortal((
     <div
@@ -687,11 +738,11 @@ function FriendProfileModal({ friend, onClose, onSwitchToGroup, t }) {
 
         {data && !loading && (
           <>
-            {/* Top row: trophy points + bets won */}
+            {/* Top row: trophy points + bets won (friend's solo stats) */}
             <div style={{
               display: 'flex', gap: 12,
               padding: '14px 0', borderTop: '1px solid var(--rule)', borderBottom: '1px solid var(--rule)',
-              marginBottom: 18,
+              marginBottom: myAch ? 14 : 18,
             }}>
               {[
                 {l: t('friends.profile_trophies'), v: data.trophyPoints, c: 'var(--gold)'},
@@ -706,6 +757,64 @@ function FriendProfileModal({ friend, onClose, onSwitchToGroup, t }) {
                 </div>
               ))}
             </div>
+
+            {/* Trophy comparison — me vs friend (only if my data loaded) */}
+            {myAch && (
+              <div style={{
+                marginBottom: 18,
+                padding: '12px 14px', borderRadius: 10,
+                background: 'var(--card)', border: '1px solid var(--brd)',
+              }}>
+                <div className="bc-meta" style={{ marginBottom: 10, fontSize: 8 }}>— TU VS {friend.name?.toUpperCase()}</div>
+                <div style={{
+                  display:'grid', gridTemplateColumns: '1fr auto 1fr', gap: 8,
+                  alignItems:'center',
+                }}>
+                  {/* Me column */}
+                  <div style={{ textAlign:'right' }}>
+                    <div className="bc-num" style={{ fontSize: 20, color: myStats.points >= friendStats.points ? 'var(--gold)' : 'var(--dim)', lineHeight: 1 }}>{myStats.points}</div>
+                    <div className="bc-meta" style={{ fontSize: 7, marginTop: 4 }}>PUNTI</div>
+                    <div className="bc-num" style={{ fontSize: 16, marginTop: 8, color: myStats.gold >= friendStats.gold ? 'var(--gold)' : 'var(--dim)', lineHeight: 1 }}>
+                      {myStats.gold}
+                    </div>
+                    <div className="bc-meta" style={{ fontSize: 7, marginTop: 4 }}>AT GOLD</div>
+                    <div className="bc-num" style={{ fontSize: 14, marginTop: 8, color: 'var(--txt)', lineHeight: 1, opacity:.8 }}>
+                      {myStats.count}
+                    </div>
+                    <div className="bc-meta" style={{ fontSize: 7, marginTop: 4 }}>TOTALI</div>
+                  </div>
+
+                  {/* Middle divider with labels */}
+                  <div style={{
+                    display:'flex', flexDirection:'column', gap: 14,
+                    alignItems:'center', paddingInline: 4,
+                    fontFamily: "'Cormorant Garamond',serif", fontStyle:'italic',
+                    fontSize: 11, color:'var(--mut)',
+                  }}>
+                    <div style={{
+                      writingMode:'vertical-rl', textOrientation:'mixed',
+                      letterSpacing:'.3em', textTransform:'uppercase',
+                      fontFamily:"'Manrope',sans-serif", fontStyle:'normal',
+                      fontSize: 8, fontWeight: 700, color:'var(--gold)',
+                    }}>VS</div>
+                  </div>
+
+                  {/* Friend column */}
+                  <div style={{ textAlign:'left' }}>
+                    <div className="bc-num" style={{ fontSize: 20, color: friendStats.points > myStats.points ? 'var(--gold)' : 'var(--dim)', lineHeight: 1 }}>{friendStats.points}</div>
+                    <div className="bc-meta" style={{ fontSize: 7, marginTop: 4 }}>PUNTI</div>
+                    <div className="bc-num" style={{ fontSize: 16, marginTop: 8, color: friendStats.gold > myStats.gold ? 'var(--gold)' : 'var(--dim)', lineHeight: 1 }}>
+                      {friendStats.gold}
+                    </div>
+                    <div className="bc-meta" style={{ fontSize: 7, marginTop: 4 }}>AT GOLD</div>
+                    <div className="bc-num" style={{ fontSize: 14, marginTop: 8, color: 'var(--txt)', lineHeight: 1, opacity:.8 }}>
+                      {friendStats.count}
+                    </div>
+                    <div className="bc-meta" style={{ fontSize: 7, marginTop: 4 }}>TOTALI</div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Joint vs me */}
             {data.vsMe.total > 0 && (
@@ -750,16 +859,11 @@ function FriendProfileModal({ friend, onClose, onSwitchToGroup, t }) {
               </div>
             )}
 
-            {/* Trophy collection — grouped by category */}
+            {/* Trophy collection — tap a pill to see name, description,
+                friend's level + your level for comparison. */}
             <div className="bc-meta" style={{ marginBottom: 10 }}>— {t('friends.profile_trophies_title')}</div>
             {(() => {
-              const byId = {};
-              for (const u of data.unlocked) {
-                if (!byId[u.achievement_id] || byId[u.achievement_id] < u.level) {
-                  byId[u.achievement_id] = u.level;
-                }
-              }
-              const unlockedIds = Object.keys(byId);
+              const unlockedIds = Object.keys(friendById);
               if (unlockedIds.length === 0) {
                 return (
                   <div style={{
@@ -769,27 +873,110 @@ function FriendProfileModal({ friend, onClose, onSwitchToGroup, t }) {
                 );
               }
               return (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                  {data.catalog
-                    .filter(a => byId[a.id] != null)
-                    .map(a => {
-                      const lvl = byId[a.id];
-                      const color = TIER_COLOR(lvl);
-                      return (
-                        <div key={a.id} title={`${t('trophies.' + a.id)} · Lv ${lvl}`} style={{
-                          display: 'inline-flex', alignItems: 'center', gap: 6,
-                          padding: '6px 10px', borderRadius: 999,
-                          border: `1px solid ${color}55`,
-                          background: `${color}12`,
-                          fontFamily: "'Manrope',sans-serif", fontSize: 11, fontWeight: 700,
-                          color,
-                        }}>
-                          <span style={{ fontSize: 14 }}>{a.icon}</span>
-                          <span>Lv {lvl}</span>
+                <>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {data.catalog
+                      .filter(a => friendById[a.id] != null)
+                      .map(a => {
+                        const lvl = friendById[a.id];
+                        const color = TIER_COLOR(lvl);
+                        const isOpen = expandedId === a.id;
+                        return (
+                          <button key={a.id}
+                            type="button"
+                            onClick={() => setExpandedId(isOpen ? null : a.id)}
+                            style={{
+                              display: 'inline-flex', alignItems: 'center', gap: 6,
+                              padding: '6px 10px', borderRadius: 999,
+                              border: `1px solid ${isOpen ? color : color + '55'}`,
+                              background: isOpen ? `${color}28` : `${color}12`,
+                              fontFamily: "'Manrope',sans-serif", fontSize: 11, fontWeight: 700,
+                              color, cursor: 'pointer',
+                              boxShadow: isOpen ? `0 0 0 2px ${color}22` : 'none',
+                              transition: 'all .15s',
+                              WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation',
+                            }}>
+                            <span style={{ fontSize: 14 }}>{a.icon}</span>
+                            <span>Lv {lvl}</span>
+                          </button>
+                        );
+                      })}
+                  </div>
+
+                  {/* Detail expansion — shows name, description, friend's
+                      level vs my level for the selected trophy. */}
+                  {expandedId && (() => {
+                    const a = data.catalog.find(c => c.id === expandedId);
+                    if (!a) return null;
+                    const friendLvl = friendById[a.id] || 0;
+                    const myLvl     = myById[a.id]    || 0;
+                    const maxLvl    = a.levels?.length ?? 5;
+                    const color     = TIER_COLOR(friendLvl);
+                    return (
+                      <div style={{
+                        marginTop: 12, padding: '14px 16px',
+                        borderRadius: 10,
+                        border: `1px solid ${color}55`,
+                        background: `${color}0d`,
+                        animation: 'sUp .3s ease both',
+                      }}>
+                        <div style={{ display:'flex', alignItems:'baseline', gap: 10 }}>
+                          <span style={{ fontSize: 22, lineHeight: 1 }}>{a.icon}</span>
+                          <div style={{ flex:1, minWidth: 0 }}>
+                            <div style={{
+                              fontFamily: "'Cormorant Garamond',serif", fontWeight: 700,
+                              fontSize: 18, color: 'var(--txt)', lineHeight: 1.15,
+                            }}>{t('trophies.' + a.id)}</div>
+                            <div style={{
+                              fontSize: 11, color: 'var(--dim)', marginTop: 4, lineHeight: 1.4,
+                            }}>{t('trophies.' + a.id + '_desc')}</div>
+                          </div>
+                          <button onClick={() => setExpandedId(null)} aria-label="chiudi" style={{
+                            background:'transparent', border:'none', cursor:'pointer',
+                            color:'var(--mut)', fontSize: 14, padding: '0 4px',
+                            WebkitTapHighlightColor:'transparent',
+                          }}>✕</button>
                         </div>
-                      );
-                    })}
-                </div>
+
+                        {/* Mini bars: friend vs me */}
+                        {myAch && (
+                          <div style={{ marginTop: 12, display:'flex', flexDirection:'column', gap: 8 }}>
+                            {[
+                              { who: friend.name || '...', lvl: friendLvl, mine: false },
+                              { who: 'Tu',                 lvl: myLvl,     mine: true  },
+                            ].map(row => {
+                              const pct = Math.max(2, Math.round((row.lvl / maxLvl) * 100));
+                              const c = TIER_COLOR(row.lvl);
+                              return (
+                                <div key={row.who} style={{ display:'flex', alignItems:'center', gap: 10 }}>
+                                  <div style={{
+                                    width: 56, fontSize: 10, color: row.mine ? 'var(--gold)' : 'var(--dim)',
+                                    fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                                  }}>{row.who}</div>
+                                  <div style={{
+                                    flex: 1, height: 6, borderRadius: 3,
+                                    background: 'var(--mut)22', overflow:'hidden', position:'relative',
+                                  }}>
+                                    <div style={{
+                                      position:'absolute', inset: 0,
+                                      width: `${pct}%`, background: c,
+                                      transition: 'width .35s ease',
+                                    }}/>
+                                  </div>
+                                  <div style={{
+                                    width: 56, textAlign: 'right',
+                                    fontFamily: "'Playfair Display',serif", fontSize: 13, fontWeight: 700,
+                                    color: c,
+                                  }}>Lv {row.lvl}<span style={{fontSize: 9, color:'var(--mut)', marginLeft: 3}}>/{maxLvl}</span></div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </>
               );
             })()}
           </>

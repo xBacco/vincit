@@ -203,12 +203,13 @@ const pool = new Pool({
       'surprise','pegno','night_owl','early_bird','marathon',
       'commentator','quick_resolve','comeback','equilibrium',
       'losses','loss_streak','worst_loss','outsider_lost',
-      'flamed','paparazzo','counter_winner','targeted',
+      'flamed','paparazzo','reactor','counter_winner','targeted',
       'multi_group','recruiter',
-      'first_bet','first_react','first_photo','first_vault',
+      'first_bet','first_react','first_vault',
       'first_pegno_set','first_join',
       'epic_night','perfect_run','outsider_streak',
-      'social_butterfly','loaded','half_marathon'
+      'social_butterfly','loaded','half_marathon',
+      'egg_dice','egg_coin','egg_jackpot'
     )
   `);
 

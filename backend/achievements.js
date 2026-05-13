@@ -50,7 +50,6 @@ const CATALOG = [
   // ─── Unique milestones (one-shot) ──────────────────────────────────
   // Easy — most players unlock these in the first session
   { id: 'first_react',    icon: '👋', category: 'unique',    levels: [1] },
-  { id: 'first_photo',    icon: '📸', category: 'unique',    levels: [1] },
   { id: 'first_vault',    icon: '🔒', category: 'unique',    levels: [1] },
   { id: 'first_pegno_set',icon: '🎁', category: 'unique',    levels: [1] },
   { id: 'first_join',     icon: '🤝', category: 'unique',    levels: [1] },
@@ -319,7 +318,6 @@ async function computeProgressFor(userId) {
 
     // Unique milestones
     first_react:     anyReactGiven,
-    first_photo:     photosSent >= 1 ? 1 : 0,
     first_vault:     vaultCreatedAny,
     first_pegno_set: pegnoCreatedAny,
     first_join:      firstJoinHit,

@@ -988,8 +988,8 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
         {SubsetBlock}
         {TargetBlock}
         {TitleBlock}
-        {QuotaBlock}
         {StakeBlock}
+        {WinBlock}
         {CategoryBlock}
         {PegnoBlock}
         {ExpiryBlock}

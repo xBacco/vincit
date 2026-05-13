@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useLang } from '../../i18n.js';
 import { useToast } from '../../Toast.jsx';
 import { fileToSquareDataUrl } from '../../imageUtils.js';
@@ -303,7 +304,15 @@ export default function CameraModal({ onCapture, onClose, size = 1080, quality =
     : phase === 'capturing' ? '· ...'
     : '· ERR';
 
-  return (
+  // ─── Portal — escape the transformed ancestor ───────────────────
+  // CameraModal is rendered inside BetCard, which lives inside the
+  // dashboard's .sUp animation wrapper. .sUp applies `transform` →
+  // that wrapper becomes a "containing block" for any descendant with
+  // position:fixed, and the modal gets trapped inline inside the bet
+  // card instead of covering the whole viewport. Rendering through a
+  // portal into document.body bypasses the entire ancestor chain so
+  // position:fixed + inset:0 fills the actual viewport.
+  return createPortal((
     <div
       onClick={onClose}
       className="cam-overlay"
@@ -527,5 +536,5 @@ export default function CameraModal({ onCapture, onClose, size = 1080, quality =
         style={{ display: 'none' }}
       />
     </div>
-  );
+  ), document.body);
 }

@@ -160,7 +160,7 @@ function InviteToGroupModal({ friend, groups, onInvite, onClose }) {
   );
 }
 
-export default function FriendsView({ groups, user, onSwitchToGroup, isDesktop }) {
+export default function FriendsView({ groups, user, myBets = [], myCredits = 0, onSwitchToGroup, isDesktop }) {
   const { t }   = useLang();
   const toast   = useToast();
   const [tab, setTab]           = useState('friends'); // 'friends' | 'requests' | 'discover'
@@ -599,6 +599,9 @@ export default function FriendsView({ groups, user, onSwitchToGroup, isDesktop }
         <FriendProfileModal
           friend={openProfile}
           myAch={myAch}
+          myBets={myBets}
+          myCredits={myCredits}
+          myUserId={user}
           onClose={() => setOpenProfile(null)}
           onSwitchToGroup={onSwitchToGroup}
           t={t}
@@ -612,7 +615,7 @@ export default function FriendsView({ groups, user, onSwitchToGroup, isDesktop }
 // Tap on a friend's row → this modal opens. Shows their trophy collection
 // (grouped by tier), joint stats vs me (h2h W:L, total stake moved, best
 // shared bet), and a "Crea bet con [nome]" CTA.
-function FriendProfileModal({ friend, myAch, onClose, onSwitchToGroup, t }) {
+function FriendProfileModal({ friend, myAch, myBets = [], myCredits = 0, myUserId, onClose, onSwitchToGroup, t }) {
   const [data, setData]       = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(null);
@@ -738,83 +741,100 @@ function FriendProfileModal({ friend, myAch, onClose, onSwitchToGroup, t }) {
 
         {data && !loading && (
           <>
-            {/* Top row: trophy points + bets won (friend's solo stats) */}
-            <div style={{
-              display: 'flex', gap: 12,
-              padding: '14px 0', borderTop: '1px solid var(--rule)', borderBottom: '1px solid var(--rule)',
-              marginBottom: myAch ? 14 : 18,
-            }}>
-              {[
-                {l: t('friends.profile_trophies'), v: data.trophyPoints, c: 'var(--gold)'},
-                {l: t('friends.profile_wins'),     v: data.progress?.wins?.current ?? 0, c: 'var(--grn)'},
-              ].map((s, i) => (
-                <div key={s.l} style={{
-                  flex: 1, textAlign: 'center',
-                  borderLeft: i === 0 ? 'none' : '1px solid var(--rule)',
-                }}>
-                  <div className="bc-num" style={{ fontSize: 28, color: s.c, lineHeight: 1 }}>{s.v}</div>
-                  <div className="bc-meta" style={{ fontSize: 8, marginTop: 6 }}>{s.l}</div>
-                </div>
-              ))}
-            </div>
+            {(() => {
+              // ─── Scout report ─────────────────────────────────────────
+              // Side-by-side TU vs FRIEND on the metrics that matter for
+              // "ehi, ti sfido oggi": trophies (points + gold count + total),
+              // bets won/lost + win rate, credits in pocket. The winning side
+              // of each metric is dorato so the eye lands on the leader fast.
+              const myWins   = myBets.filter(b => b.creator === myUserId && b.status === 'won').length;
+              const myLosses = myBets.filter(b => b.creator === myUserId && b.status === 'lost').length;
+              const myWR     = (myWins + myLosses) ? Math.round(myWins / (myWins + myLosses) * 100) : null;
 
-            {/* Trophy comparison — me vs friend (only if my data loaded) */}
-            {myAch && (
-              <div style={{
-                marginBottom: 18,
-                padding: '12px 14px', borderRadius: 10,
-                background: 'var(--card)', border: '1px solid var(--brd)',
-              }}>
-                <div className="bc-meta" style={{ marginBottom: 10, fontSize: 8 }}>— TU VS {friend.name?.toUpperCase()}</div>
+              const fWins    = data?.stats?.wins    ?? data?.progress?.wins?.current   ?? 0;
+              const fLosses  = data?.stats?.losses  ?? data?.progress?.losses?.current ?? 0;
+              const fCredits = data?.stats?.credits ?? 0;
+              const fWR      = (fWins + fLosses) ? Math.round(fWins / (fWins + fLosses) * 100) : null;
+
+              // For each row: who's leading? (true = me, false = friend, null = tie)
+              const leader = (mine, theirs) =>
+                mine === theirs ? null : (mine > theirs ? true : false);
+
+              const ROWS = [
+                { label: t('friends.report_trophy_points'), me: myStats.points, them: friendStats.points, lead: leader(myStats.points, friendStats.points) },
+                { label: t('friends.report_gold'),          me: myStats.gold,   them: friendStats.gold,   lead: leader(myStats.gold,   friendStats.gold)   },
+                { label: t('friends.report_trophies_tot'),  me: myStats.count,  them: friendStats.count,  lead: leader(myStats.count,  friendStats.count)  },
+                { label: t('friends.report_wins'),          me: myWins,         them: fWins,              lead: leader(myWins,         fWins)              },
+                { label: t('friends.report_losses'),        me: myLosses,       them: fLosses,            lead: leader(fLosses,        myLosses)           /* fewer = better */ },
+                { label: t('friends.report_winrate'),       me: myWR ?? '–',    them: fWR ?? '–',         lead: leader(myWR ?? -1,     fWR ?? -1),         suffix: '%' },
+                { label: t('friends.report_credits'),       me: Math.round(myCredits || 0), them: fCredits, lead: leader(myCredits, fCredits), suffix: ' ₡' },
+              ];
+
+              const cellStyle = (isLeader) => ({
+                fontFamily: "'Playfair Display',serif",
+                fontFeatureSettings: "'lnum' 1, 'tnum' 1",
+                fontSize: 24, fontWeight: 800, lineHeight: 1,
+                color: isLeader === null ? 'var(--txt)' : (isLeader ? 'var(--gold)' : 'var(--dim)'),
+                letterSpacing: '-0.02em',
+              });
+
+              return (
                 <div style={{
-                  display:'grid', gridTemplateColumns: '1fr auto 1fr', gap: 8,
-                  alignItems:'center',
+                  marginBottom: 18,
+                  border: '1px solid var(--gold)33',
+                  borderRadius: 12, overflow: 'hidden',
+                  background: 'linear-gradient(180deg, var(--gold)08, transparent 80%)',
                 }}>
-                  {/* Me column */}
-                  <div style={{ textAlign:'right' }}>
-                    <div className="bc-num" style={{ fontSize: 20, color: myStats.points >= friendStats.points ? 'var(--gold)' : 'var(--dim)', lineHeight: 1 }}>{myStats.points}</div>
-                    <div className="bc-meta" style={{ fontSize: 7, marginTop: 4 }}>PUNTI</div>
-                    <div className="bc-num" style={{ fontSize: 16, marginTop: 8, color: myStats.gold >= friendStats.gold ? 'var(--gold)' : 'var(--dim)', lineHeight: 1 }}>
-                      {myStats.gold}
-                    </div>
-                    <div className="bc-meta" style={{ fontSize: 7, marginTop: 4 }}>AT GOLD</div>
-                    <div className="bc-num" style={{ fontSize: 14, marginTop: 8, color: 'var(--txt)', lineHeight: 1, opacity:.8 }}>
-                      {myStats.count}
-                    </div>
-                    <div className="bc-meta" style={{ fontSize: 7, marginTop: 4 }}>TOTALI</div>
-                  </div>
-
-                  {/* Middle divider with labels */}
+                  {/* Header strip: TU · SCOUT REPORT · FRIEND */}
                   <div style={{
-                    display:'flex', flexDirection:'column', gap: 14,
-                    alignItems:'center', paddingInline: 4,
-                    fontFamily: "'Cormorant Garamond',serif", fontStyle:'italic',
-                    fontSize: 11, color:'var(--mut)',
+                    display: 'grid', gridTemplateColumns: '1fr auto 1fr',
+                    alignItems: 'center', gap: 10,
+                    padding: '10px 14px',
+                    background: 'var(--gold)10', borderBottom: '1px solid var(--gold)33',
                   }}>
                     <div style={{
-                      writingMode:'vertical-rl', textOrientation:'mixed',
-                      letterSpacing:'.3em', textTransform:'uppercase',
-                      fontFamily:"'Manrope',sans-serif", fontStyle:'normal',
-                      fontSize: 8, fontWeight: 700, color:'var(--gold)',
-                    }}>VS</div>
+                      textAlign: 'right',
+                      fontFamily: "'Manrope',sans-serif", fontSize: 10, fontWeight: 800,
+                      letterSpacing: '.22em', textTransform: 'uppercase', color: 'var(--gold)',
+                    }}>{t('friends.report_you')}</div>
+                    <div style={{
+                      fontFamily: "'Cormorant Garamond',serif", fontStyle: 'italic',
+                      fontSize: 13, color: 'var(--mut)',
+                      letterSpacing: '.06em',
+                    }}>scout report</div>
+                    <div style={{
+                      textAlign: 'left',
+                      fontFamily: "'Manrope',sans-serif", fontSize: 10, fontWeight: 800,
+                      letterSpacing: '.22em', textTransform: 'uppercase', color: 'var(--gold)',
+                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                    }}>{friend.name}</div>
                   </div>
 
-                  {/* Friend column */}
-                  <div style={{ textAlign:'left' }}>
-                    <div className="bc-num" style={{ fontSize: 20, color: friendStats.points > myStats.points ? 'var(--gold)' : 'var(--dim)', lineHeight: 1 }}>{friendStats.points}</div>
-                    <div className="bc-meta" style={{ fontSize: 7, marginTop: 4 }}>PUNTI</div>
-                    <div className="bc-num" style={{ fontSize: 16, marginTop: 8, color: friendStats.gold > myStats.gold ? 'var(--gold)' : 'var(--dim)', lineHeight: 1 }}>
-                      {friendStats.gold}
+                  {/* Stat rows */}
+                  {ROWS.map((r, i) => (
+                    <div key={r.label} style={{
+                      display: 'grid', gridTemplateColumns: '1fr 110px 1fr',
+                      alignItems: 'center',
+                      padding: '12px 14px',
+                      borderTop: i ? '1px solid var(--rule)' : 'none',
+                    }}>
+                      <div style={{ textAlign: 'right', ...cellStyle(r.lead === true) }}>
+                        {r.me}{r.suffix || ''}
+                      </div>
+                      <div style={{
+                        textAlign: 'center',
+                        fontFamily: "'Manrope',sans-serif", fontSize: 9, fontWeight: 700,
+                        letterSpacing: '.2em', textTransform: 'uppercase',
+                        color: 'var(--mut)', lineHeight: 1.2,
+                      }}>{r.label}</div>
+                      <div style={{ textAlign: 'left', ...cellStyle(r.lead === false) }}>
+                        {r.them}{r.suffix || ''}
+                      </div>
                     </div>
-                    <div className="bc-meta" style={{ fontSize: 7, marginTop: 4 }}>AT GOLD</div>
-                    <div className="bc-num" style={{ fontSize: 14, marginTop: 8, color: 'var(--txt)', lineHeight: 1, opacity:.8 }}>
-                      {friendStats.count}
-                    </div>
-                    <div className="bc-meta" style={{ fontSize: 7, marginTop: 4 }}>TOTALI</div>
-                  </div>
+                  ))}
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* Joint vs me */}
             {data.vsMe.total > 0 && (

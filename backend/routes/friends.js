@@ -394,12 +394,35 @@ function makeRouter(broadcastUpdate) {
       );
       const trophyPoints = unlocked.reduce((s, u) => s + (u.level || 0), 0);
 
+      // Cross-app totals used by the "scout report" comparison card —
+      // wins/losses across every group the friend is in, plus their
+      // global credit balance. Privacy: only exposed because the
+      // requester is already a confirmed friend (checked above).
+      const { rows: winLossRows } = await db.query(
+        `SELECT status, COUNT(*)::int AS n
+           FROM bets
+          WHERE creator = $1 AND status IN ('won','lost')
+          GROUP BY status`,
+        [them]
+      );
+      const friendWins   = winLossRows.find(r => r.status === 'won')?.n  || 0;
+      const friendLosses = winLossRows.find(r => r.status === 'lost')?.n || 0;
+      const { rows: credRows } = await db.query(
+        'SELECT amount FROM credits WHERE "user"=$1', [them]
+      );
+      const friendCredits = Math.round(credRows[0]?.amount ?? 100);
+
       res.json({
         profile,
         catalog: CATALOG,
         unlocked,
         progress,
         trophyPoints,
+        stats: {
+          wins:    friendWins,
+          losses:  friendLosses,
+          credits: friendCredits,
+        },
         vsMe: {
           iWon, iLost,
           total: iWon + iLost,

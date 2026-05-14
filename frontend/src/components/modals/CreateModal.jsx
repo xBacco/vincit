@@ -1128,7 +1128,13 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
   const handleDragStart = e => {
     swipeState.current = { startY: e.touches[0].clientY, dragging: true };
     const sheet = sheetRef.current;
-    if (sheet) sheet.style.transition = 'none';
+    if (sheet) {
+      // Cancel the .sUp CSS animation — its fill-mode:both freezes
+      // transform:translateY(0) on the element, overriding any inline
+      // style.transform we set during the drag, so the sheet won't move.
+      sheet.style.animation = 'none';
+      sheet.style.transition = 'none';
+    }
     if (backdropRef.current) backdropRef.current.style.transition = 'none';
   };
   const handleDragMove = e => {
@@ -1173,45 +1179,46 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
       <div
         ref={sheetRef}
         className="sUp"
-        style={{position:'relative',background:"var(--surf)",borderRadius:"12px 12px 0 0",width:"100%",maxWidth:480,maxHeight:"92vh",overflowY:"auto",borderTop:"1px solid var(--rule)",boxShadow:"0 -20px 60px rgba(0,0,0,.4)"}}
+        style={{position:'relative',background:"var(--surf)",borderRadius:"12px 12px 0 0",width:"100%",maxWidth:480,maxHeight:"92vh",display:'flex',flexDirection:'column',borderTop:"1px solid var(--rule)",boxShadow:"0 -20px 60px rgba(0,0,0,.4)"}}
       >
-        {/* Drag handle zone — the only area that triggers swipe-to-dismiss.
-            Large touch target (44px) so the pill is easy to grab; below this
-            the sheet scrolls normally without fighting the drag. */}
+        {/* Drag zone: pill + full header row — large surface, easy to grab.
+            Lives outside the scroll area so the browser doesn't fight it.
+            touchAction:'none' lets our JS handlers receive every touch. */}
         <div
           onTouchStart={handleDragStart}
           onTouchMove={handleDragMove}
           onTouchEnd={handleDragEnd}
           style={{
-            position:'sticky', top:0, zIndex:2,
-            display:'flex', alignItems:'center', justifyContent:'center',
-            height:44, background:'var(--surf)',
+            flexShrink:0,
             borderRadius:'12px 12px 0 0',
+            background:'var(--surf)',
             touchAction:'none',
           }}
         >
-          <div style={{width:36,height:4,borderRadius:2,background:'var(--mut)',opacity:.5}}/>
-        </div>
-        <div style={{padding:"0 26px 40px"}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:28}}>
-          <div>
+          {/* Visual pill */}
+          <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:28}}>
+            <div style={{width:36,height:4,borderRadius:2,background:'var(--mut)',opacity:.5}}/>
+          </div>
+          {/* Header row: title + buttons */}
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",padding:"0 26px 20px"}}>
             <div style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",fontSize:28,fontWeight:600,lineHeight:1,color:"var(--txt)"}}>{t('create.title')}</div>
-          </div>
-          <div style={{display:'flex', alignItems:'center', gap:6}}>
-            {/* Coachmark trigger — same as desktop */}
-            <button onClick={() => setCoachOpen(true)} data-coach="help" aria-label={t('coach.help_tooltip')} title={t('coach.help_tooltip')}
-              style={{
-                width: 30, height: 30, borderRadius: '50%',
-                background: 'transparent', border: '1px solid var(--gold)66',
-                cursor: 'pointer', color: 'var(--gold)',
-                fontFamily: "'Manrope',sans-serif", fontSize: 13, fontWeight: 800,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                padding: 0, lineHeight: 1,
-                WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation',
-              }}>?</button>
-            <button onClick={onClose} aria-label="Chiudi" style={{background:"transparent",border:"none",cursor:"pointer",color:"var(--dim)",fontSize:18,padding:4}}>✕</button>
+            <div style={{display:'flex', alignItems:'center', gap:6}}>
+              <button onClick={() => setCoachOpen(true)} data-coach="help" aria-label={t('coach.help_tooltip')} title={t('coach.help_tooltip')}
+                style={{
+                  width: 30, height: 30, borderRadius: '50%',
+                  background: 'transparent', border: '1px solid var(--gold)66',
+                  cursor: 'pointer', color: 'var(--gold)',
+                  fontFamily: "'Manrope',sans-serif", fontSize: 13, fontWeight: 800,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  padding: 0, lineHeight: 1,
+                  WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation',
+                }}>?</button>
+              <button onClick={onClose} aria-label="Chiudi" style={{background:"transparent",border:"none",cursor:"pointer",color:"var(--dim)",fontSize:18,padding:4}}>✕</button>
+            </div>
           </div>
         </div>
+        <div style={{flex:1,overflowY:'auto',minHeight:0}}>
+        <div style={{padding:"0 26px 40px"}}>
 
         {TemplatesBlock}
         {TypeBlock}
@@ -1238,6 +1245,7 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
           />
         )}
         </div>{/* /padding */}
+        </div>{/* /scroll area */}
       </div>{/* /sheet */}
     </div>{/* /backdrop */}
     <CreateModalCoachmarks open={coachOpen} onClose={() => setCoachOpen(false)}/>

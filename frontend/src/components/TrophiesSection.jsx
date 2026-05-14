@@ -20,16 +20,26 @@ export default function TrophiesSection({ embedded = false, betsTick = 0 }) {
   const { t, lang } = useLang();
   const [data, setData] = useState({ catalog: [], unlocked: [], progress: {} });
   const [filter, setFilter] = useState('all');
+  // Click-to-open detail panel — populated when the user taps a tile so
+  // they can see when L1 unlocked and when MAX was reached.
+  const [detail, setDetail] = useState(null);
 
   useEffect(() => {
     api.getAchievements().then(setData).catch(() => {});
   }, [betsTick]);
 
-  // Group unlocked rows by achievement → keep max level + its unlock date
+  // Group unlocked rows by achievement → keep max level + its unlock date.
+  // ALSO collect every level's row keyed by id so the detail modal can show
+  // the L1 date and (separately) the MAX date even when they're different.
   const unlockedByAch = {};
+  const allLevelsByAch = {};
   for (const row of data.unlocked) {
     const cur = unlockedByAch[row.achievement_id];
     if (!cur || row.level > cur.level) unlockedByAch[row.achievement_id] = row;
+    (allLevelsByAch[row.achievement_id] ||= []).push(row);
+  }
+  for (const id in allLevelsByAch) {
+    allLevelsByAch[id].sort((x, y) => x.level - y.level);
   }
 
   // Secret achievements are computed via DB unlock (not via computeProgressFor),
@@ -43,11 +53,20 @@ export default function TrophiesSection({ embedded = false, betsTick = 0 }) {
     const p = a.secret
       ? { current: dbRow ? dbRow.level : 0, level: dbRow?.level || 0, max_level: secretMax, target_next: secretMax > (dbRow?.level || 0) ? (dbRow?.level || 0) + 1 : null }
       : (computed || { current: 0, level: 0, max_level: a.levels?.length || 5, target_next: a.levels?.[0] || 0 });
+    const levelsList = allLevelsByAch[a.id] || [];
     return {
       ...a,
       progress: p,
       unlocked: p.level >= 1,
+      // Max-level row's unlock_at — used by the existing inline "🏆 MAX · date" line.
       unlockedAt: dbRow?.unlocked_at || null,
+      // L1's unlock_at — when the trophy was FIRST unlocked. Same as
+      // unlockedAt for single-level trophies; different for multi-level
+      // ones once the player climbs past L1.
+      firstUnlockedAt: levelsList[0]?.unlocked_at || null,
+      // Every recorded (level, unlocked_at) — passed to the detail modal so
+      // it can render an unlock timeline if the player wants the full history.
+      levelHistory: levelsList,
     };
   });
 
@@ -210,7 +229,7 @@ export default function TrophiesSection({ embedded = false, betsTick = 0 }) {
                 gridTemplateColumns:'repeat(auto-fill, minmax(min(220px, 100%), 1fr))',
                 gap: 10,
               }}>
-                {items.map(a => <SecretTrophyTile key={a.id} a={a} t={t} fmtDate={fmtDate}/>)}
+                {items.map(a => <SecretTrophyTile key={a.id} a={a} t={t} fmtDate={fmtDate} onOpen={() => setDetail(a)}/>)}
               </div>
             </div>
           );
@@ -223,11 +242,129 @@ export default function TrophiesSection({ embedded = false, betsTick = 0 }) {
               textTransform:'uppercase', marginBottom:8, fontWeight:700,
             }}>{t('trophies.cat_'+cat)}</div>
             <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(min(160px, 100%), 1fr))', gap:8}}>
-              {items.map(a => <TrophyTile key={a.id} a={a} t={t} fmtDate={fmtDate}/>)}
+              {items.map(a => <TrophyTile key={a.id} a={a} t={t} fmtDate={fmtDate} onOpen={() => setDetail(a)}/>)}
             </div>
           </div>
         );
       })}
+
+      {detail && (
+        <TrophyDetailModal a={detail} t={t} fmtDate={fmtDate} onClose={() => setDetail(null)} />
+      )}
+    </div>
+  );
+}
+
+// Detail modal opened by tapping any tile — shows the unlock date(s) so the
+// player can recall when they first earned the trophy and (for multi-level
+// ones) when they pushed it to MAX. Locked trophies open the same modal but
+// with the "still locked" placeholder so a tap is never a dead end.
+function TrophyDetailModal({ a, t, fmtDate, onClose }) {
+  const masked = !!a.secret && !a.unlocked;
+  const labelName = masked ? t('trophies.secret_locked')      : t('trophies.'+a.id);
+  const labelDesc = masked ? t('trophies.secret_locked_desc') : t('trophies.'+a.id+'_desc');
+  const displayIcon = masked ? '?' : a.icon;
+  const { level, max_level } = a.progress;
+  const isMax = a.unlocked && level >= max_level;
+  const tierC = tierFor(level);
+  const accent = a.unlocked ? tierC : 'var(--mut)';
+
+  // For 1-level trophies (the common case) we just want the single unlock
+  // date — there's no "L1 vs MAX" distinction. For multi-level ones we show
+  // both rows when they differ, otherwise collapse to one.
+  const showFirstAndMax = max_level > 1 && a.firstUnlockedAt && a.unlockedAt && a.firstUnlockedAt !== a.unlockedAt;
+
+  const Row = ({ label, value, kicker }) => (
+    <div style={{
+      display:'flex', justifyContent:'space-between', alignItems:'baseline',
+      padding:'10px 0', borderBottom:'1px solid var(--rule)',
+    }}>
+      <div>
+        <div style={{
+          fontSize:9, letterSpacing:'.22em', textTransform:'uppercase',
+          color:'var(--dim)', fontWeight:700, fontFamily:"'Manrope',sans-serif",
+        }}>{label}</div>
+        {kicker && <div style={{fontSize:11, color:'var(--mut)', marginTop:2}}>{kicker}</div>}
+      </div>
+      <div style={{
+        fontSize:13, fontWeight:700, color:'var(--txt)',
+        fontFamily:"'Manrope',sans-serif", fontVariantNumeric:'tabular-nums',
+      }}>{value}</div>
+    </div>
+  );
+
+  return (
+    <div onClick={onClose} style={{
+      position:'fixed', inset:0, zIndex:300,
+      background:'rgba(8,6,18,.78)', backdropFilter:'blur(10px)', WebkitBackdropFilter:'blur(10px)',
+      display:'flex', alignItems:'center', justifyContent:'center', padding:16,
+    }}>
+      <div onClick={e => e.stopPropagation()} className="bIn" style={{
+        width:'100%', maxWidth:400,
+        background:'var(--surf)', border:'1px solid var(--rule)',
+        borderTop:`4px solid ${accent}`, borderRadius:16,
+        boxShadow:'0 30px 80px rgba(0,0,0,.55)',
+        display:'flex', flexDirection:'column', overflow:'hidden',
+      }}>
+        <div style={{position:'relative', padding:'22px 22px 18px', borderBottom:'1px solid var(--rule)', textAlign:'center'}}>
+          <button onClick={onClose} aria-label="Chiudi" style={{
+            position:'absolute', top:14, right:14,
+            background:'transparent', border:'1px solid var(--rule)',
+            cursor:'pointer', borderRadius:'50%',
+            color:'var(--dim)', fontSize:14, width:30, height:30,
+            display:'flex', alignItems:'center', justifyContent:'center',
+            lineHeight:1,
+          }}>✕</button>
+          <div style={{
+            fontSize: masked ? 50 : 54, lineHeight:1, marginBottom:8,
+            fontFamily: masked ? "'Playfair Display',serif" : undefined,
+            fontStyle: masked ? 'italic' : undefined,
+            fontWeight: masked ? 900 : undefined,
+            color: masked ? 'var(--mut)' : undefined,
+            filter: masked ? 'none' : a.unlocked ? `drop-shadow(0 4px 18px ${tierC}77)` : 'grayscale(1) opacity(.55)',
+          }}>{displayIcon}</div>
+          <div style={{
+            fontFamily:"'Manrope',sans-serif", fontSize:9, fontWeight:800,
+            letterSpacing:'.32em', textTransform:'uppercase',
+            color: accent, marginBottom:6,
+          }}>{t('trophies.cat_'+(a.category || 'mission'))}</div>
+          <div style={{
+            fontFamily: masked ? "'Cormorant Garamond',serif" : "'Manrope',sans-serif",
+            fontStyle: masked ? 'italic' : undefined,
+            fontSize:18, fontWeight:700, color:'var(--txt)',
+            letterSpacing: masked ? '.06em' : undefined,
+          }}>{labelName}</div>
+          <div style={{
+            fontSize:12, color:'var(--dim)', marginTop:6, lineHeight:1.45,
+            fontStyle: masked ? 'italic' : undefined,
+          }}>{labelDesc}</div>
+        </div>
+
+        <div style={{padding:'4px 22px 18px'}}>
+          {!a.unlocked ? (
+            <div style={{
+              margin:'14px 0 4px', padding:'12px 14px',
+              background:'var(--mut)0f', border:'1px dashed var(--brd)',
+              borderRadius:10, textAlign:'center',
+              fontSize:11, letterSpacing:'.18em', textTransform:'uppercase',
+              color:'var(--mut)', fontFamily:"'Manrope',sans-serif", fontWeight:700,
+            }}>🔒 {t('trophies.detail_locked')}</div>
+          ) : showFirstAndMax ? (
+            <>
+              <Row label={t('trophies.detail_first')} value={fmtDate(a.firstUnlockedAt)} />
+              <Row label={t('trophies.detail_max')}   value={fmtDate(a.unlockedAt)} kicker={`${t('trophies.detail_level')} ${level}/${max_level}`} />
+            </>
+          ) : (
+            <>
+              <Row label={t('trophies.detail_unlocked')} value={fmtDate(a.unlockedAt || a.firstUnlockedAt)} />
+              {max_level > 1 && (
+                <Row label={t('trophies.detail_level')}
+                  value={`${level}/${max_level}${isMax ? ' · MAX' : ''}`} />
+              )}
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -235,7 +372,7 @@ export default function TrophiesSection({ embedded = false, betsTick = 0 }) {
 // Hero variant of TrophyTile reserved for the `secret` category. Bigger
 // emoji, more generous padding, and a "still to discover" state that uses
 // italic Cormorant to feel inviting rather than locked-down.
-function SecretTrophyTile({ a, t, fmtDate }) {
+function SecretTrophyTile({ a, t, fmtDate, onOpen }) {
   const unlocked = a.unlocked;
   const masked = !unlocked;
   // The completion-meta trophy (egg_master) gets a totally distinct
@@ -245,13 +382,20 @@ function SecretTrophyTile({ a, t, fmtDate }) {
   const isMeta = a.id === 'egg_master';
   const { level, max_level } = a.progress;
   const showLevel = unlocked && max_level > 1;
+  const clickProps = {
+    role: 'button',
+    tabIndex: 0,
+    onClick: () => onOpen?.(),
+    onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen?.(); } },
+  };
 
   if (isMeta) {
     return (
-      <div className="card-hover" style={{
+      <div {...clickProps} className="card-hover" style={{
         position:'relative', overflow:'hidden',
         padding:'24px 22px',
         borderRadius: 18,
+        cursor:'pointer',
         // Iridescent gradient — gold → purple → magenta with the gold
         // shimmer keyframe so the background gently animates.
         background: 'linear-gradient(120deg, var(--gold) 0%, color-mix(in srgb, var(--pur) 80%, var(--gold)) 35%, var(--gold) 65%, color-mix(in srgb, var(--pur) 70%, var(--gold)) 100%)',
@@ -308,7 +452,7 @@ function SecretTrophyTile({ a, t, fmtDate }) {
   }
 
   return (
-    <div className={unlocked ? 'card-hover pGold' : ''} style={{
+    <div {...clickProps} className={unlocked ? 'card-hover pGold' : ''} style={{
       position:'relative', overflow:'hidden',
       padding:'18px 16px 16px',
       borderRadius: 14,
@@ -320,6 +464,7 @@ function SecretTrophyTile({ a, t, fmtDate }) {
         : '1px dashed var(--brd)',
       boxShadow: unlocked ? '0 6px 24px -10px var(--glow)' : 'none',
       minHeight: 150,
+      cursor:'pointer',
     }}>
       {/* Multi-level tier badge in the corner for secrets with >1 level
           (currently just egg_dice's 1/6 ↔ 6/6). MAX badge when full. */}
@@ -376,7 +521,7 @@ function SecretTrophyTile({ a, t, fmtDate }) {
   );
 }
 
-function TrophyTile({ a, t, fmtDate }) {
+function TrophyTile({ a, t, fmtDate, onOpen }) {
   const { current, level, max_level, target_next } = a.progress;
   const unlocked = level >= 1;
   const isMax = level >= max_level;
@@ -401,22 +546,19 @@ function TrophyTile({ a, t, fmtDate }) {
   const borderC = isMax ? 'var(--gold)' : (unlocked ? tierC + '55' : 'var(--brd)');
 
   return (
-    <div className={`${unlocked ? 'card-hover' : ''}${isMax ? ' pGold' : ''}`} style={{
+    <div role="button" tabIndex={0}
+      onClick={() => onOpen?.()}
+      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen?.(); } }}
+      className={`${unlocked ? 'card-hover' : ''}${isMax ? ' pGold' : ''}`}
+      style={{
       padding:'10px 12px 12px',
       borderRadius:12,
       background: maxBg,
       border: `${isMax ? 2 : 1}px solid ${borderC}`,
       opacity: unlocked ? 1 : .82,
       position:'relative', overflow:'hidden',
+      cursor:'pointer',
     }}>
-      {/* MAX glint accent in the corner */}
-      {isMax && (
-        <div style={{
-          position:'absolute', top:-12, right:-12, width:50, height:50,
-          background:'radial-gradient(circle at 0% 100%, rgba(232,184,75,.45) 0%, transparent 60%)',
-          pointerEvents:'none',
-        }}/>
-      )}
       {/* tier stripe on left */}
       <div style={{
         position:'absolute', left:0, top:0, bottom:0, width:3,
@@ -432,12 +574,28 @@ function TrophyTile({ a, t, fmtDate }) {
             color: masked ? 'var(--mut)' : undefined,
             filter: masked ? 'none' : unlocked ? `drop-shadow(0 0 10px ${tierC}77)` : 'grayscale(1) opacity(.55)',
           }}>{displayIcon}</div>
-          <div style={{
-            fontSize:9, fontWeight:800, color: unlocked ? tierC : 'var(--mut)',
-            letterSpacing:1, padding:'2px 6px', borderRadius:8,
-            border:`1px solid ${unlocked ? tierC + '55' : 'var(--brd)'}`,
-            background: unlocked ? `${tierC}11` : 'transparent',
-          }}>{max_level === 1 ? (unlocked ? '✓' : '🔒') : (isMax ? 'MAX 👑' : `Lv ${level}`)}</div>
+          {/* Badge wrapper — for MAX we drop a soft circular gold halo
+              BEHIND the badge so the "MAX 👑" pill sits dead-center in the
+              glow, instead of the old corner-bleed radial that clipped the
+              text. The wrapper is what positions both. */}
+          <div style={{position:'relative', display:'inline-flex', alignItems:'center'}}>
+            {isMax && (
+              <div aria-hidden style={{
+                position:'absolute', top:'50%', left:'50%',
+                transform:'translate(-50%, -50%)',
+                width:68, height:68, borderRadius:'50%',
+                background:'radial-gradient(circle, rgba(232,184,75,.42) 0%, rgba(232,184,75,.18) 35%, transparent 70%)',
+                pointerEvents:'none',
+              }}/>
+            )}
+            <div style={{
+              position:'relative', // keep above halo
+              fontSize:9, fontWeight:800, color: unlocked ? tierC : 'var(--mut)',
+              letterSpacing:1, padding:'2px 6px', borderRadius:8,
+              border:`1px solid ${unlocked ? tierC + '55' : 'var(--brd)'}`,
+              background: unlocked ? `${tierC}11` : 'transparent',
+            }}>{max_level === 1 ? (unlocked ? '✓' : '🔒') : (isMax ? 'MAX 👑' : `Lv ${level}`)}</div>
+          </div>
         </div>
 
         {/* Name + desc */}

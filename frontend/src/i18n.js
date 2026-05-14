@@ -390,6 +390,7 @@ const TRANSLATIONS = {
     trophies: {
       title:'🏆 Trofei', empty:'Nessun trofeo sbloccato', locked:'Bloccato', unlocked_at:'Sbloccato il',
       max_reached:'MASSIMO RAGGIUNTO', unlocked_header:'Trofeo sbloccato',
+      detail_unlocked:'Sbloccato il', detail_first:'Primo sblocco', detail_max:'Livello MAX', detail_level:'Livello', detail_locked:'Trofeo ancora bloccato',
       counter_trophies:'Trofei completati', counter_levels:'Livelli sbloccati',
       filter_all:'Tutti', filter_unlocked:'Sbloccati', filter_locked:'Da sbloccare', filter_max:'MAX',
       cat_positive:'Vittorie', cat_challenge:'Sfide', cat_mission:'Missioni', cat_shadow:'Lato oscuro', cat_social:'Sociale', cat_unique:'Pietre miliari', cat_secret:'Segreti',
@@ -1086,6 +1087,7 @@ const TRANSLATIONS = {
     trophies: {
       title:'🏆 Trophies', empty:'No trophies unlocked yet', locked:'Locked', unlocked_at:'Unlocked on',
       max_reached:'MAX REACHED', unlocked_header:'Trophy unlocked',
+      detail_unlocked:'Unlocked on', detail_first:'First unlock', detail_max:'MAX level', detail_level:'Level', detail_locked:'Trophy still locked',
       counter_trophies:'Completed trophies', counter_levels:'Levels unlocked',
       filter_all:'All', filter_unlocked:'Unlocked', filter_locked:'Locked', filter_max:'Maxed',
       cat_positive:'Wins', cat_challenge:'Challenges', cat_mission:'Missions', cat_shadow:'Dark side', cat_social:'Social', cat_unique:'Milestones', cat_secret:'Secrets',

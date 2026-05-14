@@ -409,4 +409,149 @@ router.post('/nuke', async (req, res) => {
   }
 });
 
+// ── Bets management ───────────────────────────────────────────────
+// Lists every bet in the system, newest first, with the creator/opponent
+// names + status so the admin can pick which ones to wipe. Used by the
+// new "Bets" tab in AdminView.
+router.get('/bets', async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit, 10) || 200, 500);
+    const { rows } = await db.query(`
+      SELECT b.id, b.title, b.status, b.stake, b.potential_win, b.quota,
+             b.created_at, b.resolved_at, b.is_secret, b.is_surprise,
+             b.creator, b.opponent, b.target_user, b.room_id,
+             uc.name AS creator_name,
+             uo.name AS opponent_name,
+             r.name  AS room_name, r.emoji AS room_emoji
+        FROM bets b
+        LEFT JOIN users uc ON uc.id = b.creator
+        LEFT JOIN users uo ON uo.id = b.opponent
+        LEFT JOIN rooms r  ON r.id  = b.room_id
+       ORDER BY COALESCE(b.resolved_at, b.created_at) DESC
+       LIMIT $1
+    `, [limit]);
+    res.json({ rows });
+  } catch (e) {
+    console.error('[admin:bets:list]', e);
+    res.status(500).json({ error: 'server_error' });
+  }
+});
+
+// Helper: collect the set of users affected by a bet so we can reset
+// their credits after deletion. Includes the creator, every opponent
+// (resolved or pending), and every counter-bettor.
+async function affectedUsersForBet(client, betId) {
+  const { rows: [bet] } = await client.query(
+    'SELECT creator, opponent, target_user FROM bets WHERE id=$1', [betId]
+  );
+  if (!bet) return new Set();
+  const { rows: cbs } = await client.query(
+    'SELECT DISTINCT bettor FROM counter_bets WHERE bet_id=$1', [betId]
+  );
+  const ids = new Set();
+  if (bet.creator)     ids.add(bet.creator);
+  if (bet.opponent)    ids.add(bet.opponent);
+  if (bet.target_user) ids.add(bet.target_user);
+  for (const c of cbs) if (c.bettor) ids.add(c.bettor);
+  return ids;
+}
+
+async function resetCreditsForUsers(client, userIds) {
+  if (!userIds.size) return 0;
+  const arr = Array.from(userIds);
+  const { rowCount } = await client.query(
+    `INSERT INTO credits("user", amount)
+       SELECT u.id, 100 FROM users u WHERE u.id = ANY($1)
+     ON CONFLICT("user") DO UPDATE SET amount = 100`,
+    [arr]
+  );
+  return rowCount;
+}
+
+// DELETE /api/admin/bets/:id — wipe a single bet + cascading child rows
+// (counter_bets, reactions, bet_messages) and reset the credits of
+// every involved user back to 100. Simpler than per-transaction
+// reversal: the season-reset semantics is what the admin actually
+// wants when erasing a "wrong" bet.
+router.delete('/bets/:id', async (req, res) => {
+  try {
+    const result = await db.transaction(async (client) => {
+      const ids = await affectedUsersForBet(client, req.params.id);
+      if (ids.size === 0) throw new Error('not_found');
+
+      const counts = {};
+      const wipe = async (sql, key) => {
+        counts[key] = (await client.query(sql, [req.params.id])).rowCount;
+      };
+      // bet_messages table may not exist on legacy deploys — guard it.
+      try { await wipe('DELETE FROM bet_messages WHERE bet_id=$1', 'messages'); }
+      catch (e) { counts.messages = 0; }
+      await wipe('DELETE FROM reactions    WHERE bet_id=$1', 'reactions');
+      await wipe('DELETE FROM counter_bets WHERE bet_id=$1', 'counter_bets');
+      await wipe('DELETE FROM bets         WHERE id=$1',     'bets');
+
+      counts.credits_reset = await resetCreditsForUsers(client, ids);
+      return counts;
+    });
+    res.json({ ok: true, ...result });
+  } catch (e) {
+    if (e.message === 'not_found') return res.status(404).json({ error: 'not_found' });
+    console.error('[admin:bets:delete]', e);
+    res.status(500).json({ error: 'server_error' });
+  }
+});
+
+// DELETE /api/admin/bets — wipe ALL bets in the system. Optional
+// ?room=GROUP_ID scopes the wipe to a single group. Credits of every
+// involved user are reset to 100 in the same transaction so the
+// leaderboard stays consistent.
+router.delete('/bets', async (req, res) => {
+  try {
+    const roomId = req.query.room || null;
+    const result = await db.transaction(async (client) => {
+      // Collect user IDs touched by the bets we're about to delete.
+      const userQuery = roomId
+        ? `SELECT DISTINCT u FROM (
+             SELECT creator AS u FROM bets WHERE room_id=$1
+             UNION SELECT opponent FROM bets WHERE room_id=$1 AND opponent IS NOT NULL
+             UNION SELECT target_user FROM bets WHERE room_id=$1 AND target_user IS NOT NULL
+             UNION SELECT cb.bettor FROM counter_bets cb JOIN bets b ON b.id=cb.bet_id WHERE b.room_id=$1
+           ) t WHERE u IS NOT NULL`
+        : `SELECT DISTINCT u FROM (
+             SELECT creator AS u FROM bets
+             UNION SELECT opponent FROM bets WHERE opponent IS NOT NULL
+             UNION SELECT target_user FROM bets WHERE target_user IS NOT NULL
+             UNION SELECT bettor FROM counter_bets WHERE bettor IS NOT NULL
+           ) t`;
+      const { rows: userRows } = roomId
+        ? await client.query(userQuery, [roomId])
+        : await client.query(userQuery);
+      const userIds = new Set(userRows.map(r => r.u).filter(Boolean));
+
+      const params = roomId ? [roomId] : [];
+      const whereRoom = roomId ? ' WHERE room_id=$1' : '';
+      const whereBetRoom = roomId
+        ? ' WHERE bet_id IN (SELECT id FROM bets WHERE room_id=$1)'
+        : '';
+
+      const counts = {};
+      const wipe = async (sql, args, key) => {
+        counts[key] = (await client.query(sql, args)).rowCount;
+      };
+      try { await wipe(`DELETE FROM bet_messages${whereBetRoom}`, params, 'messages'); }
+      catch (e) { counts.messages = 0; }
+      await wipe(`DELETE FROM reactions${whereBetRoom}`,    params, 'reactions');
+      await wipe(`DELETE FROM counter_bets${whereBetRoom}`, params, 'counter_bets');
+      await wipe(`DELETE FROM bets${whereRoom}`,            params, 'bets');
+
+      counts.credits_reset = await resetCreditsForUsers(client, userIds);
+      return counts;
+    });
+    res.json({ ok: true, ...result });
+  } catch (e) {
+    console.error('[admin:bets:wipe]', e);
+    res.status(500).json({ error: 'server_error' });
+  }
+});
+
 module.exports = router;

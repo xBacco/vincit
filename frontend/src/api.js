@@ -117,6 +117,9 @@ export const adminResetTrophies  = (userId, opts = {})      => req('POST',  `/ad
 export const adminToggleAdmin    = (userId)                 => req('POST',  `/admin/users/${userId}/toggle-admin`);
 export const adminNukeStatus     = ()                       => req('GET',  '/admin/nuke-status');
 export const adminNuke           = ()                       => req('POST', '/admin/nuke', { confirm: 'NUKE' });
+export const adminBets           = ()                       => req('GET',  '/admin/bets');
+export const adminDeleteBet      = (id)                     => req('DELETE', `/admin/bets/${id}`);
+export const adminWipeBets       = (roomId)                 => req('DELETE', roomId ? `/admin/bets?room=${encodeURIComponent(roomId)}` : '/admin/bets');
 
 export const getAchievements = ()           => req('GET',  '/achievements');
 export const unlockSecretAchievement = (id) => req('POST', `/achievements/secret/${id}/unlock`);

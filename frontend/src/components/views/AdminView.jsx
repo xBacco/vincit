@@ -43,11 +43,12 @@ function Avatar({ p, size = 36 }) {
 export default function AdminView({ isDesktop, meId }) {
   const { t }   = useLang();
   const toast   = useToast();
-  const [tab, setTab] = useState('users'); // 'users' | 'groups' | 'integrity'
+  const [tab, setTab] = useState('users'); // 'users' | 'groups' | 'bets' | 'integrity' | 'nuke'
 
   // ── Shared data ──────────────────────────────────────────────────────
   const [users,     setUsers]     = useState([]);
   const [groups,    setGroups]    = useState([]);
+  const [betsList,  setBetsList]  = useState([]);
   const [integrity, setIntegrity] = useState(null);
   const [nukeAvailable, setNukeAvailable] = useState(false);
   const [loading,   setLoading]   = useState(true);
@@ -63,14 +64,16 @@ export default function AdminView({ isDesktop, meId }) {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const [u, g, i, n] = await Promise.all([
+      const [u, g, i, n, b] = await Promise.all([
         api.adminUsers().catch(() => []),
         api.adminGroups().catch(() => []),
         api.adminIntegrity().catch(() => null),
         api.adminNukeStatus().catch(() => ({ available: false })),
+        api.adminBets().catch(() => ({ rows: [] })),
       ]);
       setUsers(u); setGroups(g); setIntegrity(i);
       setNukeAvailable(!!n?.available);
+      setBetsList(Array.isArray(b?.rows) ? b.rows : []);
     } finally { setLoading(false); }
   }, []);
 
@@ -185,6 +188,23 @@ export default function AdminView({ isDesktop, meId }) {
       toast.success(`Reset completo per ${who} (${r.deleted} trofei)`);
     }
   });
+  const deleteBet = wrap(async (id, title) => {
+    if (!window.confirm(`Cancellare la bet "${title || id}"?\n\nVerranno azzerati i crediti di chi era coinvolto (riportati a 100). La bet, i counter, le reazioni e i commenti spariscono. Non recuperabile.`)) {
+      throw new Error('cancelled');
+    }
+    await api.adminDeleteBet(id);
+  }, 'Bet eliminata · crediti azzerati');
+
+  const wipeAllBets = wrap(async (scope) => {
+    const msg = scope?.id
+      ? `Cancellare TUTTE le bet del gruppo ${scope.name || scope.id}?\n\nI crediti dei membri del gruppo tornano a 100. I gruppi, gli utenti, le amicizie restano. Non recuperabile.`
+      : `Cancellare TUTTE le bet di TUTTI i gruppi?\n\nOgni credito viene resettato a 100. Gruppi, utenti, amicizie e trofei restano. Non recuperabile.`;
+    if (!window.confirm(msg)) throw new Error('cancelled');
+    const phrase = window.prompt('Scrivi WIPE in maiuscolo per confermare:');
+    if (phrase !== 'WIPE') throw new Error('cancelled');
+    await api.adminWipeBets(scope?.id);
+  }, 'Bet cancellate · crediti resettati');
+
   const toggleAdmin = wrap(async (uid, currentlyAdmin, who) => {
     const action = currentlyAdmin ? 'rimuovere i privilegi admin a' : 'promuovere ad admin';
     if (!window.confirm(`Sicuro di voler ${action} ${who}?`)) throw new Error('cancelled');
@@ -229,6 +249,7 @@ export default function AdminView({ isDesktop, meId }) {
       }}>
         <TabBtn id="users"     label={`Utenti · ${users.length}`}/>
         <TabBtn id="groups"    label={`Gruppi · ${groups.length}`}/>
+        <TabBtn id="bets"      label={`Bet · ${betsList.length}`}/>
         <TabBtn id="integrity" label={`Integrità${integrity ? ` · ${(integrity.dangling_room_ids?.length||0) + (integrity.duplicate_names?.length||0) + (integrity.orphan_user_groups?.length||0) + (integrity.duplicate_emails?.length||0)}` : ''}`}/>
         {nukeAvailable && <TabBtn id="nuke" label="🔥 Reset"/>}
       </div>
@@ -579,6 +600,85 @@ export default function AdminView({ isDesktop, meId }) {
               </button>
             </div>
           ))}
+        </>
+      )}
+
+      {/* ── BET ─────────────────────────────────────────────── */}
+      {tab === 'bets' && (
+        <>
+          <div style={{
+            ...S.raised, borderColor: 'var(--red)44', marginBottom: 14,
+          }}>
+            <div style={{ ...S.label, color: 'var(--red)' }}>Cancellazione di massa</div>
+            <div style={{ fontSize: 11, color: 'var(--mut)', marginTop: 4, marginBottom: 10, lineHeight: 1.5 }}>
+              Cancella TUTTE le bet del sistema (o di un singolo gruppo) e resetta i crediti
+              degli utenti coinvolti a 100. Gruppi, utenti, amicizie e trofei restano.
+              Conferma con la parola <code style={{ color: 'var(--gold)' }}>WIPE</code>.
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button onClick={() => wipeAllBets(null)} disabled={busy} style={S.btn('danger')}>
+                🧹 Cancella tutte ({betsList.length})
+              </button>
+              {groups.map(g => {
+                const n = betsList.filter(b => b.room_id === g.id).length;
+                if (n === 0) return null;
+                return (
+                  <button key={g.id} onClick={() => wipeAllBets(g)} disabled={busy}
+                    style={{ ...S.btn('ghost'), border: '1px solid var(--brd)', color: 'var(--dim)' }}>
+                    {g.emoji} {g.name} · {n}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {betsList.length === 0 && (
+            <div style={{ padding: 32, textAlign: 'center', color: 'var(--mut)', fontSize: 12 }}>
+              Nessuna bet nel sistema.
+            </div>
+          )}
+          {betsList.map(b => {
+            const statusColor =
+              b.status === 'won'    ? 'var(--grn)' :
+              b.status === 'lost'   ? 'var(--red)' :
+              b.status === 'expired'? 'var(--mut)' :
+                                      'var(--gold)';
+            const isResolved = b.status === 'won' || b.status === 'lost';
+            return (
+              <div key={b.id} style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '12px 2px', borderBottom: '1px solid var(--rule)',
+                position: 'relative',
+              }}>
+                <div style={{ width: 4, height: 36, borderRadius: 2, background: statusColor, flexShrink: 0 }}/>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    fontFamily:"'Cormorant Garamond',serif", fontStyle:'italic',
+                    fontWeight: 600, fontSize: 14, color: 'var(--txt)',
+                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                  }}>
+                    {b.is_secret ? '🔒 ' : ''}{b.is_surprise === 1 ? '🎭 ' : ''}"{b.title || '—'}"
+                  </div>
+                  <div style={{ fontSize: 10, color: 'var(--dim)', marginTop: 3, letterSpacing: '.02em' }}>
+                    <span style={{ color: statusColor, fontWeight: 700, textTransform: 'uppercase', marginRight: 8 }}>
+                      {b.status}
+                    </span>
+                    <span>{b.creator_name || b.creator?.slice(0, 8)}</span>
+                    {b.opponent_name && <> vs <span>{b.opponent_name}</span></>}
+                    {b.room_name && <> · {b.room_emoji} {b.room_name}</>}
+                    {isResolved && <> · {b.stake}/{b.potential_win} ₡</>}
+                  </div>
+                  <div style={{ fontSize: 9, color: 'var(--mut)', fontFamily: 'monospace', marginTop: 2 }}>
+                    {b.id.slice(0, 12)}… · {new Date(Number(b.resolved_at || b.created_at)).toLocaleDateString()}
+                  </div>
+                </div>
+                <button onClick={() => deleteBet(b.id, b.title)} disabled={busy}
+                  style={S.btn('danger')}>
+                  Elimina
+                </button>
+              </div>
+            );
+          })}
         </>
       )}
 

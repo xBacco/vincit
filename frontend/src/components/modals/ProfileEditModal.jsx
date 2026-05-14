@@ -6,8 +6,10 @@ import { useToast } from '../../Toast.jsx';
 import { readImageFile, cropImageToSquare } from '../../imageUtils.js';
 import PhotoCropModal from './PhotoCropModal.jsx';
 import * as api from '../../api.js';
+import useEscClose from '../../hooks/useEscClose.js';
 
 export default function ProfileEditModal({ profile, onClose, onSaved }) {
+  useEscClose(onClose);
   const { t } = useLang();
   const toast = useToast();
 

@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useLang } from '../../i18n.js';
 import { cropImageToSquare } from '../../imageUtils.js';
+import useEscClose from '../../hooks/useEscClose.js';
 
 /**
  * Square crop UI with pan + zoom.
@@ -22,6 +23,7 @@ import { cropImageToSquare } from '../../imageUtils.js';
  *   - The visible region spans V/scale image pixels in both dimensions.
  */
 export default function PhotoCropModal({ img, dataUrl, size = 512, quality = 0.85, onConfirm, onCancel }) {
+  useEscClose(onCancel);
   const { t } = useLang();
   const viewportRef = useRef(null);
   const [V, setV] = useState(280);

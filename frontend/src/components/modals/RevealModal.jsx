@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { Btn, fmtQ, qToP, fmtD } from '../Atoms.jsx';
 import { useLang } from '../../i18n.js';
+import useEscClose from '../../hooks/useEscClose.js';
 
 const Bdg = ({c,bg,children}) => (
   <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"4px 10px",borderRadius:999,fontSize:10,fontWeight:600,letterSpacing:".06em",textTransform:"uppercase",background:bg,color:c}}>{children}</span>
 );
 
 export default function RevealModal({bet,cats,onResolve,onClose}){
+  useEscClose(onClose);
   const { t, lang } = useLang();
   const [flipped,setFlipped]=useState(false);
   const [done,setDone]=useState(false);

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Btn, COLORS } from '../Atoms.jsx';
 import { useLang } from '../../i18n.js';
+import useEscClose from '../../hooks/useEscClose.js';
 
 /**
  * Modal shown when an opponent decides to accept a targeted bet.
@@ -9,6 +10,7 @@ import { useLang } from '../../i18n.js';
  * combined pot (creator's stake + opponent's stake) at resolution.
  */
 export default function AcceptModal({ bet, profiles, myCredits, onAccept, onClose }) {
+  useEscClose(onClose);
   const { t } = useLang();
   const suggested = bet.stake;
   const maxStake  = Math.max(1, Math.floor(myCredits));

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLang } from '../../i18n.js';
 import * as api from '../../api.js';
 import { useToast } from '../../Toast.jsx';
+import useEscClose from '../../hooks/useEscClose.js';
 
 const EMOJI_OPTIONS = ['🎲','🔥','❤️','🏆','⚡','🎯','👥','🎪','🃏','🌙',
                        '🎉','🎮','🍻','⚽','🎵','💪','🤝','🎭','🎨','🌟'];
@@ -13,6 +14,7 @@ const PERM_ICONS = {
 };
 
 export default function GroupInfoModal({ group, userId, onClose, onLeft, onDeleted, onRenamed, isAdmin=false, can }) {
+  useEscClose(onClose);
   const { t } = useLang();
   const toast = useToast();
 

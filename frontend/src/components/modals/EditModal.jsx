@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Btn, Inp, SecLabel, Q_PRE, qToP, pToQ, fmtQ, clamp, DEF_CAT_IDS as DEF_IDS } from '../Atoms.jsx';
 import { useLang } from '../../i18n.js';
 import { useToast } from '../../Toast.jsx';
+import useEscClose from '../../hooks/useEscClose.js';
 
 const S = {
   lbl: {fontSize:9,color:"var(--dim)",letterSpacing:".3em",textTransform:"uppercase",fontWeight:600,display:"block",marginBottom:10},
@@ -14,6 +15,7 @@ const S = {
 const qNo = qY => parseFloat((parseFloat(qY)/(parseFloat(qY)-1)).toFixed(2));
 
 export default function EditModal({bet, user, cats, onSave, onClose}){
+  useEscClose(onClose);
   const { t } = useLang();
   const toast = useToast();
   const catLabel = c => DEF_IDS.includes(c.id) ? t('cats.'+c.id) : c.label;

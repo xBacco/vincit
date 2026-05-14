@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Btn, Avatar, fmtQ, qToP, COLORS } from '../Atoms.jsx';
 import { useLang } from '../../i18n.js';
 import Coin3D, { CoinFaceTesta, CoinFaceCroce } from '../Coin.jsx';
+import useEscClose from '../../hooks/useEscClose.js';
 
 // Shared modal shell — dark overlay, centered editorial panel.
 const OVERLAY = {position:"fixed",inset:0,background:"rgba(15,11,35,.78)",backdropFilter:"blur(6px)",WebkitBackdropFilter:"blur(6px)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100,padding:24};
@@ -12,6 +13,7 @@ const Bdg = ({c,bg,children}) => (
 );
 
 export function ResolveModal({bet,cats,profiles,onResolve,onClose}){
+  useEscClose(onClose);
   const { t } = useLang();
   const [done,setDone]=useState(false);
   const go = o => { setDone(true); setTimeout(()=>onResolve(bet,o),200); };
@@ -110,6 +112,7 @@ function FaceCard({ side, player, label, faceSize }) {
 }
 
 export function OvertimeModal({bet,profiles,onResult,onClose}){
+  useEscClose(onClose);
   const { t } = useLang();
   const [phase,setPhase]=useState("ready");      // 'ready' | 'flipping' | 'result'
   const [winner,setWinner]=useState(null);

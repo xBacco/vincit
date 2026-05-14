@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Btn } from '../Atoms.jsx';
 import { useLang } from '../../i18n.js';
+import useEscClose from '../../hooks/useEscClose.js';
 
 export default function PinModal({user,profiles,vaultPin,onSuccess,onClose}){
+  useEscClose(onClose);
   const { t } = useLang();
   const [pin,setPin]=useState("");
   const [err,setErr]=useState("");

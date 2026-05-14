@@ -4,6 +4,7 @@ import { useLang } from '../../i18n.js';
 import { useToast } from '../../Toast.jsx';
 import * as api from '../../api.js';
 import CreateModalCoachmarks from './CreateModalCoachmarks.jsx';
+import useEscClose from '../../hooks/useEscClose.js';
 
 // Editorial re-skin: labels become tracked uppercase micro-meta, inputs lose
 // their box for underline-only, "btn" chips become tracked-pill outlines,
@@ -175,6 +176,7 @@ function SlotReel({ symbols, cellW, itemH, fontPx, reelLen, durationMs }) {
 }
 
 export default function CreateModal({user,profiles,groupMembers,maxC,cats,settings={},onCreate,onClose,onEggUnlock,noviceMode=false}){
+  useEscClose(onClose);
   // Coachmark-sequence state. Auto-opens when the modal is launched from
   // the onboarding tour (noviceMode prop). Always re-openable from the
   // "?" button in the header for users who skipped it or forgot.

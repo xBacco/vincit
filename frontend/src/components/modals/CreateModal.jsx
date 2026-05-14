@@ -378,44 +378,6 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
   useEffect(() => () => clearJackpotTimers(), []);
 
   // ─── Form blocks (shared mobile/desktop) ──────────────────────────────
-  // Dismissible tip card shown only when the user has no templates yet,
-  // so first-timers find out the feature exists without us being noisy
-  // about it. The "save as template" button (visible after typing a
-  // title) and a successful first save both dismiss the tip too.
-  const [tplTipDismissed, setTplTipDismissed] = useState(() => {
-    try { return !!localStorage.getItem('bc_templates_tip_dismissed'); } catch { return false; }
-  });
-  const dismissTplTip = () => {
-    try { localStorage.setItem('bc_templates_tip_dismissed', '1'); } catch {}
-    setTplTipDismissed(true);
-  };
-
-  const TemplatesTipBlock = templates.length === 0 && !tplTipDismissed && (
-    <div style={{
-      padding:'12px 14px', marginBottom:14,
-      background:'var(--gold)0a',
-      border:'1px solid var(--gold)44', borderRadius:10,
-      display:'flex', alignItems:'flex-start', gap:12,
-    }}>
-      <span style={{ fontSize:22, lineHeight:1, flexShrink:0 }}>💾</span>
-      <div style={{ flex:1, minWidth:0 }}>
-        <div style={{
-          fontFamily:"'Cormorant Garamond',serif", fontStyle:'italic',
-          fontSize:15, fontWeight:600, color:'var(--gold)', marginBottom:4,
-        }}>{t('templates.tip_title')}</div>
-        <div style={{ fontSize:12, color:'var(--dim)', lineHeight:1.55 }}>
-          {t('templates.tip_body')}
-        </div>
-      </div>
-      <button onClick={dismissTplTip} aria-label="Dismiss"
-        style={{
-          background:'transparent', border:'none', cursor:'pointer',
-          color:'var(--mut)', fontSize:18, padding:'0 4px', lineHeight:1,
-          flexShrink:0,
-        }}>×</button>
-    </div>
-  );
-
   const TemplatesBlock = templates.length > 0 && (
     <div style={{ marginBottom: 14 }}>
       <label style={S.lbl}>{t('templates.title_picker')}</label>
@@ -440,7 +402,8 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
   );
 
   const SaveAsTemplateBtn = (
-    <button onClick={() => { setShowSaveDialog(true); setTplName(""); }}
+    <button data-coach="save-template"
+      onClick={() => { setShowSaveDialog(true); setTplName(""); }}
       style={{
         display:'inline-flex', alignItems:'center', gap:6,
         padding:'6px 12px', borderRadius:20,
@@ -978,7 +941,6 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
 
           <div style={{display:"grid",gridTemplateColumns:"1fr 360px",flex:1,minHeight:0}}>
             <div ref={scrollAreaRef} style={{padding:"22px 24px",overflowY:"auto"}}>
-              {TemplatesTipBlock}
               {TemplatesBlock}
               {TypeBlock}
               {OpponentBlock}
@@ -1071,7 +1033,6 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
           </div>
         </div>
 
-        {TemplatesTipBlock}
         {TemplatesBlock}
         {TypeBlock}
         {OpponentBlock}

@@ -307,6 +307,10 @@ const TRANSLATIONS = {
       submit_title:'Crea la bet.',
       submit_body:'Quando hai compilato tutto, premi qui per metterla online. Resta visibile nel gruppo finché qualcuno la vince, la perde, o scade. Buona scommessa 🎲',
 
+      templates_kicker:'Bet ricorrenti',
+      templates_title:'💾 Salva come template.',
+      templates_body:'Se questa è una bet che rifarai (es. "Marco arriva in ritardo", "domenica nuvolo"), salvala come template: la prossima volta la richiami con un tap dalle chip in alto al form.',
+
       help_kicker:'Tutorial sempre a portata',
       help_title:'Vedi questo "?"? È il tuo salvavita.',
       help_body:'Cliccalo in qualsiasi momento per riaprire questo tutorial. Se ti dimentichi come funziona qualcosa, sai dove guardare.',
@@ -439,9 +443,6 @@ const TRANSLATIONS = {
       saved:'Template salvato', deleted:'Template eliminato', updated:'Template aggiornato',
       load_btn:'Usa', edit_btn:'Modifica', delete_btn:'Elimina',
       no_title_hint:'Salva un titolo + quota + stake per creare un template',
-      tip_title:'Sapevi dei template?',
-      tip_body:'Salva una bet ricorrente (es. "ritardo Marco", "domenica nuvolo") con il pulsante in basso, poi richiamala con un tap dalla prossima volta.',
-      tip_dismiss:'Ho capito',
       first_saved_title:'Primo template salvato 🎉',
       first_saved_body:'Lo trovi qui in alto ogni volta che crei una bet. Tocca per pre-compilare il form.',
     },
@@ -945,6 +946,10 @@ const TRANSLATIONS = {
       submit_title:'Place the bet.',
       submit_body:'Once everything is filled in, press here to put it live. It stays visible in the group until someone wins, loses, or it expires. Good luck 🎲',
 
+      templates_kicker:'Recurring bets',
+      templates_title:'💾 Save as a template.',
+      templates_body:'If this is a bet you\'ll do again (e.g. "Marco late", "Sunday cloudy"), save it as a template: next time you can recall it with a tap from the chips at the top of the form.',
+
       help_kicker:'Tutorial always at hand',
       help_title:"See this \"?\" Your lifeline.",
       help_body:"Tap it any time to re-open this tutorial. If you forget how something works, you know where to look.",
@@ -1070,9 +1075,6 @@ const TRANSLATIONS = {
       saved:'Template saved', deleted:'Template deleted', updated:'Template updated',
       load_btn:'Use', edit_btn:'Edit', delete_btn:'Delete',
       no_title_hint:'Save a title + odds + stake to create a template',
-      tip_title:'Did you know about templates?',
-      tip_body:'Save a recurring bet (e.g. "Marco late", "Sunday cloudy") with the button below, then summon it with one tap next time.',
-      tip_dismiss:'Got it',
       first_saved_title:'First template saved 🎉',
       first_saved_body:"You'll find it pinned at the top every time you create a bet. Tap to pre-fill the form.",
     },

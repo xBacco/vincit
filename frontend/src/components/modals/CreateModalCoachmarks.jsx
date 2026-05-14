@@ -24,6 +24,9 @@ const STEPS = [
   { target: 'stake',         place: 'bottom' },
   { target: 'win',           place: 'bottom' },
   { target: 'submit',        place: 'top'    },
+  // Templates intro — points at the "Save as template" button so the
+  // user knows recurring bets can be one-tap reloads next time.
+  { target: 'save-template', place: 'top'    },
   // Final step points at the always-available "?" trigger in the header.
   { target: 'help',          place: 'bottom' },
 ];
@@ -104,7 +107,7 @@ export default function CreateModalCoachmarks({ open, onClose }) {
   const stepKey = [
     'intro', 'title',
     'type_vault', 'type_open', 'type_targeted', 'type_surprise',
-    'stake', 'win', 'submit', 'help',
+    'stake', 'win', 'submit', 'templates', 'help',
   ][step];
 
   const goNext = () => {

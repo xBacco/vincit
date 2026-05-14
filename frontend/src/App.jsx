@@ -935,31 +935,43 @@ export default function App() {
     catch (e) { console.error(e); toast.error(t('app.error_cancel')); }
   };
 
-  const handleResolve = async (bet, outcome) => {
+  // Resolve actions both deferred 5s through a toast-with-undo. Real
+  // production users mis-tap "won/lost" all the time; once the API has
+  // fired the bet is settled and credits moved, so the 5-second buffer
+  // is the difference between "oops" and "drama". The OS-prompt-style
+  // toast carries the pending state — modals close immediately for
+  // snappy UX, and the win/comment animations fire only after the
+  // timeout commits the resolution.
+  const performResolve = async (bet, outcome, asConfirmer = false) => {
     try {
       const r = await api.resolveBet(bet.id, outcome);
-      setRevealBet(null); setResolveBet(null); setOvertimeBet(null);
       if (r?.phase === 'resolved') {
-        if (outcome === 'won') setWinAnim(bet.potentialWin);
+        // Win anim is keyed to creator payout, so only fire it for the
+        // user who actually receives the credits.
+        const iWin = outcome === 'won' && (asConfirmer ? bet.creator === user : true);
+        if (iWin) setWinAnim(bet.potentialWin);
         setCommentBetModal({ ...bet, status: outcome });
       }
     } catch (e) { console.error(e); }
   };
 
-  // Consensual flow — opponent of a bet confirms (matches outcome) or disputes
-  // (mismatching outcome) the proposal without going through ResolveModal.
-  const handleConfirmOutcome = async (bet, outcome) => {
-    try {
-      const r = await api.resolveBet(bet.id, outcome);
-      if (r?.phase === 'resolved') {
-        // Outcome from the confirmer's POV is "creator won" — they themselves
-        // win only if they're the creator. Win anim is keyed to the creator
-        // payout, so trigger it only for the creator.
-        if (outcome === 'won' && bet.creator === user) setWinAnim(bet.potentialWin);
-        setCommentBetModal({ ...bet, status: outcome });
-      }
-    } catch (e) { console.error(e); }
+  const deferResolve = (bet, outcome, asConfirmer) => {
+    setRevealBet(null); setResolveBet(null); setOvertimeBet(null);
+    const messageKey = outcome === 'won' ? 'app.resolve_pending_won' : 'app.resolve_pending_lost';
+    toast.action({
+      message: t(messageKey, { title: bet.title || '' }),
+      variant: outcome === 'won' ? 'success' : 'info',
+      duration: 5000,
+      actionLabel: t('app.undo'),
+      onAction: () => { toast.info(t('app.resolve_undone')); },
+      onTimeout: () => performResolve(bet, outcome, asConfirmer),
+    });
   };
+
+  const handleResolve         = (bet, outcome) => deferResolve(bet, outcome, false);
+  // Consensual flow — opponent of a bet confirms (matches outcome) or
+  // disputes (mismatching outcome) the proposal without ResolveModal.
+  const handleConfirmOutcome  = (bet, outcome) => deferResolve(bet, outcome, true);
 
   // Either party can take back / cancel a pending proposal so a bet doesn't
   // stay locked while waiting for confirmation.

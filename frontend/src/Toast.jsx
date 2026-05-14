@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useMemo, useState, useEffect } from 'react';
+import React, { createContext, useCallback, useContext, useMemo, useState, useEffect, useRef } from 'react';
 
 const ToastContext = createContext(null);
 let _nextId = 1;
@@ -16,13 +16,23 @@ export function ToastProvider({ children }) {
     return id;
   }, []);
 
+  // Toast with an inline action button (e.g. "Annulla"). The action's
+  // onClick fires once on user tap, and `onTimeout` runs if the toast
+  // expires without action. Used for undo-style flows.
+  const action = useCallback(({ message, variant = 'info', duration = 5000, actionLabel, onAction, onTimeout }) => {
+    const id = _nextId++;
+    setToasts(t => [...t, { id, message, variant, duration, actionLabel, onAction, onTimeout }]);
+    return id;
+  }, []);
+
   const api = useMemo(() => ({
     success: m => push(m, 'success', 3000),
     error:   m => push(m, 'error',   5000),
     info:    m => push(m, 'info',    3500),
+    action,
     dismiss,
     push,
-  }), [push, dismiss]);
+  }), [push, action, dismiss]);
 
   return (
     <ToastContext.Provider value={api}>
@@ -56,11 +66,20 @@ function ToastViewport({ toasts, dismiss }) {
 }
 
 function ToastItem({ toast, onDismiss }) {
+  // Toasts with an action button differentiate "tapped action" from
+  // "timed out". We track whether the action was used so the timeout
+  // callback doesn't double-fire.
+  const actedRef = React.useRef(false);
   useEffect(() => {
     if (toast.duration <= 0) return;
-    const id = setTimeout(onDismiss, toast.duration);
+    const id = setTimeout(() => {
+      if (!actedRef.current && typeof toast.onTimeout === 'function') {
+        try { toast.onTimeout(); } catch (e) { console.error('[toast onTimeout]', e); }
+      }
+      onDismiss();
+    }, toast.duration);
     return () => clearTimeout(id);
-  }, [toast.duration, onDismiss]);
+  }, [toast.duration, toast.onTimeout, onDismiss]);
 
   const cfg = {
     success: { color: 'var(--grn)',  icon: '✓' },
@@ -68,8 +87,24 @@ function ToastItem({ toast, onDismiss }) {
     info:    { color: 'var(--gold)', icon: 'ℹ' },
   }[toast.variant] || { color: 'var(--gold)', icon: 'ℹ' };
 
+  const hasAction = !!toast.actionLabel && typeof toast.onAction === 'function';
+  const handleClick = (e) => {
+    // Clicks on the action button shouldn't double-dismiss via the row click.
+    if (e.target.dataset?.toastAction) return;
+    onDismiss();
+  };
+  const handleAction = (e) => {
+    e.stopPropagation();
+    actedRef.current = true;
+    try { toast.onAction(); } catch (err) { console.error('[toast onAction]', err); }
+    onDismiss();
+  };
+
   return (
-    <div onClick={onDismiss} style={{
+    <div onClick={handleClick}
+      role={hasAction ? 'alertdialog' : 'status'}
+      aria-live={hasAction ? 'assertive' : 'polite'}
+      style={{
       pointerEvents: 'auto',
       background: 'var(--surf)',
       border: '1px solid var(--brd)',
@@ -77,7 +112,7 @@ function ToastItem({ toast, onDismiss }) {
       borderRadius: 10,
       padding: '10px 16px',
       minWidth: 240,
-      maxWidth: 380,
+      maxWidth: 420,
       boxShadow: '0 10px 28px rgba(0,0,0,.45)',
       cursor: 'pointer',
       display: 'flex', alignItems: 'center', gap: 10,
@@ -86,9 +121,20 @@ function ToastItem({ toast, onDismiss }) {
       animation: 'toastIn .25s cubic-bezier(.34,1.56,.64,1) both',
       position: 'relative', overflow: 'hidden',
     }}>
-      <span style={{ color: cfg.color, fontSize: 16, fontWeight: 800, flexShrink: 0 }}>{cfg.icon}</span>
+      <span style={{ color: cfg.color, fontSize: 16, fontWeight: 800, flexShrink: 0 }} aria-hidden>{cfg.icon}</span>
       <span style={{ flex: 1, lineHeight: 1.4 }}>{toast.message}</span>
-      <span style={{ fontSize: 11, color: 'var(--mut)', flexShrink: 0 }}>✕</span>
+      {hasAction ? (
+        <button data-toast-action onClick={handleAction}
+          style={{
+            background: 'transparent', border: `1px solid ${cfg.color}`,
+            color: cfg.color, padding: '4px 12px', borderRadius: 999,
+            fontFamily: "'Manrope', sans-serif", fontSize: 11, fontWeight: 700,
+            letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer',
+            flexShrink: 0, WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation',
+          }}>{toast.actionLabel}</button>
+      ) : (
+        <span style={{ fontSize: 11, color: 'var(--mut)', flexShrink: 0 }} aria-hidden>✕</span>
+      )}
       {toast.duration > 0 && (
         <div style={{
           position: 'absolute', left: 0, bottom: 0, height: 2, width: '100%',

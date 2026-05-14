@@ -146,13 +146,26 @@ router.delete('/users/:id', async (req, res) => {
 
 // POST /api/admin/users/:id/reset-trophies — wipe every achievement row for
 // the target user. The client should also recompute progress on next state
-// fetch. Same effect as the "reset miei trofei" button but for any user.
+// fetch.
+//
+// When the request body includes { full: true } we ALSO bump users.fresh_reset_at,
+// which signals the target's client (on its next /me load) to wipe the per-
+// device LS flags that gate the onboarding tour + secret-trophy easter-egg
+// popups. Result: the target sees the "fresh account" experience on their
+// next visit, exactly like a brand-new signup.
 router.post('/users/:id/reset-trophies', async (req, res) => {
   try {
+    const full = req.body?.full === true;
     const { rowCount } = await db.query(
       'DELETE FROM achievements WHERE user_id=$1', [req.params.id]
     );
-    res.json({ ok: true, deleted: rowCount });
+    if (full) {
+      await db.query(
+        'UPDATE users SET fresh_reset_at=$1 WHERE id=$2',
+        [Date.now(), req.params.id]
+      );
+    }
+    res.json({ ok: true, deleted: rowCount, full });
   } catch (e) {
     console.error('[admin:reset-trophies]', e);
     res.status(500).json({ error: e.message || 'server_error' });

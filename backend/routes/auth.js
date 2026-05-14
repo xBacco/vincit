@@ -81,7 +81,7 @@ router.post('/login', async (req, res) => {
     }
 
     const token = makeToken(u.id, u.name, u.room_id);
-    res.json({ token, user: { id:u.id, name:u.name, avatar:u.avatar, avatar_url:u.avatar_url, color_key:u.color_key, room_id:u.room_id, invite_code:inviteCode, paired, is_admin: u.is_admin === true } });
+    res.json({ token, user: { id:u.id, name:u.name, avatar:u.avatar, avatar_url:u.avatar_url, color_key:u.color_key, room_id:u.room_id, invite_code:inviteCode, paired, is_admin: u.is_admin === true, fresh_reset_at: u.fresh_reset_at == null ? null : Number(u.fresh_reset_at) } });
   } catch(e) { console.error(e); res.status(500).json({ error: 'Server error' }); }
 });
 
@@ -232,7 +232,7 @@ router.get('/me', async (req, res) => {
       inviteCode = roomRes.rows[0]?.paired_at ? null : roomRes.rows[0]?.invite_code;
       paired     = partnerRes.rows.length > 0;
     }
-    res.json({ id:u.id, name:u.name, avatar:u.avatar, avatar_url:u.avatar_url, color_key:u.color_key, room_id:u.room_id, invite_code:inviteCode, paired, is_admin: u.is_admin === true });
+    res.json({ id:u.id, name:u.name, avatar:u.avatar, avatar_url:u.avatar_url, color_key:u.color_key, room_id:u.room_id, invite_code:inviteCode, paired, is_admin: u.is_admin === true, fresh_reset_at: u.fresh_reset_at == null ? null : Number(u.fresh_reset_at) });
   } catch(e) { console.error(e); res.status(500).json({ error: 'Server error' }); }
 });
 

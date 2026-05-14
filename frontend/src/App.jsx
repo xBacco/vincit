@@ -36,6 +36,7 @@ import EditModal from './components/modals/EditModal.jsx';
 import AcceptModal from './components/modals/AcceptModal.jsx';
 import ProfileEditModal from './components/modals/ProfileEditModal.jsx';
 import GroupPicker from './components/GroupPicker.jsx';
+import { applyFreshResetIfNeeded } from './freshReset.js';
 
 function urlB64ToUint8(b64) {
   const pad = '='.repeat((4 - b64.length % 4) % 4);
@@ -479,6 +480,10 @@ export default function App() {
     if (!token) { setAuthLoading(false); return; }
     api.getMe()
       .then(async u => {
+        // If the admin bumped this user's fresh_reset_at since last visit,
+        // wipe the LS flags so the onboarding tour + secret-trophy easter
+        // eggs replay on this device.
+        applyFreshResetIfNeeded(u);
         setAuthUser(u);
         await loadGroups();
         setAuthLoading(false);
@@ -493,6 +498,7 @@ export default function App() {
   const handleAuth = ({ token: t, user: u }) => {
     localStorage.setItem('bc_token', t);
     setToken(t);
+    applyFreshResetIfNeeded(u);
     setAuthUser(u);
     setGroupsLoaded(false);
     loadGroups();

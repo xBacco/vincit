@@ -288,6 +288,14 @@ const pool = new Pool({
     ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT false;
   `);
 
+  // Bumped by admin "full reset" to signal the target's client to wipe per-
+  // device LS flags (onboarding tour, easter-egg popups). The client compares
+  // this value to a locally-stored ack and replays the fresh-account flow on
+  // the next /me load.
+  await pool.query(`
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS fresh_reset_at BIGINT;
+  `);
+
   // Consensual-resolve fields. When a bet has an opponent, /resolve no longer
   // settles unilaterally — it parks a proposed outcome here, and the bet
   // only settles once the OTHER party confirms the same outcome. If they

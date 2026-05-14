@@ -4,6 +4,7 @@ import { useLang } from '../../i18n.js';
 import { useToast } from '../../Toast.jsx';
 import { COLORS } from '../Atoms.jsx';
 import { validatePassword } from '../../passwordPolicy.js';
+import { wipeFreshAccountFlags } from '../../freshReset.js';
 
 // Editorial style: sections separate by hairline + whitespace, not by box.
 // `raised` is reserved for genuinely raised surfaces (danger-zone, the
@@ -38,18 +39,6 @@ function Avatar({ p, size = 36 }) {
     </div>
   );
 }
-
-// LS keys that gate the onboarding tour + the secret-trophy easter-egg
-// popups. Cleared together with a self trophy-reset so the admin can replay
-// the full "fresh account" experience.
-const FRESH_ACCOUNT_LS_KEYS = [
-  'bc_egg_dice_popped_v2', 'bc_egg_dice_rolled',
-  'bc_egg_coin_popped_v2', 'bc_egg_coin_flipped',
-  'bc_egg_ice_popped_v2',
-  'bc_egg_phoenix_popped_v2',
-  'bc_egg_streak_tip_shown',
-  'bc_onboarding_done',
-];
 
 export default function AdminView({ isDesktop, meId }) {
   const { t }   = useLang();
@@ -134,19 +123,19 @@ export default function AdminView({ isDesktop, meId }) {
     const isSelf = !!meId && uid === meId;
     const confirmMsg = isSelf
       ? `Reset COMPLETO del tuo account?\n\nCancella TUTTI i trofei (anche i 5 segreti) e azzera i flag locali del tutorial + easter egg. Dopo il reload rivedrai onboarding e animazioni come a un account appena creato.`
-      : `Cancellare TUTTI i trofei di ${who}?\n\nIncluso i 5 segreti. Verranno ricalcolati alla prossima azione (vincita, bet, etc.).`;
+      : `Reset COMPLETO di ${who}?\n\nCancella TUTTI i trofei (anche i 5 segreti). ${who} rivedrà tutorial + animazioni dei trofei segreti alla prossima apertura dell'app, come a un account appena creato.`;
     if (!window.confirm(confirmMsg)) throw new Error('cancelled');
-    const r = await api.adminResetTrophies(uid);
+    // Always send full=true: the server bumps fresh_reset_at and the target's
+    // client wipes its own LS flags on the next /me load.
+    const r = await api.adminResetTrophies(uid, { full: true });
     if (isSelf) {
-      // Self-reset: also wipe per-device LS flags so the tutorial + every
-      // secret-trophy popup can fire from scratch on the next reload.
-      for (const k of FRESH_ACCOUNT_LS_KEYS) {
-        try { localStorage.removeItem(k); } catch {}
-      }
-      toast.success(`Trofei azzerati (${r.deleted}). Ricarico…`);
+      // Self-reset: also wipe LS flags on THIS device immediately so we
+      // don't have to wait for a /me round-trip on reload.
+      wipeFreshAccountFlags();
+      toast.success(`Reset completo (${r.deleted} trofei). Ricarico…`);
       setTimeout(() => window.location.reload(), 700);
     } else {
-      toast.success(`Trofei azzerati (${r.deleted})`);
+      toast.success(`Reset completo per ${who} (${r.deleted} trofei)`);
     }
   });
   const toggleAdmin = wrap(async (uid, currentlyAdmin, who) => {
@@ -366,14 +355,14 @@ export default function AdminView({ isDesktop, meId }) {
             })()}
 
             <div style={S.card}>
-              <div style={S.label}>🏆 Reset trofei</div>
+              <div style={S.label}>🏆 Reset completo</div>
               <div style={{ fontSize: 11, color: 'var(--mut)', marginTop: 4, marginBottom: 10 }}>
                 {u.id === meId
-                  ? <>Cancella TUTTI i tuoi trofei (anche i 5 segreti) <b>e</b> azzera i flag locali del tutorial + easter egg. Dopo il reload rivedi onboarding e animazioni come a un account appena creato.</>
-                  : <>Cancella tutti i trofei di {u.name} (compresi i 5 segreti). Si ricalcolano alla prossima azione.</>}
+                  ? <>Cancella TUTTI i tuoi trofei (anche i 5 segreti) <b>e</b> azzera tutorial + easter egg sul tuo device. Dopo il reload rivedi onboarding e animazioni come a un account appena creato.</>
+                  : <>Cancella TUTTI i trofei di {u.name} (anche i 5 segreti). {u.name} rivedrà tutorial + animazioni dei trofei segreti alla prossima apertura dell'app, come a un account appena creato.</>}
               </div>
               <button onClick={() => resetTrophies(u.id, u.name)} disabled={busy} style={S.btn()}>
-                {u.id === meId ? 'Azzera trofei + flag easter egg' : 'Azzera trofei'}
+                Reset trofei + tutorial
               </button>
             </div>
 
@@ -528,9 +517,7 @@ export default function AdminView({ isDesktop, meId }) {
                 setBusy(true);
                 try {
                   const r = await api.resetMyAchievements();
-                  for (const k of FRESH_ACCOUNT_LS_KEYS) {
-                    try { localStorage.removeItem(k); } catch {}
-                  }
+                  wipeFreshAccountFlags();
                   toast.success(`Trofei azzerati (${r.deleted}). Ricarico…`);
                   setTimeout(() => window.location.reload(), 700);
                 } catch (e) {

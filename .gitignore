@@ -7,6 +7,7 @@ frontend/dist/
 .env
 backend/.env
 frontend/.env
+.claude/
 *.db
 *.db-shm
 *.db-wal

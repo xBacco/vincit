@@ -439,6 +439,11 @@ const TRANSLATIONS = {
       saved:'Template salvato', deleted:'Template eliminato', updated:'Template aggiornato',
       load_btn:'Usa', edit_btn:'Modifica', delete_btn:'Elimina',
       no_title_hint:'Salva un titolo + quota + stake per creare un template',
+      tip_title:'Sapevi dei template?',
+      tip_body:'Salva una bet ricorrente (es. "ritardo Marco", "domenica nuvolo") con il pulsante in basso, poi richiamala con un tap dalla prossima volta.',
+      tip_dismiss:'Ho capito',
+      first_saved_title:'Primo template salvato 🎉',
+      first_saved_body:'Lo trovi qui in alto ogni volta che crei una bet. Tocca per pre-compilare il form.',
     },
     streak: {
       hot:'Win streak', cold:'Loss streak',
@@ -1055,6 +1060,11 @@ const TRANSLATIONS = {
       saved:'Template saved', deleted:'Template deleted', updated:'Template updated',
       load_btn:'Use', edit_btn:'Edit', delete_btn:'Delete',
       no_title_hint:'Save a title + odds + stake to create a template',
+      tip_title:'Did you know about templates?',
+      tip_body:'Save a recurring bet (e.g. "Marco late", "Sunday cloudy") with the button below, then summon it with one tap next time.',
+      tip_dismiss:'Got it',
+      first_saved_title:'First template saved 🎉',
+      first_saved_body:"You'll find it pinned at the top every time you create a bet. Tap to pre-fill the form.",
     },
     streak: {
       hot:'Win streak', cold:'Loss streak',

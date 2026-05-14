@@ -13,19 +13,19 @@ import { useLang } from '../../i18n.js';
 
 const STEPS = [
   // First step is a centered intro card with no target.
-  { target: null,       place: 'center' },
-  { target: 'title',    place: 'bottom' },
-  // Four sub-steps on the same `type` selector, one per bet kind. The
-  // spotlight stays put while the bubble copy changes.
-  { target: 'type',     place: 'bottom' },
-  { target: 'type',     place: 'bottom' },
-  { target: 'type',     place: 'bottom' },
-  { target: 'type',     place: 'bottom' },
-  { target: 'stake',    place: 'bottom' },
-  { target: 'win',      place: 'bottom' },
-  { target: 'submit',   place: 'top'    },
+  { target: null,            place: 'center' },
+  { target: 'title',         place: 'bottom' },
+  // Four sub-steps, each spotlighting only the chip for that specific
+  // bet type so the eye is drawn to the *name*, not the whole selector.
+  { target: 'type-vault',    place: 'bottom' },
+  { target: 'type-open',     place: 'bottom' },
+  { target: 'type-targeted', place: 'bottom' },
+  { target: 'type-surprise', place: 'bottom' },
+  { target: 'stake',         place: 'bottom' },
+  { target: 'win',           place: 'bottom' },
+  { target: 'submit',        place: 'top'    },
   // Final step points at the always-available "?" trigger in the header.
-  { target: 'help',     place: 'bottom' },
+  { target: 'help',          place: 'bottom' },
 ];
 
 const CSS = `

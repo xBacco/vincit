@@ -426,6 +426,7 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
           const active = betType === o.key;
           return (
             <button key={o.key} type="button"
+              data-coach={`type-${o.key}`}
               onClick={() => { if (!disabled) setBetType(o.key); }}
               disabled={disabled}
               style={{

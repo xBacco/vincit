@@ -12,8 +12,6 @@ Guida per orientarsi nel repo senza dover aprire tutti i file. Una riga per ogni
 betcouple/
 ├── package.json         # orchestratore: script `dev` / `build` / `start` per i due sotto-progetti
 ├── start.sh             # avvio rapido (legacy, usato in locale)
-├── BetCouple_v3.jsx     # ⚠ vecchio file monolite, NON usato in produzione — solo storia
-├── betcouple.log        # log locale, gitignore
 │
 ├── backend/             # API Express + Postgres (Neon) + push + Cloudinary
 ├── frontend/            # SPA React + Vite + service worker

@@ -317,11 +317,37 @@ export default function BetCard({bet,user,profiles,cats,onResolve,onReveal,onCou
           {!bet.isSecret&&!done&&bet.isCounterable&&(
             <div style={{borderTop:"1px solid var(--brd)",paddingTop:8,marginBottom:8}}>
               <div style={{fontSize:10,color:"var(--dim)",letterSpacing:1,textTransform:"uppercase",marginBottom:6}}>{t('bet_card.challenge')}</div>
-              <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:6}}>
+              <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:10}}>
                 <Bdg bg="var(--grn)22" c="var(--grn)">{profiles[bet.creator]?.avatar} {t('bet_card.yes')} · {bet.potentialWin} ₡</Bdg>
                 {theirCounter&&<Bdg bg={theirCounter.side==="yes"?"var(--grn)22":"var(--red)22"} c={theirCounter.side==="yes"?"var(--grn)":"var(--red)"}>{profiles[theirCounter.bettor]?.avatar} {theirCounter.side==="yes"?t('bet_card.yes'):t('bet_card.no')} · {Math.round((theirCounter.stake||0)*(parseFloat(theirCounter.quotaUsed)||1))} ₡</Bdg>}
               </div>
-              {!isOwner&&!myCounter&&<Btn variant="ghost" sm full onClick={()=>onCounter(bet)}>{t('bet_card.counter_cta_simple')}</Btn>}
+              {!isOwner&&!myCounter&&(
+                <>
+                  <div style={{fontSize:11, color:'var(--gold)', marginBottom:8, fontWeight:600, letterSpacing:'.04em'}}>
+                    ⚡ {t('bet_card.counter_choose')}
+                  </div>
+                  <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:8}}>
+                    <button onClick={()=>onCounter(bet)} style={{
+                      padding:'10px 14px', borderRadius:10, border:'1px solid var(--grn)',
+                      background:'var(--grn)22', color:'var(--grn)', cursor:'pointer',
+                      fontFamily:"'Manrope',sans-serif", fontSize:13, fontWeight:800,
+                      letterSpacing:'.06em', textTransform:'uppercase',
+                      WebkitTapHighlightColor:'transparent', touchAction:'manipulation',
+                    }}>
+                      ✓ {t('bet_card.yes')}
+                    </button>
+                    <button onClick={()=>onCounter(bet)} style={{
+                      padding:'10px 14px', borderRadius:10, border:'1px solid var(--red)',
+                      background:'var(--red)22', color:'var(--red)', cursor:'pointer',
+                      fontFamily:"'Manrope',sans-serif", fontSize:13, fontWeight:800,
+                      letterSpacing:'.06em', textTransform:'uppercase',
+                      WebkitTapHighlightColor:'transparent', touchAction:'manipulation',
+                    }}>
+                      ✗ {t('bet_card.no')}
+                    </button>
+                  </div>
+                </>
+              )}
               {!isOwner&&myCounter&&<div style={{fontSize:12,color:"var(--dim)",fontStyle:"italic"}}>{t('bet_card.my_pos')} {myCounter.side==="yes"?t('bet_card.side_yes'):t('bet_card.side_no')} · {myCounter.stake} ₡</div>}
             </div>
           )}

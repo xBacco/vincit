@@ -807,11 +807,36 @@ export default function App() {
 
   // Silent push re-subscribe on login: only refreshes the subscription when
   // permission is *already* granted. The actual prompt is deferred to
-  // handleCreate (after the user's first successful bet), where they've
-  // already seen what notifications would be about.
+  // the first moment the user is *involved* in a bet (created one OR
+  // received/been-targeted-by one). The earlier "only on create" rule
+  // missed members who only get invited.
   useEffect(() => {
     if (user && groups.length > 0) registerPush(user, { prompt: false });
   }, [user, groups.length]);
+
+  // Active-involvement prompt: once we can confirm the user is part of
+  // any bet (creator / opponent / target / counter-bettor / member of
+  // an open bet's allowed list), fire the OS permission prompt. Only
+  // once, gated by the same LS flag as handleCreate so the two paths
+  // can't double-prompt.
+  useEffect(() => {
+    if (!user || !Array.isArray(bets) || bets.length === 0) return;
+    if (typeof window === 'undefined' || !('Notification' in window)) return;
+    if (Notification.permission !== 'default') return;
+    try {
+      if (localStorage.getItem('bc_push_first_ask_done')) return;
+    } catch { return; }
+    const involved = bets.some(b =>
+      b.creator === user ||
+      b.opponent === user ||
+      b.targetUser === user ||
+      (Array.isArray(b.allowedMembers) && b.allowedMembers.includes(user)) ||
+      (Array.isArray(b.counterBets) && b.counterBets.some(c => c?.bettor === user))
+    );
+    if (!involved) return;
+    try { localStorage.setItem('bc_push_first_ask_done', '1'); } catch {}
+    registerPush(user, { prompt: true }).catch(() => {});
+  }, [user, bets]);
 
   // Poll incoming friend-request count for the nav badge. Cheap (single
   // small JSON), refreshes when the user lands on the Friends view too.

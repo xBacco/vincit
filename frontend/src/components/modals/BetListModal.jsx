@@ -40,21 +40,36 @@ export default function BetListModal({
     (a, b) => (b.resolvedAt || b.createdAt || 0) - (a.resolvedAt || a.createdAt || 0)
   );
 
-  // For each bet figure out who the opponent / target was, from the
-  // user's POV. Falls back to "—" / "Vault" / "Aperta" when there's
-  // no single counterpart (vault bets, open bets nobody accepted, etc.)
-  const counterpartFor = (b) => {
-    if (b.isSecret) return { id: null, label: 'Vault', emoji: '🔒' };
-    const otherId = b.creator === userId ? (b.opponent || b.targetUser) : b.creator;
-    if (!otherId) return { id: null, label: 'Aperta', emoji: '👥' };
-    const p = profiles[otherId];
+  // Build a tiny "person chip" payload from a profile id.
+  const personFromId = (id) => {
+    const p = profiles[id];
     return {
-      id: otherId,
+      id,
       label: p?.name || '—',
       emoji: p?.avatar || '🙂',
       avatarUrl: p?.avatarUrl,
       color: COLORS[p?.colorKey] || '#5b8af0',
     };
+  };
+
+  // Everyone on the OTHER side of the bet from the user's POV. Includes
+  // the named opponent, the target_user, and every counter-bettor. So
+  // an open / subset-restricted bet with multiple participants shows
+  // them all instead of just the first one. Deduplicates by id and
+  // strips the viewer themself.
+  const participantsFor = (b) => {
+    if (b.isSecret) return [{ id: null, label: 'Vault', emoji: '🔒' }];
+    const ids = new Set();
+    if (b.creator !== userId) ids.add(b.creator);
+    if (b.opponent && b.opponent !== userId)       ids.add(b.opponent);
+    if (b.targetUser && b.targetUser !== userId)   ids.add(b.targetUser);
+    if (Array.isArray(b.counterBets)) {
+      for (const cb of b.counterBets) {
+        if (cb?.bettor && cb.bettor !== userId) ids.add(cb.bettor);
+      }
+    }
+    if (ids.size === 0) return [{ id: null, label: 'Aperta', emoji: '👥' }];
+    return Array.from(ids).map(personFromId);
   };
 
   const overlay = (
@@ -124,8 +139,9 @@ export default function BetListModal({
           )}
 
           {sorted.map(b => {
-            const cp = counterpartFor(b);
-            const won = b.status === 'won';
+            const parts = participantsFor(b);
+            const lead  = parts[0] || { label: '—', emoji: '🙂', color: '#5b8af0' };
+            const extras = parts.slice(1); // for the "+ Anna · Luca" tail
             const iWasCreator = b.creator === userId;
             // From the user's POV: did *I* win this bet? (Same logic as h2h.)
             const iWon =
@@ -134,22 +150,55 @@ export default function BetListModal({
             const delta = iWon
               ? Number(b.potentialWin || 0) - Number(b.stake || 0)
               : -Number(b.stake || 0);
+            // Tail label: "vs Marco · Anna · Luca" (no "vs " on extras).
+            const partsLabel = parts.map(p => p.label).join(' · ');
             return (
               <div key={b.id} style={{
                 display: 'flex', alignItems: 'center', gap: 12,
                 padding: '12px 22px', borderBottom: '1px solid var(--rule)',
               }}>
-                {/* Counterpart avatar */}
+                {/* Counterpart avatar stack — main avatar plus a small
+                    fan of secondary avatars when the bet had multiple
+                    participants. Capped at 2 extras to keep the row tight;
+                    the participantsLabel below still spells out all names. */}
                 <div style={{
-                  width: 36, height: 36, borderRadius: '50%',
-                  background: cp.color ? `${cp.color}33` : 'var(--mut)33',
-                  border: `2px solid ${cp.color ? `${cp.color}88` : 'var(--brd)'}`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  flexShrink: 0, overflow: 'hidden', fontSize: 18, lineHeight: 1,
+                  display: 'flex', alignItems: 'center',
+                  flexShrink: 0,
                 }}>
-                  {cp.avatarUrl
-                    ? <img src={cp.avatarUrl} alt="" style={{width:'100%', height:'100%', objectFit:'cover'}}/>
-                    : cp.emoji}
+                  <div style={{
+                    width: 36, height: 36, borderRadius: '50%',
+                    background: lead.color ? `${lead.color}33` : 'var(--mut)33',
+                    border: `2px solid ${lead.color ? `${lead.color}88` : 'var(--brd)'}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    overflow: 'hidden', fontSize: 18, lineHeight: 1,
+                  }}>
+                    {lead.avatarUrl
+                      ? <img src={lead.avatarUrl} alt="" style={{width:'100%', height:'100%', objectFit:'cover'}}/>
+                      : lead.emoji}
+                  </div>
+                  {extras.slice(0, 2).map((p, i) => (
+                    <div key={p.id || i} style={{
+                      width: 28, height: 28, borderRadius: '50%',
+                      background: p.color ? `${p.color}33` : 'var(--mut)33',
+                      border: '2px solid var(--surf)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      overflow: 'hidden', fontSize: 14, lineHeight: 1,
+                      marginLeft: -10,
+                    }}>
+                      {p.avatarUrl
+                        ? <img src={p.avatarUrl} alt="" style={{width:'100%', height:'100%', objectFit:'cover'}}/>
+                        : p.emoji}
+                    </div>
+                  ))}
+                  {extras.length > 2 && (
+                    <div style={{
+                      width: 28, height: 28, borderRadius: '50%',
+                      background: 'var(--card)', border: '2px solid var(--surf)',
+                      color: 'var(--dim)', fontSize: 10, fontWeight: 700,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      marginLeft: -10,
+                    }}>+{extras.length - 2}</div>
+                  )}
                 </div>
 
                 {/* Title + counterpart */}
@@ -164,7 +213,9 @@ export default function BetListModal({
                     fontSize: 11, color: 'var(--dim)', lineHeight: 1.3,
                     display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap',
                   }}>
-                    <span>vs {cp.label}</span>
+                    <span style={{
+                      maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>vs {partsLabel}</span>
                     <span style={{ color: 'var(--mut)' }}>·</span>
                     <span>{fmtD(b.resolvedAt || b.createdAt)}</span>
                   </div>

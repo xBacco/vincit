@@ -1374,22 +1374,29 @@ export default function App() {
               </div>
             );
           })}
-          {/* "+" CTA floats higher than every nav item so it punctures the row */}
-          <div data-tour="new-bet" onClick={() => setShowCreate(true)} style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-            cursor: 'pointer', userSelect: 'none',
-            transform: 'translateY(-22px)',
-          }}>
-            <div style={{
-              width: 50, height: 50, borderRadius: 999,
-              background: 'var(--pur)', color:'#1a1530',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 24, fontWeight: 300,
-              boxShadow: '0 14px 30px -8px var(--pur), 0 1px 0 rgba(255,255,255,.18) inset',
-              transition: 'transform .18s',
-            }}>+</div>
-            <span style={{ fontSize: 8, color: 'var(--gold)', letterSpacing:'.2em', textTransform:'uppercase', fontWeight: 600 }}>{t('app.new_bet_label')}</span>
-          </div>
+          {/* "+" CTA floats higher than every nav item so it punctures the row.
+              Pulses (gold halo) until the user creates their first bet — once
+              they know what the button does, the pulse stops. */}
+          {(() => {
+            const noBetsYet = !bets.some(b => b.creator === user);
+            return (
+              <div data-tour="new-bet" onClick={() => setShowCreate(true)} style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                cursor: 'pointer', userSelect: 'none',
+                transform: 'translateY(-22px)',
+              }}>
+                <div className={noBetsYet ? 'pGold' : undefined} style={{
+                  width: 56, height: 56, borderRadius: 999,
+                  background: 'var(--pur)', color:'#1a1530',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 28, fontWeight: 300,
+                  boxShadow: '0 14px 30px -8px var(--pur), 0 1px 0 rgba(255,255,255,.18) inset',
+                  transition: 'transform .18s',
+                }}>+</div>
+                <span style={{ fontSize: 8, color: 'var(--gold)', letterSpacing:'.2em', textTransform:'uppercase', fontWeight: 600 }}>{t('app.new_bet_label')}</span>
+              </div>
+            );
+          })()}
         </div>
       )}
 

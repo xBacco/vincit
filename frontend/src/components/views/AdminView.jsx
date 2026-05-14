@@ -39,7 +39,19 @@ function Avatar({ p, size = 36 }) {
   );
 }
 
-export default function AdminView({ isDesktop }) {
+// LS keys that gate the onboarding tour + the secret-trophy easter-egg
+// popups. Cleared together with a self trophy-reset so the admin can replay
+// the full "fresh account" experience.
+const FRESH_ACCOUNT_LS_KEYS = [
+  'bc_egg_dice_popped_v2', 'bc_egg_dice_rolled',
+  'bc_egg_coin_popped_v2', 'bc_egg_coin_flipped',
+  'bc_egg_ice_popped_v2',
+  'bc_egg_phoenix_popped_v2',
+  'bc_egg_streak_tip_shown',
+  'bc_onboarding_done',
+];
+
+export default function AdminView({ isDesktop, meId }) {
   const { t }   = useLang();
   const toast   = useToast();
   const [tab, setTab] = useState('users'); // 'users' | 'groups' | 'integrity'
@@ -119,11 +131,23 @@ export default function AdminView({ isDesktop }) {
     setPwNew('');
   }, 'Password aggiornata ✓');
   const resetTrophies = wrap(async (uid, who) => {
-    if (!window.confirm(`Cancellare TUTTI i trofei di ${who}?\n\nIncluso i 5 segreti. Verranno ricalcolati alla prossima azione (vincita, bet, etc.).`)) {
-      throw new Error('cancelled');
-    }
+    const isSelf = !!meId && uid === meId;
+    const confirmMsg = isSelf
+      ? `Reset COMPLETO del tuo account?\n\nCancella TUTTI i trofei (anche i 5 segreti) e azzera i flag locali del tutorial + easter egg. Dopo il reload rivedrai onboarding e animazioni come a un account appena creato.`
+      : `Cancellare TUTTI i trofei di ${who}?\n\nIncluso i 5 segreti. Verranno ricalcolati alla prossima azione (vincita, bet, etc.).`;
+    if (!window.confirm(confirmMsg)) throw new Error('cancelled');
     const r = await api.adminResetTrophies(uid);
-    toast.success(`Trofei azzerati (${r.deleted})`);
+    if (isSelf) {
+      // Self-reset: also wipe per-device LS flags so the tutorial + every
+      // secret-trophy popup can fire from scratch on the next reload.
+      for (const k of FRESH_ACCOUNT_LS_KEYS) {
+        try { localStorage.removeItem(k); } catch {}
+      }
+      toast.success(`Trofei azzerati (${r.deleted}). Ricarico…`);
+      setTimeout(() => window.location.reload(), 700);
+    } else {
+      toast.success(`Trofei azzerati (${r.deleted})`);
+    }
   });
   const toggleAdmin = wrap(async (uid, currentlyAdmin, who) => {
     const action = currentlyAdmin ? 'rimuovere i privilegi admin a' : 'promuovere ad admin';
@@ -344,10 +368,12 @@ export default function AdminView({ isDesktop }) {
             <div style={S.card}>
               <div style={S.label}>🏆 Reset trofei</div>
               <div style={{ fontSize: 11, color: 'var(--mut)', marginTop: 4, marginBottom: 10 }}>
-                Cancella tutti i trofei di {u.name} (compresi i 5 segreti). Si ricalcolano alla prossima azione.
+                {u.id === meId
+                  ? <>Cancella TUTTI i tuoi trofei (anche i 5 segreti) <b>e</b> azzera i flag locali del tutorial + easter egg. Dopo il reload rivedi onboarding e animazioni come a un account appena creato.</>
+                  : <>Cancella tutti i trofei di {u.name} (compresi i 5 segreti). Si ricalcolano alla prossima azione.</>}
               </div>
               <button onClick={() => resetTrophies(u.id, u.name)} disabled={busy} style={S.btn()}>
-                Azzera trofei
+                {u.id === meId ? 'Azzera trofei + flag easter egg' : 'Azzera trofei'}
               </button>
             </div>
 
@@ -502,18 +528,9 @@ export default function AdminView({ isDesktop }) {
                 setBusy(true);
                 try {
                   const r = await api.resetMyAchievements();
-                  // Local cleanup: every gating LS key tied to the easter-egg
-                  // popups + the onboarding tour completion flag. The user
-                  // gets a clean slate next reload.
-                  const keys = [
-                    'bc_egg_dice_popped_v2', 'bc_egg_dice_rolled',
-                    'bc_egg_coin_popped_v2', 'bc_egg_coin_flipped',
-                    'bc_egg_ice_popped_v2',
-                    'bc_egg_phoenix_popped_v2',
-                    'bc_egg_streak_tip_shown',
-                    'bc_onboarding_done',
-                  ];
-                  for (const k of keys) { try { localStorage.removeItem(k); } catch {} }
+                  for (const k of FRESH_ACCOUNT_LS_KEYS) {
+                    try { localStorage.removeItem(k); } catch {}
+                  }
                   toast.success(`Trofei azzerati (${r.deleted}). Ricarico…`);
                   setTimeout(() => window.location.reload(), 700);
                 } catch (e) {

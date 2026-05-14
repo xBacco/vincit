@@ -1,5 +1,6 @@
 'use strict';
 const express = require('express');
+const crypto  = require('crypto');
 const db      = require('../db.js');
 const { sendPushToUser, isPrefEnabled } = require('./push.js');
 const { computeProgressFor, listForUser, CATALOG } = require('../achievements.js');
@@ -8,6 +9,32 @@ const { computeProgressFor, listForUser, CATALOG } = require('../achievements.js
 // user ids return them sorted so we can target the single canonical row.
 function canon(a, b) {
   return a < b ? [a, b] : [b, a];
+}
+
+// Friend codes — 8-char alphanumeric, ambiguity-free charset (no 0/O/1/I/L)
+// so codes typed by hand resolve unambiguously. uniqueFriendCode keeps
+// trying until it finds an unused one (collision probability is tiny but
+// not zero with millions of users).
+const FRIEND_CHARSET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+function genFriendCode() {
+  return Array.from(crypto.randomBytes(8), b => FRIEND_CHARSET[b % FRIEND_CHARSET.length]).join('');
+}
+async function uniqueFriendCode() {
+  for (let i = 0; i < 10; i++) {
+    const c = genFriendCode();
+    const { rows } = await db.query('SELECT 1 FROM users WHERE friend_code=$1', [c]);
+    if (!rows.length) return c;
+  }
+  throw new Error('friend_code_gen_failed');
+}
+async function ensureFriendCode(userId) {
+  const { rows } = await db.query('SELECT friend_code FROM users WHERE id=$1', [userId]);
+  if (rows[0]?.friend_code) return rows[0].friend_code;
+  const code = await uniqueFriendCode();
+  await db.query('UPDATE users SET friend_code=$1 WHERE id=$2 AND friend_code IS NULL', [code, userId]);
+  // Race-safe re-read in case another request beat us to it
+  const { rows: re } = await db.query('SELECT friend_code FROM users WHERE id=$1', [userId]);
+  return re[0]?.friend_code;
 }
 
 async function listFriends(userId) {
@@ -120,9 +147,149 @@ function makeRouter(broadcastUpdate) {
     catch (e) { console.error('[friends:requests]', e); res.status(500).json({ error: 'server_error' }); }
   });
 
+  // GET /api/friends/code/mine — returns the caller's friend code,
+  // generating one lazily if they don't have one yet.
+  router.get('/code/mine', async (req, res) => {
+    try {
+      const code = await ensureFriendCode(req.userId);
+      res.json({ code });
+    } catch (e) { console.error('[friends:code-mine]', e); res.status(500).json({ error: 'server_error' }); }
+  });
+
+  // POST /api/friends/code/regenerate — invalidates the old code and
+  // creates a new one. Existing pending requests addressed via the old
+  // code stay valid since they target user IDs, not codes.
+  router.post('/code/regenerate', async (req, res) => {
+    try {
+      const code = await uniqueFriendCode();
+      await db.query('UPDATE users SET friend_code=$1 WHERE id=$2', [code, req.userId]);
+      res.json({ code });
+    } catch (e) { console.error('[friends:code-regen]', e); res.status(500).json({ error: 'server_error' }); }
+  });
+
+  // POST /api/friends/code/redeem { code } — sends a friend request to
+  // the user that owns that code. Same downstream side-effects as
+  // /request (auto-accept on reverse-pending, etc).
+  router.post('/code/redeem', async (req, res) => {
+    try {
+      const raw = (req.body?.code || '').trim().toUpperCase();
+      if (!raw) return res.status(400).json({ error: 'missing_code' });
+      const { rows: targetRows } = await db.query(
+        'SELECT id, name FROM users WHERE friend_code=$1', [raw]
+      );
+      const target = targetRows[0];
+      if (!target) return res.status(404).json({ error: 'invalid_code' });
+      if (target.id === req.userId) return res.status(400).json({ error: 'self_code' });
+
+      // Reuse the same flow as /request — same checks, same notifications.
+      // We can't trivially call the route handler here, so we duplicate the
+      // minimal contract: refuse if already friends, auto-accept on reverse
+      // pending, otherwise insert a request row.
+      const me = req.userId;
+      const them = target.id;
+      const [a, b] = canon(me, them);
+      const { rows: existing } = await db.query(
+        'SELECT 1 FROM friendships WHERE user_id_a=$1 AND user_id_b=$2', [a, b]
+      );
+      if (existing.length) return res.status(409).json({ error: 'already_friends' });
+
+      const { rows: reverse } = await db.query(
+        'SELECT 1 FROM friend_requests WHERE from_user_id=$1 AND to_user_id=$2', [them, me]
+      );
+      if (reverse.length) {
+        await db.transaction(async client => {
+          await client.query(
+            'DELETE FROM friend_requests WHERE from_user_id=$1 AND to_user_id=$2', [them, me]
+          );
+          await client.query(
+            'INSERT INTO friendships(user_id_a, user_id_b, created_at) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',
+            [a, b, Date.now()]
+          );
+        });
+        try {
+          if (await isPrefEnabled(them, 'on_friend_accept'))
+            sendPushToUser(them, { title: '✓ Richiesta accettata', body: 'Avete ora un\'amicizia BetCouple', url: '/' });
+        } catch {}
+        return res.json({ ok: true, autoAccepted: true, friend: target });
+      }
+
+      const { rows: pending } = await db.query(
+        'SELECT 1 FROM friend_requests WHERE from_user_id=$1 AND to_user_id=$2', [me, them]
+      );
+      if (pending.length) return res.status(409).json({ error: 'already_pending' });
+
+      await db.query(
+        'INSERT INTO friend_requests(from_user_id, to_user_id, created_at) VALUES($1,$2,$3)',
+        [me, them, Date.now()]
+      );
+      try {
+        const { rows: meRows } = await db.query('SELECT name FROM users WHERE id=$1', [me]);
+        if (await isPrefEnabled(them, 'on_friend_request'))
+          sendPushToUser(them, {
+            title: '🤝 Nuova richiesta di amicizia',
+            body:  `${meRows[0]?.name || 'Qualcuno'} vuole esserti amico`,
+            url:   '/',
+          });
+      } catch {}
+      res.json({ ok: true, autoAccepted: false, target });
+    } catch (e) {
+      console.error('[friends:code-redeem]', e);
+      res.status(500).json({ error: 'server_error' });
+    }
+  });
+
   router.get('/discover', async (req, res) => {
     try { res.json(await listDiscover(req.userId)); }
     catch (e) { console.error('[friends:discover]', e); res.status(500).json({ error: 'server_error' }); }
+  });
+
+  // GET /api/friends/known — returns every member of every group the
+  // user belongs to (minus self), tagged with `shared_groups` and
+  // a friendship/request status flag. Powers the "Conosciuti" tab.
+  router.get('/known', async (req, res) => {
+    try {
+      const me = req.userId;
+      const { rows } = await db.query(
+        `
+        WITH my_groups AS (SELECT group_id FROM user_groups WHERE user_id = $1),
+        candidates AS (
+          SELECT DISTINCT ug.user_id
+            FROM user_groups ug
+            JOIN my_groups mg ON mg.group_id = ug.group_id
+           WHERE ug.user_id <> $1
+        )
+        SELECT u.id, u.name, u.avatar, u.avatar_url, u.color_key,
+          (
+            SELECT jsonb_agg(jsonb_build_object('id', r.id, 'name', r.name, 'emoji', r.emoji) ORDER BY r.name)
+              FROM rooms r
+             WHERE r.id IN (
+               SELECT my.group_id
+                 FROM user_groups my
+                 JOIN user_groups his ON his.group_id = my.group_id
+                WHERE my.user_id = $1 AND his.user_id = u.id
+             )
+          ) AS shared_groups,
+          EXISTS (
+            SELECT 1 FROM friendships f
+             WHERE (f.user_id_a = $1 AND f.user_id_b = u.id)
+                OR (f.user_id_a = u.id AND f.user_id_b = $1)
+          ) AS is_friend,
+          EXISTS (
+            SELECT 1 FROM friend_requests fr
+             WHERE (fr.from_user_id = $1 AND fr.to_user_id = u.id)
+                OR (fr.from_user_id = u.id AND fr.to_user_id = $1)
+          ) AS pending
+          FROM candidates c
+          JOIN users u ON u.id = c.user_id
+        ORDER BY u.name
+        `,
+        [me]
+      );
+      res.json({ rows });
+    } catch (e) {
+      console.error('[friends:known]', e);
+      res.status(500).json({ error: 'server_error' });
+    }
   });
 
   // POST /api/friends/request { userId } — send a request. If a reverse
@@ -342,7 +509,21 @@ function makeRouter(broadcastUpdate) {
         'SELECT 1 FROM friendships WHERE user_id_a=$1 AND user_id_b=$2',
         [a, b]
       );
-      if (!f.length) return res.status(403).json({ error: 'not_friends' });
+      const isFriend = f.length > 0;
+      if (!isFriend) {
+        // Not friends — allow access only if they share at least one group
+        // (default visibility: "anyone in your same group can see your
+        // trophies and stats"). Otherwise refuse outright.
+        const { rows: shared } = await db.query(
+          `SELECT 1
+             FROM user_groups my
+             JOIN user_groups his ON his.group_id = my.group_id
+            WHERE my.user_id = $1 AND his.user_id = $2
+            LIMIT 1`,
+          [me, them]
+        );
+        if (!shared.length) return res.status(403).json({ error: 'not_visible' });
+      }
 
       const { rows: userRows } = await db.query(
         'SELECT id, name, avatar, avatar_url, color_key FROM users WHERE id=$1',
@@ -412,12 +593,35 @@ function makeRouter(broadcastUpdate) {
       );
       const friendCredits = Math.round(credRows[0]?.amount ?? 100);
 
+      // Groups list — if we're confirmed friends, return every group
+      // they're in. Otherwise (visible-only-because-of-shared-group),
+      // return just the groups we share, so we don't leak group
+      // memberships the viewer has no reason to know about.
+      const groupsSql = isFriend
+        ? `SELECT r.id, r.name, r.emoji
+             FROM rooms r
+             JOIN user_groups ug ON ug.group_id = r.id
+            WHERE ug.user_id = $1
+            ORDER BY r.name`
+        : `SELECT r.id, r.name, r.emoji
+             FROM rooms r
+             WHERE r.id IN (
+               SELECT my.group_id
+                 FROM user_groups my
+                 JOIN user_groups his ON his.group_id = my.group_id
+                WHERE my.user_id = $2 AND his.user_id = $1
+             )
+             ORDER BY r.name`;
+      const { rows: groupsRows } = await db.query(groupsSql, isFriend ? [them] : [them, me]);
+
       res.json({
         profile,
         catalog: CATALOG,
         unlocked,
         progress,
         trophyPoints,
+        isFriend,
+        groups: groupsRows,
         stats: {
           wins:    friendWins,
           losses:  friendLosses,

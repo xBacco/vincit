@@ -66,12 +66,16 @@ export const inviteFriend        = (groupId, userId) => req('POST',   `/groups/$
 export const getFriends         = ()             => req('GET',    '/friends');
 export const getFriendRequests  = ()             => req('GET',    '/friends/requests');
 export const getFriendDiscover  = ()             => req('GET',    '/friends/discover');
+export const getFriendsKnown    = ()             => req('GET',    '/friends/known');
 export const sendFriendRequest  = (userId)       => req('POST',   '/friends/request', { userId });
 export const respondFriendReq   = (userId, accept) => req('POST', '/friends/respond', { userId, accept });
 export const cancelFriendReq    = (userId)       => req('POST',   '/friends/cancel', { userId });
 export const removeFriend       = (userId)       => req('DELETE', `/friends/${userId}`);
 export const getFriendsLeaderboard = ()          => req('GET',    '/friends/leaderboard');
 export const getFriendProfile   = (userId)       => req('GET',    `/friends/${userId}/profile`);
+export const getMyFriendCode    = ()             => req('GET',    '/friends/code/mine');
+export const regenFriendCode    = ()             => req('POST',   '/friends/code/regenerate');
+export const redeemFriendCode   = (code)         => req('POST',   '/friends/code/redeem', { code });
 
 // Bets
 export const createBet      = (data)         => req('POST',   '/bets', data);

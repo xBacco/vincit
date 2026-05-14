@@ -163,12 +163,15 @@ function InviteToGroupModal({ friend, groups, onInvite, onClose }) {
 export default function FriendsView({ groups, user, myBets = [], myCredits = 0, onSwitchToGroup, isDesktop }) {
   const { t }   = useLang();
   const toast   = useToast();
-  const [tab, setTab]           = useState('friends'); // 'friends' | 'requests' | 'discover'
+  const [tab, setTab]           = useState('friends'); // 'friends' | 'requests' | 'code' | 'known'
   const [friends,    setFriends]    = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);   // [{ id, trophyPoints, wins, h2hWon, h2hLost, h2hTotal, ... }]
   const [reqIncoming, setReqIncoming] = useState([]);
   const [reqOutgoing, setReqOutgoing] = useState([]);
-  const [discover,   setDiscover]   = useState([]);
+  const [known,      setKnown]      = useState([]);   // all group-mates regardless of friendship
+  const [myCode,     setMyCode]     = useState(null);
+  const [codeInput,  setCodeInput]  = useState('');
+  const [codeCopied, setCodeCopied] = useState(false);
   const [loading,    setLoading]    = useState(true);
   const [error,      setError]      = useState(null);
   const [query,      setQuery]      = useState('');
@@ -195,20 +198,62 @@ export default function FriendsView({ groups, user, myBets = [], myCredits = 0, 
   const load = useCallback(async () => {
     setLoading(true); setError(null);
     try {
-      const [f, r, d, lb] = await Promise.all([
+      const [f, r, k, lb, code] = await Promise.all([
         api.getFriends(),
         api.getFriendRequests(),
-        api.getFriendDiscover(),
+        api.getFriendsKnown().catch(() => ({ rows: [] })),
         api.getFriendsLeaderboard().catch(() => ({ rows: [] })),
+        api.getMyFriendCode().catch(() => ({ code: null })),
       ]);
       setFriends(f);
       setLeaderboard(lb.rows || []);
       setReqIncoming(r.incoming || []);
       setReqOutgoing(r.outgoing || []);
-      setDiscover(d);
+      setKnown(Array.isArray(k?.rows) ? k.rows : []);
+      setMyCode(code?.code || null);
     } catch (e) { setError(e?.error || 'error'); }
     finally { setLoading(false); }
   }, []);
+
+  const handleCopyCode = async () => {
+    if (!myCode) return;
+    try {
+      if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(myCode);
+      else prompt('Copia il tuo codice:', myCode);
+      setCodeCopied(true);
+      setTimeout(() => setCodeCopied(false), 2000);
+    } catch {}
+  };
+
+  const handleRegenCode = async () => {
+    if (!window.confirm('Generare un nuovo codice? Il vecchio non sarà più valido.')) return;
+    try {
+      const r = await api.regenFriendCode();
+      setMyCode(r?.code || null);
+      toast.success('Nuovo codice generato');
+    } catch (e) { toast.error('Errore'); }
+  };
+
+  const handleRedeemCode = async () => {
+    const raw = (codeInput || '').trim().toUpperCase();
+    if (!raw) return;
+    try {
+      const r = await api.redeemFriendCode(raw);
+      setCodeInput('');
+      if (r?.autoAccepted) toast.success('Amico aggiunto!');
+      else                 toast.success('Richiesta inviata');
+      load();
+    } catch (e) {
+      const msg = e?.data?.error;
+      toast.error(
+        msg === 'invalid_code'    ? 'Codice non valido'
+        : msg === 'self_code'     ? 'Quello è il tuo codice'
+        : msg === 'already_friends' ? 'Siete già amici'
+        : msg === 'already_pending' ? 'Richiesta già pendente'
+        : 'Errore — riprova'
+      );
+    }
+  };
 
   useEffect(() => { load(); }, [load]);
 
@@ -218,8 +263,25 @@ export default function FriendsView({ groups, user, myBets = [], myCredits = 0, 
     const filter = list => q ? list.filter(p => (p.name || '').toLowerCase().includes(q)) : list;
     if (tab === 'friends')  return filter(friends);
     if (tab === 'requests') return { incoming: filter(reqIncoming), outgoing: filter(reqOutgoing) };
-    return filter(discover);
-  }, [tab, friends, reqIncoming, reqOutgoing, discover, query]);
+    if (tab === 'known')    return filter(known);
+    return [];
+  }, [tab, friends, reqIncoming, reqOutgoing, known, query]);
+
+  // Group `known` rows by the first shared group so the "Conosciuti" tab
+  // can render compact sections (one per group) instead of a long flat
+  // list. A person in multiple shared groups shows up under each one.
+  const knownByGroup = useMemo(() => {
+    if (tab !== 'known') return {};
+    const byGroup = {};
+    for (const p of filtered) {
+      const groups = Array.isArray(p.shared_groups) ? p.shared_groups : [];
+      for (const g of groups) {
+        if (!byGroup[g.id]) byGroup[g.id] = { id: g.id, name: g.name, emoji: g.emoji, members: [] };
+        byGroup[g.id].members.push(p);
+      }
+    }
+    return byGroup;
+  }, [filtered, tab]);
 
   const handleSend = async id => {
     setBusy(id, true);
@@ -428,10 +490,11 @@ export default function FriendsView({ groups, user, myBets = [], myCredits = 0, 
       }}>
         <TabBtn id="friends"  label={t('friends.tab_friends')}  count={friends.length}/>
         <TabBtn id="requests" label={t('friends.tab_requests')} count={incomingCount}/>
-        <TabBtn id="discover" label={t('friends.tab_discover')} count={discover.length}/>
+        <TabBtn id="code"     label={t('friends.tab_code')}     />
+        <TabBtn id="known"    label={t('friends.tab_known')}    count={known.length}/>
       </div>
 
-      {(tab !== 'requests' && (tab === 'friends' ? friends.length : discover.length) > 4) && (
+      {(tab === 'friends' || tab === 'known') && ((tab === 'friends' ? friends.length : known.length) > 4) && (
         <div style={{
           display: 'flex', alignItems: 'center', gap: 10,
           padding: '14px 2px', marginTop: 18, marginBottom: 4,
@@ -564,24 +627,158 @@ export default function FriendsView({ groups, user, myBets = [], myCredits = 0, 
         </>
       )}
 
-      {/* ── TROVA ─────────────────────────────────────────── */}
-      {!loading && !error && tab === 'discover' && (
+      {/* ── CODICE AMICO ──────────────────────────────────── */}
+      {!loading && !error && tab === 'code' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20, marginTop: 14 }}>
+          {/* My code — big editorial display + copy/regen */}
+          <div style={{
+            padding: '20px 18px', background: 'var(--card)',
+            border: '1px solid var(--brd)', borderRadius: 14, textAlign: 'center',
+          }}>
+            <div className="bc-meta" style={{ fontSize: 9 }}>— {t('friends.code_yours')}</div>
+            <div style={{
+              fontFamily: 'monospace', fontSize: 30, fontWeight: 800,
+              color: 'var(--gold)', letterSpacing: 6, marginTop: 10, userSelect: 'all',
+            }}>{myCode || '—'}</div>
+            <div style={{ fontSize: 11, color: 'var(--dim)', marginTop: 10, lineHeight: 1.5 }}>
+              {t('friends.code_yours_desc')}
+            </div>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 14, flexWrap: 'wrap' }}>
+              <button onClick={handleCopyCode} disabled={!myCode} style={{
+                padding: '8px 18px', borderRadius: 999, cursor: 'pointer',
+                background: codeCopied ? 'var(--gold)' : 'transparent',
+                border: '1px solid var(--gold)',
+                color: codeCopied ? '#1a1530' : 'var(--gold)',
+                fontFamily: "'Manrope',sans-serif", fontSize: 11, fontWeight: 800,
+                letterSpacing: '.1em', textTransform: 'uppercase',
+              }}>{codeCopied ? t('friends.code_copied') : t('friends.code_copy')}</button>
+              <button onClick={handleRegenCode} style={{
+                padding: '8px 14px', borderRadius: 999, cursor: 'pointer',
+                background: 'transparent', border: '1px solid var(--brd)',
+                color: 'var(--dim)',
+                fontFamily: "'Manrope',sans-serif", fontSize: 11, fontWeight: 700,
+                letterSpacing: '.08em', textTransform: 'uppercase',
+              }}>🔄 {t('friends.code_regen')}</button>
+            </div>
+          </div>
+
+          {/* Redeem someone else's code */}
+          <div style={{
+            padding: '20px 18px', background: 'var(--card)',
+            border: '1px solid var(--brd)', borderRadius: 14,
+          }}>
+            <div className="bc-meta" style={{ fontSize: 9, marginBottom: 10 }}>— {t('friends.code_add')}</div>
+            <div style={{ fontSize: 12, color: 'var(--dim)', lineHeight: 1.5, marginBottom: 14 }}>
+              {t('friends.code_add_desc')}
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input value={codeInput}
+                onChange={e => setCodeInput(e.target.value.toUpperCase().slice(0, 8))}
+                onKeyDown={e => { if (e.key === 'Enter') handleRedeemCode(); }}
+                placeholder="ABCD1234"
+                maxLength={8}
+                autoCapitalize="characters"
+                style={{
+                  flex: 1, padding: '10px 14px', borderRadius: 10,
+                  border: '1px solid var(--brd)', background: 'var(--inp)',
+                  color: 'var(--gold)', fontFamily: 'monospace',
+                  fontSize: 18, letterSpacing: 3, fontWeight: 800,
+                  textAlign: 'center', textTransform: 'uppercase', outline: 'none',
+                }}/>
+              <button onClick={handleRedeemCode} disabled={codeInput.trim().length < 4}
+                style={{
+                  padding: '10px 18px', borderRadius: 10, border: 'none',
+                  background: 'var(--gold)', color: '#1a1530', cursor: 'pointer',
+                  fontFamily: "'Manrope',sans-serif", fontSize: 12, fontWeight: 800,
+                  letterSpacing: '.08em', textTransform: 'uppercase',
+                  opacity: codeInput.trim().length < 4 ? 0.4 : 1,
+                }}>
+                {t('friends.code_send')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── CONOSCIUTI (raggruppati per gruppo) ───────────── */}
+      {!loading && !error && tab === 'known' && (
         <>
           {filtered.length === 0 && (
             <div style={{
               padding: '48px 16px', textAlign: 'center',
               border: '1px dashed var(--brd)', borderRadius: 16, color: 'var(--dim)',
+              marginTop: 14,
             }}>
               <div style={{ fontSize: 48, marginBottom: 12 }}>🔭</div>
               <div style={{ fontSize: 13, lineHeight: 1.5 }}>
-                {t('friends.empty_discover')}
+                {t('friends.empty_known')}
               </div>
             </div>
           )}
-          {filtered.map(p => (
-            <Card key={p.id} p={p}>
-              {goldBtn('＋ ' + t('friends.send_request'), () => handleSend(p.id), busyIds.has(p.id))}
-            </Card>
+          {Object.values(knownByGroup).map(group => (
+            <div key={group.id} style={{ marginTop: 18 }}>
+              <div style={{
+                display: 'flex', alignItems: 'baseline', gap: 8,
+                marginBottom: 12, paddingBottom: 8,
+                borderBottom: '1px solid var(--rule)',
+              }}>
+                <span style={{ fontSize: 18, lineHeight: 1 }}>{group.emoji}</span>
+                <span style={{
+                  fontFamily: "'Cormorant Garamond',serif", fontStyle: 'italic',
+                  fontSize: 18, fontWeight: 700, color: 'var(--txt)',
+                  letterSpacing: '-0.01em',
+                }}>{group.name}</span>
+                <span className="bc-meta" style={{ fontSize: 8, marginLeft: 'auto' }}>
+                  {group.members.length} {group.members.length === 1 ? 'membro' : 'membri'}
+                </span>
+              </div>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(72px, 1fr))',
+                gap: 8,
+              }}>
+                {group.members.map(p => {
+                  const c = COLORS[p.color_key] || '#5b8af0';
+                  return (
+                    <button key={p.id} onClick={() => setOpenProfile(p)}
+                      aria-label={p.name} title={p.name}
+                      style={{
+                        display:'flex', flexDirection:'column', alignItems:'center', gap:6,
+                        padding:'8px 4px', borderRadius:12, background:'transparent',
+                        border:'1px solid transparent', cursor:'pointer',
+                        WebkitTapHighlightColor:'transparent',
+                      }}>
+                      <div style={{
+                        width:44, height:44, borderRadius:'50%',
+                        background:`${c}33`, border:`2px solid ${c}88`,
+                        boxShadow:`0 0 8px ${c}33`,
+                        display:'flex', alignItems:'center', justifyContent:'center',
+                        overflow:'hidden', fontSize:22, lineHeight:1, position:'relative',
+                      }}>
+                        {p.avatar_url
+                          ? <img src={p.avatar_url} alt="" style={{width:'100%', height:'100%', objectFit:'cover'}}/>
+                          : (p.avatar || '😊')}
+                        {p.is_friend && (
+                          <span aria-hidden style={{
+                            position: 'absolute', top: -2, right: -2,
+                            width: 14, height: 14, borderRadius: '50%',
+                            background: 'var(--gold)', color: '#1a1530',
+                            fontSize: 9, fontWeight: 800,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            border: '2px solid var(--surf)',
+                          }}>★</span>
+                        )}
+                      </div>
+                      <span style={{
+                        fontSize: 10.5, fontWeight: 600, color: 'var(--dim)',
+                        maxWidth: '100%', whiteSpace: 'nowrap',
+                        overflow: 'hidden', textOverflow: 'ellipsis',
+                      }}>{p.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           ))}
         </>
       )}
@@ -835,6 +1032,33 @@ function FriendProfileModal({ friend, myAch, myBets = [], myCredits = 0, myUserI
                 </div>
               );
             })()}
+
+            {/* Groups the friend is in — full list if confirmed friends,
+                only the shared subset for "visible because same group". */}
+            {Array.isArray(data.groups) && data.groups.length > 0 && (
+              <div style={{ marginBottom: 18 }}>
+                <div className="bc-meta" style={{ marginBottom: 10 }}>
+                  — {data.isFriend ? t('friends.profile_groups_all') : t('friends.profile_groups_shared')}
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {data.groups.map(g => (
+                    <button key={g.id}
+                      onClick={() => { onSwitchToGroup?.(g.id); onClose?.(); }}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                        padding: '6px 12px', borderRadius: 999,
+                        border: '1px solid var(--brd)', background: 'var(--card)',
+                        color: 'var(--txt)', cursor: 'pointer',
+                        fontFamily: "'Manrope',sans-serif", fontSize: 12, fontWeight: 600,
+                        WebkitTapHighlightColor: 'transparent',
+                      }}>
+                      <span style={{ fontSize: 14 }}>{g.emoji}</span>
+                      <span>{g.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Joint vs me */}
             {data.vsMe.total > 0 && (

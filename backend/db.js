@@ -300,6 +300,13 @@ const pool = new Pool({
     ALTER TABLE users ADD COLUMN IF NOT EXISTS fresh_reset_at BIGINT;
   `);
 
+  // Personal friend code — shareable 8-char string. Generated lazily on
+  // first /me request via /api/friends/code/mine. Stays stable for the
+  // life of the account unless the user regenerates it.
+  await pool.query(`
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS friend_code TEXT UNIQUE;
+  `);
+
   // Consensual-resolve fields. When a bet has an opponent, /resolve no longer
   // settles unilaterally — it parks a proposed outcome here, and the bet
   // only settles once the OTHER party confirms the same outcome. If they

@@ -825,13 +825,20 @@ export default function App() {
   const [counterTarget, setCounterTarget] = useState(null);
   const [overtimeBet, setOvertimeBet]     = useState(null);
   const [showPin, setShowPin]             = useState(false);
-  const [winAnim, setWinAnim]             = useState(null);
+  // Win celebrations + comment prompts are QUEUED (arrays) so that
+  // resolving multiple bets in quick succession doesn't overwrite the
+  // earlier popups — each one renders sequentially as the previous
+  // closes. The user's "I only see the last one" complaint comes from
+  // the old single-state model.
+  const [winAnimQueue, setWinAnimQueue]   = useState([]);
+  const [commentBetQueue, setCommentBetQueue] = useState([]);
+  const winAnim = winAnimQueue[0] ?? null;
+  const commentBetModal = commentBetQueue[0] ?? null;
   // Bets whose resolution we've already celebrated for this user, so
   // an incoming SSE doesn't replay the WinOverlay on every reconnect.
   // Populated on first state load with every already-resolved bet, so
   // historical wins don't pop on first sign-in.
   const seenResolutionsRef = useRef(null);
-  const [commentBetModal, setCommentBetModal] = useState(null);
   const [editingBet, setEditingBet]       = useState(null);
   const [acceptingBet, setAcceptingBet]   = useState(null);
   const [showProfileEdit, setShowProfileEdit] = useState(false);
@@ -894,11 +901,11 @@ export default function App() {
         }
       }
       if (iWon && payout > 0) {
-        setWinAnim(payout);
+        setWinAnimQueue(q => [...q, payout]);
         // Slight delay before the comment prompt so it doesn't crash
         // into the WinOverlay's confetti.
         setTimeout(() => {
-          setCommentBetModal({ ...b, status: 'won' });
+          setCommentBetQueue(q => [...q, { ...b, status: 'won' }]);
         }, 1800);
       }
     }
@@ -1096,17 +1103,42 @@ export default function App() {
   // toast carries the pending state — modals close immediately for
   // snappy UX, and the win/comment animations fire only after the
   // timeout commits the resolution.
-  const performResolve = async (bet, outcome, asConfirmer = false) => {
-    try {
-      const r = await api.resolveBet(bet.id, outcome);
-      if (r?.phase === 'resolved') {
-        // Win anim is keyed to creator payout, so only fire it for the
-        // user who actually receives the credits.
-        const iWin = outcome === 'won' && (asConfirmer ? bet.creator === user : true);
-        if (iWin) setWinAnim(bet.potentialWin);
-        setCommentBetModal({ ...bet, status: outcome });
-      }
-    } catch (e) { console.error(e); }
+  // Helper: enqueue a win celebration + comment prompt for the user's
+  // POV on a freshly-resolved bet. Marking it as already-seen here
+  // prevents the SSE-diff effect from re-firing for the same bet a
+  // few hundred ms later when the new state lands.
+  const enqueueCelebration = (bet, outcome, asConfirmer) => {
+    const iWin = outcome === 'won' && (asConfirmer ? bet.creator === user : true);
+    if (iWin) setWinAnimQueue(q => [...q, bet.potentialWin]);
+    setCommentBetQueue(q => [...q, { ...bet, status: outcome }]);
+    if (seenResolutionsRef.current) seenResolutionsRef.current.add(bet.id);
+  };
+
+  // Consensual = bet has a named opponent AND the user is the creator
+  // (i.e. their resolve will be marked "proposed" server-side until the
+  // opponent confirms). Everything else (Vault, Open, Surprise, or the
+  // opponent confirming back) resolves immediately and is safe to
+  // celebrate optimistically.
+  const isConsensual = (bet, asConfirmer) =>
+    !asConfirmer && !!bet.opponent && bet.creator === user;
+
+  const performResolve = (bet, outcome, asConfirmer = false) => {
+    if (isConsensual(bet, asConfirmer)) {
+      // Wait for the API to confirm 'resolved' vs 'proposed' — only
+      // celebrate if the server actually settled the bet.
+      api.resolveBet(bet.id, outcome)
+        .then(r => {
+          if (r?.phase === 'resolved') enqueueCelebration(bet, outcome, asConfirmer);
+        })
+        .catch(e => console.error(e));
+      return;
+    }
+    // Optimistic path: fire celebration immediately, run the API in
+    // the background. Removes the post-undo network delay the user was
+    // seeing on Render free tier. If the API errors, the SSE refresh
+    // will reconcile the local state.
+    enqueueCelebration(bet, outcome, asConfirmer);
+    api.resolveBet(bet.id, outcome).catch(e => console.error(e));
   };
 
   const deferResolve = (bet, outcome, asConfirmer) => {
@@ -1135,13 +1167,14 @@ export default function App() {
 
   // Overtime coin flip uses force=true so it bypasses the consensual gate —
   // both parties already accepted "let fate decide" by clicking through.
-  const handleOvertimeResolve = async (bet, outcome) => {
-    try {
-      await api.resolveBet(bet.id, outcome, { force: true });
-      if (outcome === 'won' && bet.creator === user) setWinAnim(bet.potentialWin);
-      setOvertimeBet(null);
-      setCommentBetModal({ ...bet, status: outcome });
-    } catch (e) { console.error(e); }
+  const handleOvertimeResolve = (bet, outcome) => {
+    setOvertimeBet(null);
+    if (outcome === 'won' && bet.creator === user) {
+      setWinAnimQueue(q => [...q, bet.potentialWin]);
+    }
+    setCommentBetQueue(q => [...q, { ...bet, status: outcome }]);
+    if (seenResolutionsRef.current) seenResolutionsRef.current.add(bet.id);
+    api.resolveBet(bet.id, outcome, { force: true }).catch(e => console.error(e));
   };
 
   const handleCounter = async (bet, cb) => {
@@ -1157,7 +1190,7 @@ export default function App() {
 
   const handleComment = async (betId, comment) => {
     try { await api.commentBet(betId, comment); } catch (e) { console.error(e); }
-    setCommentBetModal(null);
+    setCommentBetQueue(q => q.slice(1));
   };
 
   // Targeted bets now open the AcceptModal so the opponent can choose their
@@ -1664,8 +1697,8 @@ export default function App() {
       {counterTarget  && <CounterModal bet={counterTarget} user={user} profiles={profiles} credits={credits} cats={cats} onPlace={handleCounter} onClose={() => setCounterTarget(null)} />}
       {overtimeBet    && <OvertimeModal bet={overtimeBet} profiles={profiles} onResult={handleOvertimeResolve} onClose={() => setOvertimeBet(null)} />}
       {showPin        && <PinModal user={user} profiles={profiles} vaultPin={vaultPin} onSuccess={() => { setVaultUnlocked(true); setShowPin(false); }} onClose={() => setShowPin(false)} />}
-      {winAnim        && <WinOverlay amount={winAnim} onDone={() => setWinAnim(null)} />}
-      {commentBetModal && <CommentModal bet={commentBetModal} onSave={handleComment} onSkip={() => setCommentBetModal(null)} />}
+      {winAnim        && <WinOverlay amount={winAnim} onDone={() => setWinAnimQueue(q => q.slice(1))} />}
+      {commentBetModal && <CommentModal bet={commentBetModal} onSave={handleComment} onSkip={() => setCommentBetQueue(q => q.slice(1))} />}
       {editingBet && <EditModal bet={editingBet} cats={cats} user={user} onSave={handleEdit} onClose={() => setEditingBet(null)}/>}
       {acceptingBet && (
         <AcceptModal

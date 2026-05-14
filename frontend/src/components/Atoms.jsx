@@ -143,10 +143,15 @@ export const Rule = ({mt=0,mb=0,color}) => <hr style={{...S.hairline, marginTop:
 export function Avatar({profile,size=36}){
   const c=COLORS[profile?.colorKey]||"#5b8af0";
   const ringStyle={width:size,height:size,borderRadius:"50%",border:`2px solid ${c}66`,boxShadow:`0 0 10px ${c}44`,flexShrink:0,overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center"};
+  // alt text uses the profile's display name so screen readers identify
+  // the person; falls back to "Avatar" if name is missing. The emoji
+  // branch is decorative (a name is rendered next to it in the UI) so
+  // it's marked aria-hidden.
+  const altName = profile?.name || 'Avatar';
   if (profile?.avatarUrl) {
     return <div style={{...ringStyle, background:`${c}11`}}>
-      <img src={profile.avatarUrl} alt="" style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>
+      <img src={profile.avatarUrl} alt={altName} style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>
     </div>;
   }
-  return <div style={{...ringStyle, background:`${c}33`, fontSize:size*.42}}>{profile?.avatar ?? "🃏"}</div>;
+  return <div aria-hidden style={{...ringStyle, background:`${c}33`, fontSize:size*.42}}>{profile?.avatar ?? "🃏"}</div>;
 }

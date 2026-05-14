@@ -926,7 +926,7 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
             <div style={{display:'flex', alignItems:'center', gap:6}}>
               {/* Always-available coachmark trigger — for users who skipped
                   the tutorial or forgot how something works. */}
-              <button onClick={() => setCoachOpen(true)} data-coach="help" title={t('coach.help_tooltip')}
+              <button onClick={() => setCoachOpen(true)} data-coach="help" aria-label={t('coach.help_tooltip')} title={t('coach.help_tooltip')}
                 style={{
                   width: 30, height: 30, borderRadius: '50%',
                   background: 'transparent', border: '1px solid var(--gold)66',
@@ -935,7 +935,7 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   padding: 0, lineHeight: 1,
                 }}>?</button>
-              <button onClick={onClose} style={{background:"transparent",border:"none",cursor:"pointer",color:"var(--dim)",fontSize:18,padding:4}}>✕</button>
+              <button onClick={onClose} aria-label="Chiudi" style={{background:"transparent",border:"none",cursor:"pointer",color:"var(--dim)",fontSize:18,padding:4}}>✕</button>
             </div>
           </div>
 
@@ -1019,7 +1019,7 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
           </div>
           <div style={{display:'flex', alignItems:'center', gap:6}}>
             {/* Coachmark trigger — same as desktop */}
-            <button onClick={() => setCoachOpen(true)} data-coach="help" title={t('coach.help_tooltip')}
+            <button onClick={() => setCoachOpen(true)} data-coach="help" aria-label={t('coach.help_tooltip')} title={t('coach.help_tooltip')}
               style={{
                 width: 30, height: 30, borderRadius: '50%',
                 background: 'transparent', border: '1px solid var(--gold)66',
@@ -1029,7 +1029,7 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
                 padding: 0, lineHeight: 1,
                 WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation',
               }}>?</button>
-            <button onClick={onClose} style={{background:"transparent",border:"none",cursor:"pointer",color:"var(--dim)",fontSize:18,padding:4}}>✕</button>
+            <button onClick={onClose} aria-label="Chiudi" style={{background:"transparent",border:"none",cursor:"pointer",color:"var(--dim)",fontSize:18,padding:4}}>✕</button>
           </div>
         </div>
 

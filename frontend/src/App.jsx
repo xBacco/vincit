@@ -1446,13 +1446,18 @@ export default function App() {
               they know what the button does, the pulse stops. */}
           {(() => {
             const noBetsYet = !bets.some(b => b.creator === user);
+            const fire = () => setShowCreate(true);
             return (
-              <div data-tour="new-bet" onClick={() => setShowCreate(true)} style={{
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-                cursor: 'pointer', userSelect: 'none',
-                transform: 'translateY(-22px)',
-              }}>
-                <div className={noBetsYet ? 'pGold' : undefined} style={{
+              <div data-tour="new-bet" onClick={fire}
+                role="button" tabIndex={0}
+                aria-label={t('app.new_bet')}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fire(); } }}
+                style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                  cursor: 'pointer', userSelect: 'none',
+                  transform: 'translateY(-22px)',
+                }}>
+                <div className={noBetsYet ? 'pGold' : undefined} aria-hidden style={{
                   width: 56, height: 56, borderRadius: 999,
                   background: 'var(--pur)', color:'#1a1530',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1460,7 +1465,7 @@ export default function App() {
                   boxShadow: '0 14px 30px -8px var(--pur), 0 1px 0 rgba(255,255,255,.18) inset',
                   transition: 'transform .18s',
                 }}>+</div>
-                <span style={{ fontSize: 8, color: 'var(--gold)', letterSpacing:'.2em', textTransform:'uppercase', fontWeight: 600 }}>{t('app.new_bet_label')}</span>
+                <span aria-hidden style={{ fontSize: 8, color: 'var(--gold)', letterSpacing:'.2em', textTransform:'uppercase', fontWeight: 600 }}>{t('app.new_bet_label')}</span>
               </div>
             );
           })()}

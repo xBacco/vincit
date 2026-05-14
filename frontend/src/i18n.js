@@ -276,22 +276,22 @@ const TRANSLATIONS = {
 
       title_kicker:'Il titolo',
       title_title:'Scrivi cosa pensi succederà.',
-      title_body:'Esempi: "Marco arriva in ritardo stasera", "il Milan vince il derby", "Domani piove a Udine". Più la dichiarazione è chiara, meno discussioni dopo.',
+      title_body:'Esempi: "Marco arriva in ritardo stasera", "il Milan vince il derby", "Domani piove a Udine".\n\nPiù è chiara la dichiarazione, meno discussioni al risultato.',
 
-      type_vault_kicker:'Tipo · Vault',
-      type_vault_title:'🔒 Vault — solo per te.',
+      type_vault_kicker:'Tipo di bet',
+      type_vault_title:'🔒 Vault',
       type_vault_body:'Privata, visibile solo a te. Nessuno la vede, nessuno la sfida: la usi per gioco, per tracciare un proposito personale o per tenere il punto con te stesso.',
 
-      type_open_kicker:'Tipo · Aperta',
-      type_open_title:'👥 Aperta — sfida il gruppo.',
+      type_open_kicker:'Tipo di bet',
+      type_open_title:'👥 Aperta',
       type_open_body:'Visibile a tutti i membri del gruppo. Chiunque può accettarla e prendere il lato opposto: prima arriva, prima blocca la sfida.',
 
-      type_targeted_kicker:'Tipo · Mirata',
-      type_targeted_title:'🎯 Mirata — uno contro uno.',
+      type_targeted_kicker:'Tipo di bet',
+      type_targeted_title:'🎯 Mirata',
       type_targeted_body:'Scegli tu chi sfidare. La bet è visibile al gruppo, ma solo la persona scelta può accettarla o rilanciare con una contro-offerta.',
 
-      type_surprise_kicker:'Tipo · Sorpresa',
-      type_surprise_title:'🤫 Sorpresa — colpo a sorpresa.',
+      type_surprise_kicker:'Tipo di bet',
+      type_surprise_title:'🤫 Sorpresa',
       type_surprise_body:'Come Mirata, ma nascosta al gruppo (e all\'avversario) finché non si risolve. Quando esce l\'esito, tutti scoprono cosa avevi in mente.',
 
       stake_kicker:'La posta',
@@ -859,22 +859,22 @@ const TRANSLATIONS = {
 
       title_kicker:'The title',
       title_title:'Write what you think will happen.',
-      title_body:'Examples: "Marco will be late tonight", "Milan wins the derby", "It rains in Udine tomorrow". The clearer the statement, the fewer arguments later.',
+      title_body:'Examples: "Marco will be late tonight", "Milan wins the derby", "It rains in Udine tomorrow".\n\nThe clearer the call, the fewer arguments at resolution.',
 
-      type_vault_kicker:'Type · Vault',
-      type_vault_title:'🔒 Vault — just for you.',
+      type_vault_kicker:'Bet type',
+      type_vault_title:'🔒 Vault',
       type_vault_body:"Private and only visible to you. No one sees it, no one challenges it: use it for fun, to track a personal goal, or to keep yourself honest.",
 
-      type_open_kicker:'Type · Open',
-      type_open_title:'👥 Open — challenge the group.',
+      type_open_kicker:'Bet type',
+      type_open_title:'👥 Open',
       type_open_body:'Visible to everyone in the group. Anyone can accept and take the other side: first come, first locked in.',
 
-      type_targeted_kicker:'Type · Targeted',
-      type_targeted_title:'🎯 Targeted — one on one.',
+      type_targeted_kicker:'Bet type',
+      type_targeted_title:'🎯 Targeted',
       type_targeted_body:'You pick who to challenge. The bet is visible to the group, but only the chosen person can accept or come back with a counter-offer.',
 
-      type_surprise_kicker:'Type · Surprise',
-      type_surprise_title:'🤫 Surprise — sneak attack.',
+      type_surprise_kicker:'Bet type',
+      type_surprise_title:'🤫 Surprise',
       type_surprise_body:"Like Targeted, but hidden from the group (and the opponent) until it resolves. When the outcome drops, everyone finds out what you had in mind.",
 
       stake_kicker:'The stake',

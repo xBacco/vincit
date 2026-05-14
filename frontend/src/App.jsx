@@ -40,6 +40,7 @@ const CommentModal      = lazy(() => import('./components/modals/CommentModal.js
 const EditModal         = lazy(() => import('./components/modals/EditModal.jsx'));
 const AcceptModal       = lazy(() => import('./components/modals/AcceptModal.jsx'));
 const ProfileEditModal  = lazy(() => import('./components/modals/ProfileEditModal.jsx'));
+const ProfileAvatarMenu = lazy(() => import('./components/ProfileAvatarMenu.jsx'));
 
 // Lazy: overlays + tour — rare/optional UI surfaces.
 const WinOverlay         = lazy(() => import('./components/WinOverlay.jsx'));
@@ -857,6 +858,10 @@ export default function App() {
   const [editingBet, setEditingBet]       = useState(null);
   const [acceptingBet, setAcceptingBet]   = useState(null);
   const [showProfileEdit, setShowProfileEdit] = useState(false);
+  // Avatar popover — tap on the user avatar (desktop + mobile) opens a small
+  // menu with "Modifica profilo" and "Esci" (two-step confirm). Replaces the
+  // old direct-tap-to-edit shortcut so logout doesn't require a Settings trip.
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [coinFlipOpen,    setCoinFlipOpen]    = useState(false); // easter egg #2 (coin)
   const [dieRollOpen,     setDieRollOpen]     = useState(false); // easter egg #1 (dice)
   const [iceEggOpen,      setIceEggOpen]      = useState(false); // easter egg #4 (❄️ streak)
@@ -1454,7 +1459,7 @@ export default function App() {
               <span className="shim">BetCouple</span>
             </div>
             <div
-              onClick={() => setShowProfileEdit(true)}
+              onClick={() => setProfileMenuOpen(true)}
               title={t('profile.edit_title')}
               style={{
                 display:'flex', alignItems:'center', gap:12, cursor:'pointer',
@@ -1585,7 +1590,7 @@ export default function App() {
                 >₡</span></div>
               </div>
               <div
-                onClick={() => setShowProfileEdit(true)}
+                onClick={() => setProfileMenuOpen(true)}
                 title={t('profile.edit_title')}
                 style={{ width: 36, height: 36, borderRadius: '50%', background: `${COLORS[myProfile.colorKey] || '#5b8af0'}33`, border: `2px solid ${COLORS[myProfile.colorKey] || '#5b8af0'}66`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0, overflow:'hidden', cursor:'pointer', transition:'transform .15s' }}
                 onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.05)'; }}
@@ -1766,6 +1771,15 @@ export default function App() {
           profile={myProfile}
           onSaved={handleLiveProfileUpdate}
           onClose={() => setShowProfileEdit(false)}
+        />
+      )}
+      {profileMenuOpen && (
+        <ProfileAvatarMenu
+          profile={myProfile}
+          t={t}
+          onEdit={() => { setProfileMenuOpen(false); setShowProfileEdit(true); }}
+          onLogout={() => { setProfileMenuOpen(false); handleLogout(); }}
+          onClose={() => setProfileMenuOpen(false)}
         />
       )}
       {/* Easter egg #2: coin flip overlay */}

@@ -184,6 +184,11 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
   // "?" button in the header for users who skipped it or forgot.
   const [coachOpen, setCoachOpen] = useState(noviceMode);
   const scrollAreaRef = useRef(null);
+  // Swipe-to-dismiss refs — must be declared here (before any conditional
+  // return) to satisfy React's rules of hooks. Used only by the mobile layout.
+  const sheetRef    = useRef(null);
+  const backdropRef = useRef(null);
+  const swipeState  = useRef({ startY: null, dragging: false });
   const { t } = useLang();
   const toast = useToast();
   const isDesktop = useBreakpoint(768);
@@ -1115,63 +1120,48 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
     </>);
   }
 
-  // ─── Mobile layout — realistic swipe-to-dismiss ────────────────────────
-  // The sheet follows the finger in real time (direct DOM mutation, no React
-  // re-renders during drag = no jank). On release: if dragged past the
-  // threshold it slides off screen then calls onClose; otherwise it springs
-  // back to its resting position.
-  const sheetRef   = useRef(null);
-  const backdropRef = useRef(null);
-  const swipeState = useRef({ startY: null, dragging: false });
-
-  const handleSheetTouchStart = e => {
-    // Only start drag from the handle area or when the sheet itself isn't scrolled
-    const sheet = sheetRef.current;
-    if (!sheet) return;
-    // Ignore if the sheet content is scrolled (user is reading, not dismissing)
-    if (sheet.scrollTop > 4) return;
+  // ─── Mobile layout (bottom sheet) ────────────────────────────────────────
+  // Drag handlers are plain functions — refs (sheetRef, backdropRef, swipeState)
+  // are declared at the top of the component before any conditional return.
+  // Drag is captured only by the handle zone at the top; the rest of the sheet
+  // scrolls normally so it doesn't conflict with form interaction.
+  const handleDragStart = e => {
     swipeState.current = { startY: e.touches[0].clientY, dragging: true };
-    sheet.style.transition = 'none';
+    const sheet = sheetRef.current;
+    if (sheet) sheet.style.transition = 'none';
     if (backdropRef.current) backdropRef.current.style.transition = 'none';
   };
-
-  const handleSheetTouchMove = e => {
+  const handleDragMove = e => {
     const { startY, dragging } = swipeState.current;
-    if (!dragging || startY === null) return;
-    const dy = Math.max(0, e.touches[0].clientY - startY); // clamp: no upward drag
+    if (!dragging) return;
+    const dy = Math.max(0, e.touches[0].clientY - startY);
     const sheet = sheetRef.current;
-    if (!sheet) return;
-    sheet.style.transform = `translateY(${dy}px)`;
-    // Fade backdrop as sheet moves down
+    if (sheet) sheet.style.transform = `translateY(${dy}px)`;
     if (backdropRef.current) {
-      const opacity = Math.max(0, 0.78 - (dy / 300) * 0.78);
-      backdropRef.current.style.background = `rgba(15,11,35,${opacity.toFixed(2)})`;
+      const op = Math.max(0, 0.78 - (dy / 280) * 0.78);
+      backdropRef.current.style.background = `rgba(15,11,35,${op.toFixed(2)})`;
     }
   };
-
-  const handleSheetTouchEnd = e => {
+  const handleDragEnd = e => {
     const { startY, dragging } = swipeState.current;
-    if (!dragging || startY === null) return;
+    if (!dragging) return;
     swipeState.current = { startY: null, dragging: false };
+    const dy = Math.max(0, (e.changedTouches[0]?.clientY ?? startY) - startY);
     const sheet = sheetRef.current;
     if (!sheet) return;
-    const dy = Math.max(0, (e.changedTouches[0]?.clientY ?? startY) - startY);
-    const DISMISS_THRESHOLD = 120;
-    if (dy > DISMISS_THRESHOLD) {
-      // Animate off screen then close
-      sheet.style.transition = 'transform 0.28s cubic-bezier(0.4,0,1,1)';
-      sheet.style.transform  = `translateY(110%)`;
+    if (dy > 100) {
+      sheet.style.transition = 'transform .26s cubic-bezier(.4,0,1,1)';
+      sheet.style.transform  = 'translateY(110%)';
       if (backdropRef.current) {
-        backdropRef.current.style.transition = 'background 0.28s ease';
+        backdropRef.current.style.transition = 'background .26s ease';
         backdropRef.current.style.background = 'rgba(15,11,35,0)';
       }
-      setTimeout(() => onClose(), 280);
+      setTimeout(onClose, 260);
     } else {
-      // Spring back
-      sheet.style.transition = 'transform 0.35s cubic-bezier(0.34,1.56,0.64,1)';
+      sheet.style.transition = 'transform .32s cubic-bezier(.34,1.56,.64,1)';
       sheet.style.transform  = 'translateY(0)';
       if (backdropRef.current) {
-        backdropRef.current.style.transition = 'background 0.35s ease';
+        backdropRef.current.style.transition = 'background .32s ease';
         backdropRef.current.style.background = 'rgba(15,11,35,0.78)';
       }
     }
@@ -1183,16 +1173,28 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
       <div
         ref={sheetRef}
         className="sUp"
-        onTouchStart={handleSheetTouchStart}
-        onTouchMove={handleSheetTouchMove}
-        onTouchEnd={handleSheetTouchEnd}
-        style={{position:'relative',background:"var(--surf)",borderRadius:"12px 12px 0 0",width:"100%",maxWidth:480,padding:"30px 26px 40px",maxHeight:"92vh",overflowY:"auto",borderTop:"1px solid var(--rule)",boxShadow:"0 -20px 60px rgba(0,0,0,.4)"}}
+        style={{position:'relative',background:"var(--surf)",borderRadius:"12px 12px 0 0",width:"100%",maxWidth:480,maxHeight:"92vh",overflowY:"auto",borderTop:"1px solid var(--rule)",boxShadow:"0 -20px 60px rgba(0,0,0,.4)"}}
       >
-        {/* Drag handle */}
-        <div style={{position:'absolute',top:10,left:'50%',transform:'translateX(-50%)',width:36,height:4,borderRadius:2,background:'var(--mut)',opacity:.6}}/>
+        {/* Drag handle zone — the only area that triggers swipe-to-dismiss.
+            Large touch target (44px) so the pill is easy to grab; below this
+            the sheet scrolls normally without fighting the drag. */}
+        <div
+          onTouchStart={handleDragStart}
+          onTouchMove={handleDragMove}
+          onTouchEnd={handleDragEnd}
+          style={{
+            position:'sticky', top:0, zIndex:2,
+            display:'flex', alignItems:'center', justifyContent:'center',
+            height:44, background:'var(--surf)',
+            borderRadius:'12px 12px 0 0',
+            touchAction:'none',
+          }}
+        >
+          <div style={{width:36,height:4,borderRadius:2,background:'var(--mut)',opacity:.5}}/>
+        </div>
+        <div style={{padding:"0 26px 40px"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:28}}>
           <div>
-            <div className="bc-meta" style={{marginBottom:8}}>— Nuovo bet</div>
             <div style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",fontSize:28,fontWeight:600,lineHeight:1,color:"var(--txt)"}}>{t('create.title')}</div>
           </div>
           <div style={{display:'flex', alignItems:'center', gap:6}}>
@@ -1235,8 +1237,9 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
             onSave={saveAsTemplate} t={t}
           />
         )}
-      </div>
-    </div>
+        </div>{/* /padding */}
+      </div>{/* /sheet */}
+    </div>{/* /backdrop */}
     <CreateModalCoachmarks open={coachOpen} onClose={() => setCoachOpen(false)}/>
   </>);
 }

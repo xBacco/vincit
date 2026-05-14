@@ -165,12 +165,14 @@ module.exports = function(broadcastUpdate) {
         const bet = rows[0];
         if (!bet) { res.status(404).json({ error: 'Bet not found' }); return; }
         if (bet.room_id !== req.activeRoomId) { res.status(403).json({ error: 'Forbidden' }); return; }
-        if (!['active', 'disputed'].includes(bet.status)) { res.status(400).json({ error: 'Bet not active' }); return; }
+        if (!['active', 'disputed', 'expired'].includes(bet.status)) { res.status(400).json({ error: 'Bet not active' }); return; }
         if (bet.creator !== req.userId && bet.opponent !== req.userId)
           { res.status(403).json({ error: 'Forbidden' }); return; }
 
         const hasOpponent = bet.opponent && bet.opponent !== bet.creator;
-        const consensual  = hasOpponent && !force;
+        // Expired bets skip the consensual phase — one party can force the outcome
+        // since the deadline has passed and no agreement was reached in time.
+        const consensual  = hasOpponent && !force && bet.status !== 'expired';
 
         if (consensual) {
           // Three-state machine: no proposal yet → park one. Other party
@@ -623,7 +625,19 @@ module.exports = function(broadcastUpdate) {
       const bet = rows[0];
       if (!bet) return res.status(404).json({ error: 'Not found' });
       if (bet.room_id !== req.activeRoomId)                  return res.status(403).json({ error: 'Forbidden' });
-      if (!['active','pending'].includes(bet.status))        return res.status(403).json({ error: 'Already resolved' });
+      if (bet.status === 'expired') {
+        // Expired bets can only be cancelled by group owners / co-admins with moderate_bets
+        const gid = req.activeRoomId;
+        const { rows: mr } = await db.query(
+          'SELECT role, permissions FROM user_groups WHERE group_id=$1 AND user_id=$2',
+          [gid, req.userId]
+        );
+        const m = mr[0];
+        const canMod = m && (m.role === 'owner' || (m.role === 'co-admin' && m.permissions?.moderate_bets === true));
+        if (!canMod) return res.status(403).json({ error: 'expired_no_cancel' });
+      } else if (!['active','pending'].includes(bet.status)) {
+        return res.status(403).json({ error: 'Already resolved' });
+      }
 
       // Owner cancel rules:
       //   - PENDING (opponent hasn't accepted yet): always allowed — no one
@@ -641,11 +655,18 @@ module.exports = function(broadcastUpdate) {
       const { rows: counters } = await db.query('SELECT * FROM counter_bets WHERE bet_id = $1', [bet.id]);
 
       await db.transaction(async (client) => {
-        if (bet.status === 'active') {
+        if (bet.status === 'active' || bet.status === 'expired') {
           await client.query(
             'UPDATE credits SET amount = amount + $1 WHERE "user" = $2',
             [bet.stake, bet.creator]
           );
+          // Pot-mode: refund opponent's stake too
+          if (bet.opponent_stake != null && bet.opponent) {
+            await client.query(
+              'UPDATE credits SET amount = amount + $1 WHERE "user" = $2',
+              [bet.opponent_stake, bet.opponent]
+            );
+          }
         }
         for (const cb of counters) {
           await client.query(

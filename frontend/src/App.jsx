@@ -1135,7 +1135,10 @@ export default function App() {
 
   const handleDelete = async bet => {
     try { await api.cancelBet(bet.id); refresh(); toast.info(t('app.ok_cancelled')); }
-    catch (e) { console.error(e); toast.error(t('app.error_cancel')); }
+    catch (e) {
+      console.error(e);
+      toast.error(e.data?.error === 'expired_no_cancel' ? t('app.error_expired_cancel') : t('app.error_cancel'));
+    }
   };
 
   // Resolve actions both deferred 5s through a toast-with-undo. Real

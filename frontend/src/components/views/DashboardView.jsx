@@ -403,45 +403,69 @@ export default function DashboardView({user,profiles,groupMembers,credits,bets,c
   const streakAccent = isWinStreak ? (isHotStreak ? 'var(--red)' : 'var(--gold)') : 'var(--blu)';
 
   const renderStreakHero = () => {
-    // Hide the hero entirely below 3 — a "streak" needs to feel earned.
-    if (fireLevel < 3) return null;
-    return (
-      <div
-        onClick={handleStreakTap}
-        style={{
-          position:'relative',
-          display:'flex', alignItems:'center', gap: isDesktop ? 14 : 10,
-          cursor:'pointer', userSelect:'none',
-          WebkitTapHighlightColor:'transparent', touchAction:'manipulation',
-          padding: '6px 10px', borderRadius: 16,
-          boxShadow: streakTapCount > 0 ? `0 0 0 2px ${streakAccent}66` : 'none',
-          transition:'box-shadow .2s',
-          alignSelf: isDesktop ? 'flex-end' : 'flex-start',
-        }}>
-        <span key={streakPulseKey} style={{
-          fontSize: isDesktop ? 84 : 64, lineHeight: 1,
-          display:'inline-block',
-          animation: streakPulseKey > 0 ? 'bcStreakTap .35s cubic-bezier(.3,1.6,.5,1) both' : 'none',
-          filter: `drop-shadow(0 6px 22px ${streakAccent}66)`,
-        }}>
-          {isWinStreak ? '🔥' : '❄️'}
-        </span>
-        <div style={{display:'flex', flexDirection:'column'}}>
-          <div className="bc-num" style={{
-            fontSize: 'clamp(48px, 11vw, 92px)',
-            color: streakAccent, lineHeight: .92,
-          }}>{fireLevel}</div>
-          <div className="bc-meta" style={{marginTop:6, fontSize:8}}>
-            — {t('dashboard_extra.streak_short')}
+    // Streak hero proper — earned when the user is on a real 3+ run.
+    if (fireLevel >= 3) {
+      return (
+        <div
+          onClick={handleStreakTap}
+          style={{
+            position:'relative',
+            display:'flex', alignItems:'center', gap: isDesktop ? 14 : 10,
+            cursor:'pointer', userSelect:'none',
+            WebkitTapHighlightColor:'transparent', touchAction:'manipulation',
+            padding: '6px 10px', borderRadius: 16,
+            boxShadow: streakTapCount > 0 ? `0 0 0 2px ${streakAccent}66` : 'none',
+            transition:'box-shadow .2s',
+            alignSelf: isDesktop ? 'flex-end' : 'flex-start',
+          }}>
+          <span key={streakPulseKey} style={{
+            fontSize: isDesktop ? 84 : 64, lineHeight: 1,
+            display:'inline-block',
+            animation: streakPulseKey > 0 ? 'bcStreakTap .35s cubic-bezier(.3,1.6,.5,1) both' : 'none',
+            filter: `drop-shadow(0 6px 22px ${streakAccent}66)`,
+          }}>
+            {isWinStreak ? '🔥' : '❄️'}
+          </span>
+          <div style={{display:'flex', flexDirection:'column'}}>
+            <div className="bc-num" style={{
+              fontSize: 'clamp(48px, 11vw, 92px)',
+              color: streakAccent, lineHeight: .92,
+            }}>{fireLevel}</div>
+            <div className="bc-meta" style={{marginTop:6, fontSize:8}}>
+              — {t('dashboard_extra.streak_short')}
+            </div>
           </div>
+          {streakTapCount > 0 && (
+            <span style={{
+              position:'absolute', top: 4, right: 4,
+              fontSize: 10, fontWeight: 800, color: streakAccent,
+              fontFamily:"'Manrope',sans-serif", letterSpacing:'.1em',
+            }}>{streakTapCount}/3</span>
+          )}
         </div>
-        {streakTapCount > 0 && (
-          <span style={{
-            position:'absolute', top: 4, right: 4,
-            fontSize: 10, fontWeight: 800, color: streakAccent,
-            fontFamily:"'Manrope',sans-serif", letterSpacing:'.1em',
-          }}>{streakTapCount}/3</span>
-        )}
+      );
+    }
+
+    // Below threshold: on mobile leave the area empty (stack collapses
+    // cleanly). On desktop, where credits float to the right and the
+    // left half of the hero row looks barren, drop in a subdued
+    // "Inizia una serie..." line so the composition stays balanced.
+    if (!isDesktop) return null;
+    return (
+      <div style={{
+        alignSelf: 'flex-end',
+        display: 'flex', flexDirection: 'column', gap: 6,
+        opacity: 0.55,
+      }}>
+        <span aria-hidden style={{
+          fontSize: 40, lineHeight: 1,
+          filter: 'grayscale(.4)',
+        }}>🔥</span>
+        <span style={{
+          fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic',
+          fontSize: 16, fontWeight: 500, color: 'var(--dim)',
+          maxWidth: 260, lineHeight: 1.35,
+        }}>{t('dashboard_extra.streak_fallback')}</span>
       </div>
     );
   };

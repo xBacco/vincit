@@ -444,6 +444,7 @@ const TRANSLATIONS = {
       trail_lost:'P',
       daily_streak_label:'GIORNI DI FILA',
       daily_streak_tooltip:'Sei attivo da {n} giorni consecutivi',
+      streak_fallback:'Inizia una serie — vedrai qui il tuo 🔥 da 3 vittorie di fila',
     },
     templates: {
       title_settings:'I miei template', title_picker:'Template salvati',
@@ -1095,6 +1096,7 @@ const TRANSLATIONS = {
       trail_lost:'L',
       daily_streak_label:'DAYS IN A ROW',
       daily_streak_tooltip:"You've been active {n} days in a row",
+      streak_fallback:'Start a run — your 🔥 lands here at 3 wins in a row',
     },
     templates: {
       title_settings:'My templates', title_picker:'Saved templates',

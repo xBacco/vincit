@@ -169,6 +169,27 @@ export default function AdminView({ isDesktop, meId }) {
     await api.adminSetPassword(uid, pw);
     setPwNew('');
   }, 'Password aggiornata ✓');
+  const [trophyBusy, setTrophyBusy] = useState(false);
+  const [lastSetLevel, setLastSetLevel] = useState(null);
+
+  const setAllTrophies = async (level) => {
+    setTrophyBusy(true);
+    try {
+      const r = await api.devSetTrophyLevel(level);
+      if (level === 0) {
+        wipeFreshAccountFlags();
+        setLastSetLevel(0);
+        toast.success('Trofei azzerati — vai alla tab Trofei per verificare');
+      } else {
+        setLastSetLevel(level);
+        toast.success(`Tutti a Lv ${level} (${r.inserted} inseriti) — vai alla tab Trofei`);
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error(e?.message || 'errore');
+    } finally { setTrophyBusy(false); }
+  };
+
   const resetTrophies = wrap(async (uid, who) => {
     const isSelf = !!meId && uid === meId;
     const confirmMsg = isSelf
@@ -755,6 +776,47 @@ export default function AdminView({ isDesktop, meId }) {
             {integrity.orphan_user_groups.length === 0
               ? <div style={{ fontSize: 12, color: 'var(--grn)' }}>✓ nessuno</div>
               : <pre style={S.pre}>{JSON.stringify(integrity.orphan_user_groups, null, 2)}</pre>}
+          </div>
+
+          {/* Trophy level tester — dev tool */}
+          <div style={{ ...S.raised, borderColor: 'var(--pur)55', background: 'var(--pur)06', marginTop: 14 }}>
+            <div style={{ ...S.label, color: 'var(--pur)' }}>🏆 Test livelli trofei (dev)</div>
+            <div style={{ fontSize: 11, color: 'var(--mut)', marginTop: 4, marginBottom: 14, lineHeight: 1.5 }}>
+              Forza <b>tutti i tuoi trofei</b> (inclusi segreti + easter egg) a un livello per testare
+              il Grande Finale e le animazioni. Ogni click sovrascrive da zero. Il livello MAX di
+              ciascun trofeo viene rispettato — un Lv 5 su un trofeo con max Lv 3 resta a Lv 3.
+              {lastSetLevel !== null && (
+                <span style={{ color: 'var(--pur)', fontWeight: 700, marginLeft: 8 }}>
+                  (ultimo: {lastSetLevel === 0 ? 'Reset' : `Lv ${lastSetLevel}`})
+                </span>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {[1, 2, 3, 4, 5].map(n => (
+                <button key={n} onClick={() => setAllTrophies(n)} disabled={trophyBusy}
+                  style={{
+                    padding: '10px 18px', borderRadius: 999, cursor: trophyBusy ? 'wait' : 'pointer',
+                    fontFamily: "'Manrope',sans-serif", fontSize: 12, fontWeight: 700, letterSpacing: '.08em',
+                    background: lastSetLevel === n ? 'var(--pur)' : 'var(--pur)22',
+                    border: `1px solid ${lastSetLevel === n ? 'var(--pur)' : 'var(--pur)55'}`,
+                    color: lastSetLevel === n ? '#fff' : 'var(--pur)',
+                    opacity: trophyBusy ? 0.6 : 1,
+                  }}>
+                  {trophyBusy ? '…' : `Lv ${n}`}
+                </button>
+              ))}
+              <button onClick={() => setAllTrophies(0)} disabled={trophyBusy}
+                style={{
+                  padding: '10px 18px', borderRadius: 999, cursor: trophyBusy ? 'wait' : 'pointer',
+                  fontFamily: "'Manrope',sans-serif", fontSize: 12, fontWeight: 700, letterSpacing: '.08em',
+                  background: lastSetLevel === 0 ? 'var(--mut)33' : 'transparent',
+                  border: '1px solid var(--brd)',
+                  color: 'var(--mut)',
+                  opacity: trophyBusy ? 0.6 : 1,
+                }}>
+                {trophyBusy ? '…' : 'Reset 0'}
+              </button>
+            </div>
           </div>
 
           {/* Reset my trophies — dev tool. Wipes the trophy table for the

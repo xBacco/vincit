@@ -559,4 +559,5 @@ async function listForUser(userId) {
 
 module.exports = {
   CATALOG, refreshAchievements, listForUser, computeProgressFor, unlockSecret, SECRET_IDS,
+  refreshFinalTrophy,
 };

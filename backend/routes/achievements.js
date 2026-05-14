@@ -2,7 +2,7 @@
 const express = require('express');
 const db = require('../db.js');
 const router = express.Router();
-const { CATALOG, listForUser, computeProgressFor, unlockSecret } = require('../achievements.js');
+const { CATALOG, listForUser, computeProgressFor, unlockSecret, refreshFinalTrophy } = require('../achievements.js');
 
 // GET /api/achievements — list catalog + this user's unlocked + per-id progress
 router.get('/', async (req, res) => {
@@ -35,6 +35,48 @@ router.post('/secret/:id/unlock', async (req, res) => {
     if (e.message === 'unknown_secret') return res.status(400).json({ error: 'unknown_secret' });
     if (e.message === 'invalid_level') return res.status(400).json({ error: 'invalid_level' });
     console.error('[secret-unlock]', e);
+    res.status(500).json({ error: 'server_error' });
+  }
+});
+
+// POST /api/achievements/mine/dev-set — dev/admin tool: force all trophies to a
+// specific level (0 = wipe, 1–5 = set every catalog entry to min(targetLevel, max)).
+// Secrets and egg_master are included. gran_finale is re-evaluated automatically.
+router.post('/mine/dev-set', async (req, res) => {
+  try {
+    const targetLevel = Math.round(Number(req.body?.targetLevel ?? 0));
+    if (!Number.isFinite(targetLevel) || targetLevel < 0 || targetLevel > 5) {
+      return res.status(400).json({ error: 'targetLevel must be 0–5' });
+    }
+
+    // Always wipe first so we start from a clean slate.
+    await db.query('DELETE FROM achievements WHERE user_id=$1', [req.userId]);
+
+    if (targetLevel === 0) {
+      return res.json({ ok: true, inserted: 0 });
+    }
+
+    let inserted = 0;
+    const now = Date.now();
+    for (const entry of CATALOG) {
+      if (entry.final) continue; // gran_finale is awarded by refreshFinalTrophy
+      const upTo = Math.min(targetLevel, entry.levels.length);
+      for (let lvl = 1; lvl <= upTo; lvl++) {
+        await db.query(
+          `INSERT INTO achievements(user_id, achievement_id, level, unlocked_at)
+           VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING`,
+          [req.userId, entry.id, lvl, now]
+        );
+        inserted++;
+      }
+    }
+
+    // Check if gran_finale now qualifies (will insert its rows automatically).
+    await refreshFinalTrophy(req.userId);
+
+    res.json({ ok: true, inserted });
+  } catch (e) {
+    console.error('[dev-set-trophies]', e);
     res.status(500).json({ error: 'server_error' });
   }
 });

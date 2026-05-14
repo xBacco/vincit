@@ -130,6 +130,7 @@ export const adminWipeBets       = (roomId)                 => req('DELETE', roo
 export const getAchievements = ()           => req('GET',  '/achievements');
 export const unlockSecretAchievement = (id, level = 1) => req('POST', `/achievements/secret/${id}/unlock`, { level });
 export const resetMyAchievements = ()       => req('DELETE', '/achievements/mine');
+export const devSetTrophyLevel = (targetLevel) => req('POST', '/achievements/mine/dev-set', { targetLevel });
 
 // Comment thread under a bet — everyone in the room can read & post.
 export const getBetMessages   = (betId)         => req('GET',    `/bets/${betId}/messages`);

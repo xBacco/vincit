@@ -4,7 +4,7 @@ import { useLang } from '../i18n.js';
 import * as api from '../api.js';
 import useBodyScrollLock from '../hooks/useBodyScrollLock.js';
 
-const CAT_ORDER = ['unique', 'positive', 'challenge', 'mission', 'shadow', 'social', 'secret'];
+const CAT_ORDER = ['unique', 'positive', 'challenge', 'mission', 'shadow', 'social', 'secret', 'finale'];
 
 // Tier color by current level reached (0 = locked)
 function tierFor(level) {
@@ -51,8 +51,9 @@ export default function TrophiesSection({ embedded = false, betsTick = 0 }) {
     const dbRow = unlockedByAch[a.id];
     const computed = data.progress[a.id];
     const secretMax = a.levels?.length || 1;
-    const p = a.secret
-      ? { current: dbRow ? dbRow.level : 0, level: dbRow?.level || 0, max_level: secretMax, target_next: secretMax > (dbRow?.level || 0) ? (dbRow?.level || 0) + 1 : null }
+    const isFromDB = a.secret || a.final;
+    const p = isFromDB
+      ? { current: dbRow ? dbRow.level : 0, level: dbRow?.level || 0, max_level: secretMax, target_next: null }
       : (computed || { current: 0, level: 0, max_level: a.levels?.length || 5, target_next: a.levels?.[0] || 0 });
     const levelsList = allLevelsByAch[a.id] || [];
     return {
@@ -100,6 +101,15 @@ export default function TrophiesSection({ embedded = false, betsTick = 0 }) {
   const totalLevels  = list.reduce((s, a) => s + (a.levels?.length || 5), 0);
   const maxedCount   = list.filter(a => a.progress.level >= a.progress.max_level).length;
   const totalTrophies = list.length;
+
+  // For each of the 5 gran_finale levels: how many non-final trophies (with
+  // max_level >= n) have already reached level n? Used by FinalTrophyTile.
+  const nonFinalList = list.filter(a => !a.final);
+  const finaleGoals = [1, 2, 3, 4, 5].map(n => {
+    const required = nonFinalList.filter(a => (a.levels?.length || 1) >= n);
+    const done = required.filter(a => a.progress.level >= n).length;
+    return { n, done, total: required.length, met: done === required.length };
+  });
 
   const fmtDate = ts => {
     if (!ts) return '';
@@ -236,6 +246,20 @@ export default function TrophiesSection({ embedded = false, betsTick = 0 }) {
           );
         }
 
+        if (cat === 'finale') {
+          return (
+            <div key={cat} style={{ marginBottom: 24, marginTop: 6 }}>
+              {items.map(a => (
+                <FinalTrophyTile
+                  key={a.id} a={a} t={t} fmtDate={fmtDate}
+                  finaleGoals={finaleGoals}
+                  onOpen={rect => setDetail({ a, rect })}
+                />
+              ))}
+            </div>
+          );
+        }
+
         return (
           <div key={cat} style={{marginBottom:18}}>
             <div style={{
@@ -251,8 +275,8 @@ export default function TrophiesSection({ embedded = false, betsTick = 0 }) {
 
       {detail && (
         <TrophyDetailPopover
+          key={detail.a.id}
           a={detail.a}
-          anchorRect={detail.rect}
           t={t}
           fmtDate={fmtDate}
           onClose={() => setDetail(null)}
@@ -269,7 +293,7 @@ export default function TrophiesSection({ embedded = false, betsTick = 0 }) {
 // dismiss-on-outside. Closes on ESC, scroll, resize, or clicking another
 // tile (the popover's mousedown-outside handler fires before the new
 // tile's click, so switching trophies feels instant).
-function TrophyDetailPopover({ a, anchorRect, t, fmtDate, onClose }) {
+function TrophyDetailPopover({ a, t, fmtDate, onClose }) {
   useBodyScrollLock();
   const masked = !!a.secret && !a.unlocked;
   const labelName = masked ? t('trophies.secret_locked')      : t('trophies.'+a.id);
@@ -285,41 +309,27 @@ function TrophyDetailPopover({ a, anchorRect, t, fmtDate, onClose }) {
   const popoverRef = useRef(null);
   const [pos, setPos] = useState(null);
   const POPOVER_W = 260;
-  const GAP = 10;
-  const MARGIN = 10;
+  const MARGIN = 12;
 
-  // Compute placement once anchorRect is known. We prefer below the tile
-  // and fall back to above; if neither fits, sit alongside it. Horizontal
-  // position is anchor-center clamped to the viewport so the popover never
-  // pokes off-screen on small grids.
+  // Random stable position — initialised once per mount so each new trophy
+  // opens at a different spot. key={a.id} on the parent ensures remount per trophy.
+  const [randX] = useState(() => Math.random());
+  const [randY] = useState(() => Math.random());
+
+  // Place the popover at a random position fully inside the viewport.
+  // Runs twice: once with estimated height (element hidden), then again
+  // after real height is measured — both produce a clamped position so
+  // the popover is always 100% visible without any scrolling.
   useLayoutEffect(() => {
-    if (!anchorRect) return;
     const vw = window.innerWidth;
     const vh = window.innerHeight;
-    // Measure actual height once rendered (first paint uses an estimate).
     const measured = popoverRef.current?.offsetHeight;
     const h = measured && measured > 0 ? measured : 210;
 
-    const anchorCx = anchorRect.left + anchorRect.width / 2;
-    let left = anchorCx - POPOVER_W / 2;
-    left = Math.max(MARGIN, Math.min(left, vw - POPOVER_W - MARGIN));
-
-    const spaceBelow = vh - anchorRect.bottom;
-    const spaceAbove = anchorRect.top;
-    let top, origin;
-    if (spaceBelow >= h + GAP) {
-      top = anchorRect.bottom + GAP;
-      origin = `${anchorCx - left}px 0`;
-    } else if (spaceAbove >= h + GAP) {
-      top = anchorRect.top - h - GAP;
-      origin = `${anchorCx - left}px 100%`;
-    } else {
-      // Tight viewport: pin to the side that has more room, clamped in.
-      top = Math.max(MARGIN, Math.min(anchorRect.top, vh - h - MARGIN));
-      origin = '50% 50%';
-    }
-    setPos({ left, top, origin });
-  }, [anchorRect, a.id]);
+    const left = MARGIN + randX * Math.max(0, vw - POPOVER_W - MARGIN * 2);
+    const top  = MARGIN + randY * Math.max(0, vh - h - MARGIN * 2);
+    setPos({ left, top, origin: '50% 50%' });
+  }, [randX, randY]);
 
   useEffect(() => {
     const onKey = e => { if (e.key === 'Escape') onClose?.(); };
@@ -758,6 +768,149 @@ function TrophyTile({ a, t, fmtDate, onOpen }) {
             </div>
           </>
         )}
+      </div>
+    </div>
+  );
+}
+
+// The ultimate endgame trophy — always visible, but locks until every other
+// trophy reaches the corresponding level. Levels 1–5 unlock progressively
+// as all trophies that can reach Lv N have reached Lv N.
+function FinalTrophyTile({ a, t, fmtDate, finaleGoals, onOpen }) {
+  const { level, max_level } = a.progress;
+  const isMax = level >= max_level;
+  const locked = level === 0;
+  const tierC = tierFor(level);
+
+  // nextGoal = progress data for the next level to unlock
+  const nextGoal = !isMax && finaleGoals[level] ? finaleGoals[level] : null;
+
+  const clickProps = {
+    role: 'button', tabIndex: 0,
+    onClick: e => onOpen?.(e.currentTarget.getBoundingClientRect()),
+    onKeyDown: e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen?.(e.currentTarget.getBoundingClientRect()); } },
+  };
+
+  const bg = isMax
+    ? 'linear-gradient(120deg, var(--gold) 0%, color-mix(in srgb, var(--pur) 80%, var(--gold)) 35%, var(--gold) 65%, color-mix(in srgb, var(--pur) 70%, var(--gold)) 100%)'
+    : locked
+      ? 'linear-gradient(180deg, var(--surf), var(--card))'
+      : `linear-gradient(135deg, ${tierC}1a 0%, var(--card) 100%)`;
+
+  const textMain  = isMax ? '#1a1530' : locked ? 'var(--dim)' : 'var(--txt)';
+  const textMuted = isMax ? 'rgba(26,21,48,.7)' : 'var(--dim)';
+
+  return (
+    <div {...clickProps} className={`card-hover${isMax ? ' pGold' : ''}`} style={{
+      position: 'relative', overflow: 'hidden',
+      padding: '28px 24px',
+      borderRadius: 20,
+      background: bg,
+      backgroundSize: isMax ? '300% 100%' : undefined,
+      animation: isMax ? 'shimmer 6s linear infinite' : undefined,
+      border: locked
+        ? '1px dashed var(--brd)'
+        : isMax
+          ? '2px solid color-mix(in srgb, var(--gold) 70%, #fff)'
+          : `2px solid ${tierC}88`,
+      boxShadow: locked ? 'none' : `0 12px 48px -10px ${tierC}55`,
+      cursor: 'pointer',
+      display: 'flex', alignItems: 'center', gap: 24,
+    }}>
+      {isMax && <>
+        <div aria-hidden style={{ position:'absolute', top:10, right:18, fontSize:16, opacity:.7, animation:'bcStreakTap 2.4s ease-in-out infinite' }}>✨</div>
+        <div aria-hidden style={{ position:'absolute', bottom:12, left:24, fontSize:13, opacity:.5 }}>✦</div>
+        <div aria-hidden style={{ position:'absolute', top:16, left:'45%', fontSize:10, opacity:.45, animation:'bcStreakTap 3s 1s ease-in-out infinite' }}>✦</div>
+      </>}
+
+      {/* Icon */}
+      <div style={{
+        fontSize: 88, lineHeight: 1, flexShrink: 0,
+        filter: locked
+          ? 'grayscale(1) opacity(.35)'
+          : `drop-shadow(0 8px 32px ${tierC}88)`,
+      }}>{a.icon}</div>
+
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{
+          fontSize: 9, letterSpacing: 2.5, textTransform: 'uppercase', fontWeight: 800,
+          fontFamily: "'Manrope',sans-serif",
+          color: locked ? 'var(--dim)' : isMax ? 'rgba(26,21,48,.7)' : tierC,
+        }}>{t('trophies.cat_finale')}</div>
+
+        <div style={{
+          fontFamily: "'Cormorant Garamond',serif", fontStyle: 'italic',
+          fontSize: 30, fontWeight: 700, lineHeight: 1.05, marginTop: 4,
+          letterSpacing: '-0.01em',
+          color: textMain,
+          textShadow: isMax ? '0 1px 0 rgba(255,255,255,.4)' : undefined,
+        }}>{t('trophies.gran_finale')}</div>
+
+        <div style={{
+          fontSize: 12.5, lineHeight: 1.45, marginTop: 6, maxWidth: 380,
+          color: locked ? 'var(--mut)' : textMuted,
+          textShadow: isMax ? '0 1px 0 rgba(255,255,255,.25)' : undefined,
+        }}>{isMax ? t('trophies.gran_finale_maxed') : t('trophies.gran_finale_desc')}</div>
+
+        <div style={{ marginTop: 14 }}>
+          {/* Level bar when unlocked */}
+          {!locked && (
+            <>
+              <div style={{ display: 'flex', gap: 4 }}>
+                {Array.from({ length: max_level }).map((_, idx) => (
+                  <div key={idx} style={{
+                    flex: 1, height: 7, borderRadius: 3,
+                    background: idx < level
+                      ? (isMax ? 'rgba(26,21,48,.55)' : tierC)
+                      : (isMax ? 'rgba(26,21,48,.2)' : 'var(--mut)22'),
+                    boxShadow: idx < level && !isMax ? `0 0 6px ${tierC}66` : 'none',
+                  }} />
+                ))}
+              </div>
+              <div style={{
+                marginTop: 6, fontSize: 9, letterSpacing: 1.5, fontWeight: 700,
+                fontFamily: "'Manrope',sans-serif", color: isMax ? 'rgba(26,21,48,.6)' : textMuted,
+              }}>
+                {isMax
+                  ? `👑 MAX · ${fmtDate(a.unlockedAt)}`
+                  : nextGoal
+                    ? t('trophies.gran_finale_progress', { done: nextGoal.done, total: nextGoal.total, n: nextGoal.n })
+                    : null}
+              </div>
+            </>
+          )}
+          {/* Locked: show progress bar toward L1 */}
+          {locked && nextGoal && (
+            <>
+              <div style={{ height: 5, background: 'var(--mut)22', borderRadius: 3, overflow: 'hidden' }}>
+                <div style={{
+                  height: '100%',
+                  width: `${nextGoal.total ? (nextGoal.done / nextGoal.total) * 100 : 0}%`,
+                  background: 'var(--gold)', transition: 'width .5s',
+                }} />
+              </div>
+              <div style={{
+                marginTop: 5, fontSize: 9, letterSpacing: 1.5, fontWeight: 700,
+                fontFamily: "'Manrope',sans-serif", color: 'var(--dim)',
+              }}>
+                {t('trophies.gran_finale_progress', { done: nextGoal.done, total: nextGoal.total, n: 1 })}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Level badge */}
+      <div style={{
+        flexShrink: 0, alignSelf: 'flex-start',
+        padding: '6px 14px', borderRadius: 999,
+        background: locked ? 'var(--mut)11' : isMax ? 'rgba(26,21,48,.3)' : `${tierC}22`,
+        border: locked ? '1px dashed var(--brd)' : `1px solid ${isMax ? 'rgba(26,21,48,.5)' : tierC + '66'}`,
+        fontSize: 11, fontWeight: 800, letterSpacing: '.1em', textTransform: 'uppercase',
+        fontFamily: "'Manrope',sans-serif",
+        color: locked ? 'var(--mut)' : isMax ? '#1a1530' : tierC,
+      }}>
+        {locked ? `🔒 ${t('trophies.locked')}` : isMax ? 'MAX 👑' : `Lv ${level}/${max_level}`}
       </div>
     </div>
   );

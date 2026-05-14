@@ -396,7 +396,7 @@ const TRANSLATIONS = {
       detail_unlocked:'Sbloccato il', detail_first:'Primo sblocco', detail_max:'Livello MAX', detail_level:'Livello', detail_locked:'Trofeo ancora bloccato',
       counter_trophies:'Trofei completati', counter_levels:'Livelli sbloccati',
       filter_all:'Tutti', filter_unlocked:'Sbloccati', filter_locked:'Da sbloccare', filter_max:'MAX',
-      cat_positive:'Vittorie', cat_challenge:'Sfide', cat_mission:'Missioni', cat_shadow:'Lato oscuro', cat_social:'Sociale', cat_unique:'Pietre miliari', cat_secret:'Segreti',
+      cat_positive:'Vittorie', cat_challenge:'Sfide', cat_mission:'Missioni', cat_shadow:'Lato oscuro', cat_social:'Sociale', cat_unique:'Pietre miliari', cat_secret:'Segreti', cat_finale:'Grande Finale',
 
       // Positive
       first_bet:'Creatore',           first_bet_desc:'Bet che hai creato in totale.',
@@ -465,6 +465,12 @@ const TRANSLATIONS = {
       secret_hero_some:'{n} su {total} scoperti — ne mancano ancora',
       secret_hero_all:'Tutti i segreti svelati ✨',
       egg_first_tip:'✨ Questi easter egg si attivano con 3 click sull\'emoji',
+
+      // Grande Finale
+      gran_finale:'Il Grande Finale',
+      gran_finale_desc:'Il trofeo definitivo. Si sblocca solo dopo aver conquistato ogni altro obiettivo — inclusi tutti gli easter egg.',
+      gran_finale_maxed:'Hai raggiunto la perfezione assoluta. Nulla di più alto esiste.',
+      gran_finale_progress:'{done}/{total} trofei al Lv {n}',
     },
     dashboard_extra: {
       streak_short:'GIORNI',
@@ -1096,7 +1102,7 @@ const TRANSLATIONS = {
       detail_unlocked:'Unlocked on', detail_first:'First unlock', detail_max:'MAX level', detail_level:'Level', detail_locked:'Trophy still locked',
       counter_trophies:'Completed trophies', counter_levels:'Levels unlocked',
       filter_all:'All', filter_unlocked:'Unlocked', filter_locked:'Locked', filter_max:'Maxed',
-      cat_positive:'Wins', cat_challenge:'Challenges', cat_mission:'Missions', cat_shadow:'Dark side', cat_social:'Social', cat_unique:'Milestones', cat_secret:'Secrets',
+      cat_positive:'Wins', cat_challenge:'Challenges', cat_mission:'Missions', cat_shadow:'Dark side', cat_social:'Social', cat_unique:'Milestones', cat_secret:'Secrets', cat_finale:'Grand Finale',
 
       first_bet:'Creator',            first_bet_desc:'Total bets you have created.',
       wins:'Wins',                    wins_desc:'Total bets won.',
@@ -1158,6 +1164,12 @@ const TRANSLATIONS = {
       secret_hero_some:'{n} of {total} uncovered — keep looking',
       secret_hero_all:'All secrets unveiled ✨',
       egg_first_tip:'✨ These easter eggs trigger with 3 taps on the emoji',
+
+      // Grand Finale
+      gran_finale:'The Grand Finale',
+      gran_finale_desc:'The ultimate trophy. Unlocks only after conquering every other goal — including all easter eggs.',
+      gran_finale_maxed:'You have reached absolute perfection. Nothing greater exists.',
+      gran_finale_progress:'{done}/{total} trophies at Lv {n}',
     },
     dashboard_extra: {
       streak_short:'DAY STREAK',

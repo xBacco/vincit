@@ -77,8 +77,15 @@ const CATALOG = [
   // egg_* secrets are owned (server enforces; client never calls the
   // unlock endpoint for this id). `hiddenUntilEarned` keeps it invisible
   // in the trophy grid until awarded, so the player doesn't even know
-  // it exists. Must stay LAST in the catalog so it renders at the end.
+  // it exists.
   { id: 'egg_master',     icon: '👑', category: 'secret',    levels: [1], secret: true, hiddenUntilEarned: true },
+
+  // ─── Grande Finale ──────────────────────────────────────────────────────
+  // Always visible but requires completing every other trophy at the
+  // corresponding level. L1 also requires egg_master (i.e. all eggs done).
+  // `final: true` tells the frontend and computeProgressFor to skip it from
+  // the standard ladder — awarded exclusively via refreshFinalTrophy.
+  { id: 'gran_finale', icon: '🌟', category: 'finale', levels: [1, 2, 3, 4, 5], final: true },
 ];
 
 // Whitelist of secret achievement IDs that the easter-egg endpoint accepts.
@@ -157,6 +164,8 @@ async function unlockSecret(userId, achievementId, level = 1) {
             url:   '/',
           });
         } catch (e) { console.error('[egg_master notify]', e); }
+        // egg_master may have just satisfied gran_finale L1 requirements
+        await refreshFinalTrophy(userId);
       }
     }
   } catch (e) { console.error('[egg_master check]', e); }
@@ -420,6 +429,7 @@ async function computeProgressFor(userId) {
 
   const out = {};
   for (const entry of CATALOG) {
+    if (entry.final) continue; // awarded separately by refreshFinalTrophy
     const current = CURRENT[entry.id] ?? 0;
     let level = 0;
     for (let i = entry.levels.length - 1; i >= 0; i--) {
@@ -436,6 +446,59 @@ async function computeProgressFor(userId) {
     };
   }
   return out;
+}
+
+// Check whether gran_finale should level up and insert any new levels.
+// Called from refreshAchievements (after every bet resolution) and from
+// unlockSecret (right after egg_master is awarded, which may satisfy L1).
+async function refreshFinalTrophy(userId) {
+  try {
+    const { rows: existing } = await db.query(
+      `SELECT achievement_id, MAX(level)::int AS max_level
+       FROM achievements WHERE user_id=$1 GROUP BY achievement_id`,
+      [userId]
+    );
+    const haveMax = Object.fromEntries(existing.map(r => [r.achievement_id, r.max_level]));
+
+    // For level n: every non-final catalog entry with levels.length >= n must have haveMax >= n.
+    const nonFinalEntries = CATALOG.filter(e => !e.final);
+    let targetLevel = 0;
+    for (let n = 1; n <= 5; n++) {
+      const required = nonFinalEntries.filter(e => e.levels.length >= n);
+      if (required.every(e => (haveMax[e.id] || 0) >= n)) targetLevel = n;
+      else break;
+    }
+
+    const currentLevel = haveMax['gran_finale'] || 0;
+    if (targetLevel <= currentLevel) return [];
+
+    const newLevels = [];
+    for (let lvl = currentLevel + 1; lvl <= targetLevel; lvl++) {
+      const { rowCount } = await db.query(
+        `INSERT INTO achievements(user_id, achievement_id, level, unlocked_at)
+         VALUES($1,'gran_finale',$2,$3) ON CONFLICT DO NOTHING`,
+        [userId, lvl, Date.now()]
+      );
+      if (rowCount > 0) newLevels.push(lvl);
+    }
+
+    if (newLevels.length) {
+      try {
+        if (await isPrefEnabled(userId, 'on_resolved')) {
+          const topLvl = newLevels[newLevels.length - 1];
+          sendPushToUser(userId, {
+            title: topLvl === 1 ? '🌟 Il Grande Finale sbloccato!' : `🌟 Il Grande Finale — Livello ${topLvl}!`,
+            body: 'Hai raggiunto un traguardo leggendario — controlla la collezione',
+            url: '/',
+          });
+        }
+      } catch (e) { console.error('[gran_finale notify]', e); }
+    }
+    return newLevels;
+  } catch (e) {
+    console.error('[gran_finale refresh]', e);
+    return [];
+  }
 }
 
 async function refreshAchievements(userId) {
@@ -478,6 +541,7 @@ async function refreshAchievements(userId) {
         url:   '/',
       });
     }
+    await refreshFinalTrophy(userId);
     return newUnlocks;
   } catch (e) {
     console.error('[achievements] refresh failed', e);

@@ -17,12 +17,15 @@ export default function CommentModal({ bet, onSave, onSkip }) {
           “{bet.title}”
         </div>
         <div style={{fontSize:13,color:"var(--dim)",marginBottom:14,lineHeight:1.5}}>{t('comment.prompt')}</div>
+        {/* No autoFocus — on mobile the popup is shown right after a
+            resolve, and auto-focusing the textarea immediately pops the
+            on-screen keyboard, which is jarring. User taps the field
+            themselves when they actually want to type. */}
         <textarea
           value={comment}
           onChange={e => setComment(e.target.value.slice(0, 280))}
           placeholder={t('comment.placeholder')}
           rows={4}
-          autoFocus
           style={{
             width:"100%",
             background:"transparent",

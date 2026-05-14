@@ -1379,7 +1379,7 @@ export default function App() {
             return null;
           }
           return (<>
-            {view === 'dashboard' && <DashboardView user={user} profiles={profiles} groupMembers={groupMembers} credits={credits} bets={bets} cats={cats} onCreate={() => setShowCreate(true)} onResolve={b => setResolveBet(b)} onReveal={b => setRevealBet(b)} onCounter={b => setCounterTarget(b)} onFlame={handleFlame} notifSince={notifSince} isDesktop={isDesktop} reactions={reactions} onReaction={handleReaction} onReactionPhoto={handleReactionPhoto} onDelete={handleDelete} onEdit={b => setEditingBet(b)} onAccept={handleAccept} onReject={handleReject} can={can} onGoToVault={goToVault} onConfirmOutcome={handleConfirmOutcome} onWithdrawResolve={handleWithdrawResolve} onOvertime={b => setOvertimeBet(b)} onEggUnlock={onEggFired} onOpenDie={() => setDieRollOpen(true)} onOpenIceEgg={() => setIceEggOpen(true)} onOpenPhoenixEgg={() => setPhoenixEggOpen(true)} />}
+            {view === 'dashboard' && <DashboardView user={user} profiles={profiles} groupMembers={groupMembers} credits={credits} bets={bets} cats={cats} onCreate={() => setShowCreate(true)} onResolve={b => setResolveBet(b)} onReveal={b => setRevealBet(b)} onCounter={b => setCounterTarget(b)} onFlame={handleFlame} notifSince={notifSince} isDesktop={isDesktop} reactions={reactions} onReaction={handleReaction} onReactionPhoto={handleReactionPhoto} onDelete={handleDelete} onEdit={b => setEditingBet(b)} onAccept={handleAccept} onReject={handleReject} can={can} onGoToVault={goToVault} onGoToBets={() => { setBetsTab('open'); setView('bets'); }} onConfirmOutcome={handleConfirmOutcome} onWithdrawResolve={handleWithdrawResolve} onOvertime={b => setOvertimeBet(b)} onEggUnlock={onEggFired} onOpenDie={() => setDieRollOpen(true)} onOpenIceEgg={() => setIceEggOpen(true)} onOpenPhoenixEgg={() => setPhoenixEggOpen(true)} />}
             {view === 'bets'      && <BetsHubView
                 tab={betsTab} setTab={setBetsTab}
                 user={user} profiles={profiles} bets={bets} cats={cats} isDesktop={isDesktop}
@@ -1529,19 +1529,23 @@ export default function App() {
           the user fires them deliberately with a 3-tap combo — so we always
           re-fire the trophy popup on each trigger. The trophy queue already
           dedups same-id entries so spam-tapping won't stack popups. */}
+      {/* Egg trophy popup fires ONLY on the first unlock. After that the
+          user can still re-watch the animation (the overlay always plays
+          on triple-tap), but they don't get spammed with the same
+          "🏆 Trofeo sbloccato" banner + push every time. The unlock
+          endpoint returns alreadyUnlocked: true on subsequent calls so
+          we can branch on it client-side. */}
       <IceEggOverlay open={iceEggOpen} onClose={() => {
         setIceEggOpen(false);
         api.unlockSecretAchievement('egg_ice')
-          .then(() => onEggFired('egg_ice'))
+          .then(r => { if (!r?.alreadyUnlocked) onEggFired('egg_ice'); })
           .catch(e => console.error('[egg_ice] unlock failed', e));
       }} />
 
-      {/* Easter egg #5: 🔥 inferno — 3 taps on the win-streak emoji (same
-          always-fire-popup pattern as egg_ice above). */}
       <PhoenixEggOverlay open={phoenixEggOpen} onClose={() => {
         setPhoenixEggOpen(false);
         api.unlockSecretAchievement('egg_phoenix')
-          .then(() => onEggFired('egg_phoenix'))
+          .then(r => { if (!r?.alreadyUnlocked) onEggFired('egg_phoenix'); })
           .catch(e => console.error('[egg_phoenix] unlock failed', e));
       }} />
 

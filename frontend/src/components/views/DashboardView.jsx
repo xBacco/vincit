@@ -51,11 +51,12 @@ const S = {
 // here intentionally stays still — the animation lives in the overlay so
 // the dashboard stays visually clean.
 
-export default function DashboardView({user,profiles,groupMembers,credits,bets,cats,onCreate,onResolve,onReveal,onCounter,onFlame,notifSince,isDesktop,reactions,onReaction,onReactionPhoto,onDelete,onEdit,onAccept,onReject,can,onGoToVault,onConfirmOutcome,onWithdrawResolve,onOvertime,onEggUnlock,onOpenDie,onOpenIceEgg,onOpenPhoenixEgg}){
+export default function DashboardView({user,profiles,groupMembers,credits,bets,cats,onCreate,onResolve,onReveal,onCounter,onFlame,notifSince,isDesktop,reactions,onReaction,onReactionPhoto,onDelete,onEdit,onAccept,onReject,can,onGoToVault,onGoToBets,onConfirmOutcome,onWithdrawResolve,onOvertime,onEggUnlock,onOpenDie,onOpenIceEgg,onOpenPhoenixEgg}){
   const { t, lang } = useLang();
-  // "Apri lista bet" overlay — null when closed, 'won' / 'lost' when open.
-  // Triggered by tapping the V / P stat tiles in the score card.
-  const [betListOpen, setBetListOpen] = useState(null);
+  // Bet-detail modal payload. Set when the user taps a single V/P badge
+  // in the form trail — opens BetListModal scoped to just that one bet
+  // so they can see "which bet was this".
+  const [betListData, setBetListData] = useState(null);
   // 3-tap activation state for the streak-emoji easter eggs (ice / phoenix).
   // Each tap pulses the emoji + resets a 1.8s timeout; the 3rd tap inside
   // that window opens the matching overlay. Counter resets after firing.
@@ -313,14 +314,39 @@ export default function DashboardView({user,profiles,groupMembers,credits,bets,c
     </div>
   );
 
-  const recentResolved=bets.filter(b=>b.creator===user&&["won","lost"].includes(b.status)).length>0&&(
-    <>
-      <SecLabel mt={16}>{t('dashboard.recent')}</SecLabel>
-      {bets.filter(b=>b.creator===user&&["won","lost"].includes(b.status)).slice(-3).reverse().map(b=>(
-        <BetCard key={b.id} bet={b} user={user} profiles={profiles} cats={cats} onFlame={onFlame} onCounter={onCounter} isDesktop={isDesktop} reactions={reactions} onReaction={onReaction} onReactionPhoto={onReactionPhoto} can={can} onDelete={onDelete} onEdit={onEdit}/>
-      ))}
-    </>
-  );
+  const recentResolved = (() => {
+    const all = bets.filter(b => b.creator === user && ['won','lost'].includes(b.status));
+    if (all.length === 0) return false;
+    // Always show the 3 newest. Sort by resolvedAt (fallback createdAt) so
+    // newest sits on top — `.slice(-3).reverse()` only works if the source
+    // is already chronological, which `bets` isn't guaranteed to be.
+    const newest3 = [...all]
+      .sort((a, b) => (b.resolvedAt || b.createdAt || 0) - (a.resolvedAt || a.createdAt || 0))
+      .slice(0, 3);
+    const hasMore = all.length > 3;
+    return (
+      <>
+        <SecLabel mt={16}>{t('dashboard.recent')}</SecLabel>
+        {newest3.map(b => (
+          <BetCard key={b.id} bet={b} user={user} profiles={profiles} cats={cats} onFlame={onFlame} onCounter={onCounter} isDesktop={isDesktop} reactions={reactions} onReaction={onReaction} onReactionPhoto={onReactionPhoto} can={can} onDelete={onDelete} onEdit={onEdit}/>
+        ))}
+        {hasMore && onGoToBets && (
+          <button onClick={onGoToBets}
+            style={{
+              marginTop: 10, padding: '10px 14px', width: '100%',
+              background: 'transparent', border: '1px dashed var(--brd)',
+              borderRadius: 12, cursor: 'pointer',
+              color: 'var(--gold)', fontFamily: "'Manrope',sans-serif",
+              fontSize: 11, fontWeight: 700, letterSpacing: '.14em',
+              textTransform: 'uppercase',
+              WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation',
+            }}>
+            {t('dashboard.see_all_bets')} →
+          </button>
+        )}
+      </>
+    );
+  })();
 
   // Hero greeting strip (welcome + balance + quick KPI)
   const myProfile = profiles[user] || {};
@@ -344,11 +370,12 @@ export default function DashboardView({user,profiles,groupMembers,credits,bets,c
 
   // Last 5 resolved bets (won/lost) for the W/L "form guide" trail under the
   // streak pill. Oldest-left, newest-right — same convention as football form.
+  // We keep the full bet object (not just status) so each badge can open
+  // a one-bet detail modal on tap.
   const lastFive = [...bets]
     .filter(b => b.creator === user && ['won','lost'].includes(b.status))
     .sort((a,b) => (a.resolvedAt || a.createdAt || 0) - (b.resolvedAt || b.createdAt || 0))
-    .slice(-5)
-    .map(b => b.status);
+    .slice(-5);
 
   // 3-tap handler — triggers the matching egg overlay on the third tap within
   // 1.8s. Gated on a real ≥3 streak: easter eggs are a celebration of being
@@ -435,27 +462,36 @@ export default function DashboardView({user,profiles,groupMembers,credits,bets,c
           — {t('dashboard_extra.trail_label')}
         </span>
         <span style={{display:'flex', gap: isDesktop ? 8 : 6, marginLeft: 'auto'}}>
-          {lastFive.map((s, i) => {
-            const won = s === 'won';
+          {lastFive.map((b, i) => {
+            const won = b.status === 'won';
             const badgeBg = won ? 'var(--grn)' : 'var(--red)';
             const isLatest = i === lastFive.length - 1;
             const fade = lastFive.length === 1 ? 1
               : 0.55 + (i / (lastFive.length - 1)) * 0.45;
             const dim = isDesktop ? 42 : 34;
             return (
-              <span key={i} style={{
-                width: dim, height: dim, borderRadius: 8,
-                background: badgeBg,
-                display:'flex', alignItems:'center', justifyContent:'center',
-                fontFamily:"'Manrope',sans-serif",
-                fontSize: isDesktop ? 18 : 15, fontWeight: 800,
-                color:'#fff',
-                opacity: fade,
-                transform: isLatest ? 'scale(1.1)' : 'scale(1)',
-                boxShadow: isLatest
-                  ? `0 4px 14px ${badgeBg}88, 0 0 18px ${badgeBg}55`
-                  : `0 2px 6px ${badgeBg}22`,
-              }}>{t(won ? 'dashboard_extra.trail_won' : 'dashboard_extra.trail_lost')}</span>
+              <button key={b.id || i}
+                onClick={() => setBetListData({
+                  title: won ? t('comment.won') : t('comment.lost'),
+                  accentColor: badgeBg,
+                  bets: [b],
+                })}
+                aria-label={`${won ? 'Vittoria' : 'Sconfitta'}: ${b.title}`}
+                style={{
+                  width: dim, height: dim, borderRadius: 8,
+                  background: badgeBg, border: 'none', padding: 0,
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  fontFamily:"'Manrope',sans-serif",
+                  fontSize: isDesktop ? 18 : 15, fontWeight: 800,
+                  color:'#fff', cursor: 'pointer',
+                  opacity: fade,
+                  transform: isLatest ? 'scale(1.1)' : 'scale(1)',
+                  boxShadow: isLatest
+                    ? `0 4px 14px ${badgeBg}88, 0 0 18px ${badgeBg}55`
+                    : `0 2px 6px ${badgeBg}22`,
+                  transition: 'transform .15s, box-shadow .15s',
+                  WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation',
+                }}>{t(won ? 'dashboard_extra.trail_won' : 'dashboard_extra.trail_lost')}</button>
             );
           })}
         </span>
@@ -578,8 +614,8 @@ export default function DashboardView({user,profiles,groupMembers,credits,bets,c
           rack. */}
       {totalMy > 0 && (() => {
         const cells = [
-          {l:t('stats_view.won'),   v:myWon.length,  c:'var(--grn)', onClick:() => setBetListOpen('won')},
-          {l:t('stats_view.lost'),  v:myLost.length, c:'var(--red)', onClick:() => setBetListOpen('lost')},
+          {l:t('stats_view.won'),   v:myWon.length,  c:'var(--grn)'},
+          {l:t('stats_view.lost'),  v:myLost.length, c:'var(--red)'},
           {l:t('stats_view.win_rate'), v:`${wr}%`,   c: wr>=50 ? 'var(--grn)' : 'var(--red)'},
           {l:t('dashboard.total_bets'), v:totalMy + myAct.length + mySec.length, c:'var(--gold)'},
         ];
@@ -599,42 +635,21 @@ export default function DashboardView({user,profiles,groupMembers,credits,bets,c
             paddingTop:18, borderTop:'1px solid var(--rule)',
             alignItems:'flex-start',
           }}>
-            {cells.map((s, idx) => {
-              const clickable = !!s.onClick;
-              const Tag = clickable ? 'button' : 'div';
-              return (
-                <Tag key={s.l}
-                  {...(clickable ? {
-                    onClick: s.onClick,
-                    'aria-label': `${s.l} — apri lista`,
-                  } : {})}
-                  style={{
-                    flex:1, minWidth:0,
-                    paddingTop: yOffsets[idx],
-                    paddingLeft: 6, paddingRight: 6,
-                    display:'flex', flexDirection:'column',
-                    alignItems: anchors[idx],
-                    textAlign: aligns[idx],
-                    transform: `translateX(${nudges[idx]}px)`,
-                    borderLeft: idx === 0 ? 'none' : '1px solid var(--rule)',
-                    background: 'transparent', border: 'none',
-                    cursor: clickable ? 'pointer' : 'default',
-                    color: 'inherit', fontFamily: 'inherit',
-                    WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation',
-                  }}>
-                  <div className="bc-num" style={{
-                    fontSize: 'clamp(22px, 5vw, 34px)', color:s.c, lineHeight:1,
-                    textDecoration: clickable ? 'underline' : 'none',
-                    textDecorationStyle: 'dotted', textDecorationThickness: '1px',
-                    textUnderlineOffset: '4px',
-                    textDecorationColor: clickable ? `${s.c}55` : 'transparent',
-                  }}>{s.v}</div>
-                  <div className="bc-meta" style={{marginTop:6, fontSize:8}}>
-                    {s.l}{clickable ? ' ▸' : ''}
-                  </div>
-                </Tag>
-              );
-            })}
+            {cells.map((s, idx) => (
+              <div key={s.l} style={{
+                flex:1, minWidth:0,
+                paddingTop: yOffsets[idx],
+                paddingLeft: 6, paddingRight: 6,
+                display:'flex', flexDirection:'column',
+                alignItems: anchors[idx],
+                textAlign: aligns[idx],
+                transform: `translateX(${nudges[idx]}px)`,
+                borderLeft: idx === 0 ? 'none' : '1px solid var(--rule)',
+              }}>
+                <div className="bc-num" style={{fontSize: 'clamp(22px, 5vw, 34px)', color:s.c, lineHeight:1}}>{s.v}</div>
+                <div className="bc-meta" style={{marginTop:6, fontSize:8}}>{s.l}</div>
+              </div>
+            ))}
           </div>
         );
       })()}
@@ -676,14 +691,13 @@ export default function DashboardView({user,profiles,groupMembers,credits,bets,c
       )}
 
       <BetListModal
-        open={!!betListOpen}
-        title={betListOpen === 'won' ? t('stats_view.won') : t('stats_view.lost')}
-        accentColor={betListOpen === 'won' ? 'var(--grn)' : 'var(--red)'}
-        bets={betListOpen === 'won' ? myWon : (betListOpen === 'lost' ? myLost : [])}
+        open={!!betListData}
+        title={betListData?.title}
+        accentColor={betListData?.accentColor || 'var(--gold)'}
+        bets={betListData?.bets || []}
         profiles={profiles}
         userId={user}
-        emptyHint={t('dashboard.no_active_sub')}
-        onClose={() => setBetListOpen(null)}
+        onClose={() => setBetListData(null)}
       />
     </div>
   );

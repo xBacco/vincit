@@ -44,6 +44,49 @@ export default function GroupInfoModal({ group, userId, onClose, onLeft, onDelet
     }
   };
 
+  // Native share sheet on mobile, clipboard fallback on desktop / older
+  // browsers. The link carries the invite code as ?join= so the recipient
+  // lands logged-in straight onto the join-attempt path.
+  const shareLink = async () => {
+    const origin = (typeof window !== 'undefined' && window.location)
+      ? window.location.origin : '';
+    const url = `${origin}/?join=${encodeURIComponent(group.invite_code || '')}`;
+    const text = t('group_info.share_link_msg', {
+      name: group.name || '',
+      emoji: group.emoji || '🎲',
+      url,
+    });
+    try {
+      if (typeof navigator !== 'undefined' && navigator.share) {
+        await navigator.share({ title: group.name || 'BetCouple', text, url });
+        return;
+      }
+    } catch { /* user cancelled share — fall through to copy */ }
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(url);
+      toast.success(t('group_info.share_link_copied'));
+    } else {
+      prompt('Copy the link:', url);
+    }
+  };
+
+  // Render-friendly expiry label.  Returns { text, tone: 'ok'|'warn'|'bad'|'muted' }.
+  const expiryInfo = (() => {
+    const exp = group.invite_expires_at;
+    if (exp == null) return { text: t('group_info.no_expiry'), tone: 'muted' };
+    const ms = Number(exp) - Date.now();
+    if (ms <= 0) return { text: t('group_info.expired_label'), tone: 'bad' };
+    const oneHour = 60 * 60 * 1000;
+    const oneDay  = 24 * oneHour;
+    if (ms < oneHour) return { text: t('group_info.expires_soon'), tone: 'warn' };
+    if (ms < oneDay)  return { text: t('group_info.expires_in_hours', { n: Math.ceil(ms / oneHour) }), tone: 'warn' };
+    if (ms < 2 * oneDay) return { text: t('group_info.expires_in_day'), tone: 'warn' };
+    return { text: t('group_info.expires_in_days', { n: Math.floor(ms / oneDay) }), tone: 'ok' };
+  })();
+  const expiryColor = {
+    ok: 'var(--dim)', warn: 'var(--gold)', bad: 'var(--red)', muted: 'var(--mut)',
+  }[expiryInfo.tone];
+
   const startEdit = () => {
     setEditName(group.name);
     setEditEmoji(group.emoji || '🎲');
@@ -106,7 +149,7 @@ export default function GroupInfoModal({ group, userId, onClose, onLeft, onDelet
     if (!window.confirm(t('group_info.regen_confirm'))) return;
     try {
       const res = await api.regenerateCode(group.id);
-      onRenamed?.({ ...group, invite_code: res.invite_code });
+      onRenamed?.({ ...group, invite_code: res.invite_code, invite_expires_at: res.invite_expires_at });
     } catch (e) { console.error(e); }
   };
 
@@ -243,7 +286,7 @@ export default function GroupInfoModal({ group, userId, onClose, onLeft, onDelet
                 color:'var(--gold)', letterSpacing:8, marginBottom:14, userSelect:'all' }}>
                 {group.invite_code ?? '—'}
               </div>
-              <div style={{ display:'flex', gap:8, justifyContent:'center' }}>
+              <div style={{ display:'flex', gap:8, justifyContent:'center', flexWrap:'wrap' }}>
                 <button onClick={copyCode} style={{
                   ...S.btn, padding:'8px 20px',
                   border:'1px solid var(--gold)',
@@ -251,6 +294,15 @@ export default function GroupInfoModal({ group, userId, onClose, onLeft, onDelet
                   color:      copied ? '#07060f'     : 'var(--gold)',
                 }}>
                   {copied ? t('group_info.copied') : t('group_info.copy')}
+                </button>
+                <button onClick={shareLink} disabled={expiryInfo.tone === 'bad'} style={{
+                  ...S.btn, padding:'8px 18px',
+                  border:'1px solid var(--gold)',
+                  background:'var(--gold)', color:'#1a1530',
+                  opacity: expiryInfo.tone === 'bad' ? 0.4 : 1,
+                  cursor: expiryInfo.tone === 'bad' ? 'not-allowed' : 'pointer',
+                }}>
+                  🔗 {t('group_info.share_link')}
                 </button>
                 {isOwner && (
                   <button onClick={handleRegenCode} style={{
@@ -262,7 +314,10 @@ export default function GroupInfoModal({ group, userId, onClose, onLeft, onDelet
                   </button>
                 )}
               </div>
-              <div style={{ fontSize:11, color:'var(--dim)', marginTop:10 }}>
+              <div style={{ fontSize:11, color: expiryColor, marginTop:10, fontWeight: expiryInfo.tone === 'bad' || expiryInfo.tone === 'warn' ? 700 : 500 }}>
+                {expiryInfo.text}
+              </div>
+              <div style={{ fontSize:11, color:'var(--dim)', marginTop:4 }}>
                 {t('group_info.invite_hint')}
               </div>
             </div>

@@ -659,6 +659,60 @@ export default function App() {
     lsSet('bc_active_group', id);
   };
 
+  // Share-link auto-join: handle `?join=CODE` on first load. We hold the
+  // pending code in state across the auth gate, then fire one attempt as
+  // soon as the user is logged in and groups are loaded. Cleaned up from
+  // the URL either way so a refresh doesn't keep re-trying.
+  const [pendingJoinCode, setPendingJoinCode] = useState(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const code = new URL(window.location.href).searchParams.get('join');
+      return code ? code.toUpperCase().trim() : null;
+    } catch { return null; }
+  });
+  const clearJoinFromUrl = () => {
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('join');
+      window.history.replaceState({}, '', url.toString());
+    } catch {}
+  };
+  useEffect(() => {
+    if (!pendingJoinCode || !authUser || !groupsLoaded) return;
+    // Already member of a group with this code? Just switch.
+    const existing = groups.find(g => g.invite_code === pendingJoinCode);
+    if (existing) {
+      switchGroup(existing.id);
+      setPendingJoinCode(null);
+      clearJoinFromUrl();
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const group = await api.joinGroup(pendingJoinCode);
+        if (cancelled) return;
+        handleGroupCreated(group);
+        toast.success(`✓ Sei nel gruppo ${group.emoji || ''} ${group.name}`.trim());
+      } catch (e) {
+        const code = e?.data?.error;
+        const msg =
+          code === 'already_member' ? t('group.err_already_member')
+          : code === 'group_full'    ? t('group.err_full')
+          : code === 'invite_expired' ? t('group.err_invite_expired')
+          : t('group.err_invalid_code');
+        toast.error(msg);
+      } finally {
+        if (!cancelled) {
+          setPendingJoinCode(null);
+          clearJoinFromUrl();
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingJoinCode, authUser, groupsLoaded]);
+
   useEffect(() => {
     if (!activeGroupId || !token) return;
     api.getGroupMembers(activeGroupId).then(setGroupMembers).catch(() => {});

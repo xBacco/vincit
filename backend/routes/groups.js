@@ -7,9 +7,11 @@ const { requireOwner, requirePermission, PERMISSIONS } = require('../middleware/
 const { refreshAchievements } = require('../achievements.js');
 
 const CHARSET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 function genCode() {
   return Array.from(crypto.randomBytes(6), b => CHARSET[b % CHARSET.length]).join('');
 }
+function inviteExpiryFromNow() { return Date.now() + INVITE_TTL_MS; }
 
 async function uniqueCode() {
   for (let i = 0; i < 10; i++) {
@@ -24,7 +26,7 @@ async function uniqueCode() {
 router.get('/', async (req, res) => {
   try {
     const fetchGroups = () => db.query(
-      `SELECT r.id, r.name, r.emoji, r.invite_code, r.max_size,
+      `SELECT r.id, r.name, r.emoji, r.invite_code, r.invite_expires_at, r.max_size,
               r.acceptance_threshold, r.max_stake, ug.role, ug.permissions,
               (SELECT COUNT(*) FROM user_groups WHERE group_id = r.id) AS member_count,
               (SELECT GREATEST(COALESCE(MAX(b.created_at),0), COALESCE(MAX(b.resolved_at),0))
@@ -106,10 +108,11 @@ router.post('/', async (req, res) => {
     const code    = await uniqueCode();
     const groupId = `r_${crypto.randomUUID()}`;
     const now     = Date.now();
+    const expiresAt = now + INVITE_TTL_MS;
     await db.transaction(async client => {
       await client.query(
-        'INSERT INTO rooms (id, invite_code, created_at, name, emoji, max_size) VALUES ($1,$2,$3,$4,$5,$6)',
-        [groupId, code, now, name.trim() || 'My Group', emoji || '🎲', 10]
+        'INSERT INTO rooms (id, invite_code, invite_expires_at, created_at, name, emoji, max_size) VALUES ($1,$2,$3,$4,$5,$6,$7)',
+        [groupId, code, expiresAt, now, name.trim() || 'My Group', emoji || '🎲', 10]
       );
       await client.query(
         'INSERT INTO user_groups (group_id, user_id, role, joined_at) VALUES ($1,$2,$3,$4)',
@@ -120,7 +123,7 @@ router.post('/', async (req, res) => {
         [groupId, req.userId]
       );
     });
-    res.json({ id: groupId, name: name.trim() || 'My Group', emoji: emoji || '🎲', invite_code: code, role: 'owner', member_count: '1' });
+    res.json({ id: groupId, name: name.trim() || 'My Group', emoji: emoji || '🎲', invite_code: code, invite_expires_at: expiresAt, role: 'owner', member_count: '1' });
   } catch (e) { console.error(e); res.status(500).json({ error: 'server_error' }); }
 });
 
@@ -144,6 +147,13 @@ router.post('/join', async (req, res) => {
   try {
     const { rows: [room] } = await db.query('SELECT * FROM rooms WHERE invite_code=$1', [code]);
     if (!room) return res.status(404).json({ error: 'invalid_code' });
+
+    // Treat NULL invite_expires_at as "legacy / no expiry" so codes from
+    // before the TTL existed keep working. Anything with a stored expiry
+    // is honored strictly.
+    if (room.invite_expires_at != null && Number(room.invite_expires_at) < Date.now()) {
+      return res.status(410).json({ error: 'invite_expired' });
+    }
 
     const { rows: [existing] } = await db.query(
       'SELECT 1 FROM user_groups WHERE group_id=$1 AND user_id=$2',
@@ -232,13 +242,19 @@ router.delete('/:id/members/:userId', async (req, res) => {
   } catch (e) { console.error(e); res.status(500).json({ error: 'Server error' }); }
 });
 
-// POST /api/groups/:id/regenerate-code — new invite code (manage_members)
+// POST /api/groups/:id/regenerate-code — new invite code (manage_members).
+// Always re-arms the 7-day TTL: regenerating is also the user-friendly
+// "extend my invite link" gesture.
 router.post('/:id/regenerate-code', async (req, res) => {
   try {
     if (!(await requirePermission(req, res, 'manage_members', req.params.id))) return;
-    const newCode = await uniqueCode();
-    await db.query('UPDATE rooms SET invite_code=$1 WHERE id=$2', [newCode, req.params.id]);
-    res.json({ invite_code: newCode });
+    const newCode   = await uniqueCode();
+    const expiresAt = inviteExpiryFromNow();
+    await db.query(
+      'UPDATE rooms SET invite_code=$1, invite_expires_at=$2 WHERE id=$3',
+      [newCode, expiresAt, req.params.id]
+    );
+    res.json({ invite_code: newCode, invite_expires_at: expiresAt });
   } catch (e) { console.error(e); res.status(500).json({ error: 'Server error' }); }
 });
 

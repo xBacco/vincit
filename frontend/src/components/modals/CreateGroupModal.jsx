@@ -38,9 +38,10 @@ export default function CreateGroupModal({ onCreated, onClose }) {
       const group = await api.joinGroup(code);
       onCreated(group);
     } catch (e) {
-      if (e.data?.error === 'already_member')  setError(t('group.err_already_member'));
-      else if (e.data?.error === 'group_full') setError(t('group.err_full'));
-      else                                     setError(t('group.err_invalid_code'));
+      if (e.data?.error === 'already_member')       setError(t('group.err_already_member'));
+      else if (e.data?.error === 'group_full')      setError(t('group.err_full'));
+      else if (e.data?.error === 'invite_expired') setError(t('group.err_invite_expired'));
+      else                                          setError(t('group.err_invalid_code'));
     } finally { setLoading(false); }
   };
 

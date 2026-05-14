@@ -126,6 +126,10 @@ const pool = new Pool({
     ALTER TABLE rooms ADD COLUMN IF NOT EXISTS max_size             INTEGER DEFAULT 10;
     ALTER TABLE rooms ADD COLUMN IF NOT EXISTS acceptance_threshold INTEGER DEFAULT 20;
     ALTER TABLE rooms ADD COLUMN IF NOT EXISTS max_stake            INTEGER DEFAULT 100;
+    -- Invite-code expiry (ms epoch). NULL on rooms created before this
+    -- column existed → treated as "no expiry" for backward-compat; any
+    -- new code / regen sets a 7-day TTL.
+    ALTER TABLE rooms ADD COLUMN IF NOT EXISTS invite_expires_at    BIGINT;
 
     CREATE TABLE IF NOT EXISTS user_groups (
       group_id  TEXT NOT NULL REFERENCES rooms(id)  ON DELETE CASCADE,

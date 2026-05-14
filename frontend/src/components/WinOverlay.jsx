@@ -1,12 +1,20 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 
 const COLS = ['#c8973f','#e8b84b','#2ecc7f','#5b8af0','#a07ef5','#f97316','#e05555','#2ec8c8'];
 
 export default function WinOverlay({ amount, onDone }) {
+  // Stash the latest callback in a ref so the timeout effect can run
+  // ONCE on mount. Why: the parent passes a fresh arrow on every render
+  // (`() => setWinAnimQueue(q => q.slice(1))`); if we depend on `onDone`,
+  // each parent re-render (SSE refresh, sync tick) clears and resets the
+  // 3s timer, so the trophy never goes away on a busy app.
+  const onDoneRef = useRef(onDone);
+  useEffect(() => { onDoneRef.current = onDone; }, [onDone]);
+
   useEffect(() => {
-    const t = setTimeout(onDone, 3000);
+    const t = setTimeout(() => onDoneRef.current?.(), 3000);
     return () => clearTimeout(t);
-  }, [onDone]);
+  }, []);
 
   const particles = Array.from({length: 48}, (_, i) => {
     const angle = (i / 48) * Math.PI * 2;

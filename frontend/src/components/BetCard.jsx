@@ -139,7 +139,7 @@ export default function BetCard({bet,user,profiles,cats,onResolve,onReveal,onCou
         ?<Btn variant="gold" sm style={isDesktop?{}:{flex:1}} onClick={()=>onReveal(bet)}>{t('bet_card.reveal')}</Btn>
         :(!hasProposal&&!isDisputed)
           ? pendingResolve
-            ? <Btn variant="ghost" sm disabled style={{...(isDesktop?{}:{flex:1}), opacity:.55, cursor:'default'}}>⏳ {t('bet_card.declare_pending') ?? 'In invio…'}</Btn>
+            ? <Btn variant="ghost" sm disabled style={{...(isDesktop?{}:{flex:1}), opacity:.55, cursor:'default'}}>{t('bet_card.declare_pending') ?? '⏳ In invio…'}</Btn>
             : <Btn variant="grn" sm style={isDesktop?{}:{flex:1}} onClick={()=>onResolve(bet)}>{hasOpponent?t('bet_card.propose_resolve'):t('bet_card.declare')}</Btn>
           :null
       )}
@@ -557,6 +557,8 @@ export default function BetCard({bet,user,profiles,cats,onResolve,onReveal,onCou
             stake: cb?.stake || 0,
           };
         });
+        const votedCount = rows.filter(r => r.voted).length;
+        const pendingCount = rows.length - votedCount;
         return (
           <div onClick={() => setInviteesPeekOpen(false)} style={{
             position:'fixed', inset:0, zIndex:200,
@@ -565,29 +567,68 @@ export default function BetCard({bet,user,profiles,cats,onResolve,onReveal,onCou
             display:'flex', alignItems:'center', justifyContent:'center', padding:16,
           }}>
             <div onClick={e => e.stopPropagation()} className="bIn" style={{
-              width:'100%', maxWidth:420, maxHeight:'min(80dvh, 640px)',
+              width:'100%', maxWidth:440, maxHeight:'min(82dvh, 660px)',
               background:'var(--surf)', border:'1px solid var(--rule)',
-              borderTop:'4px solid var(--blu)', borderRadius:14,
+              borderTop:'4px solid var(--blu)', borderRadius:16,
               boxShadow:'0 30px 80px rgba(0,0,0,.55)',
-              display:'flex', flexDirection:'column',
+              display:'flex', flexDirection:'column', overflow:'hidden',
             }}>
               <div style={{
-                padding:'18px 20px 12px', borderBottom:'1px solid var(--rule)',
-                display:'flex', alignItems:'center', justifyContent:'space-between', gap:12,
+                padding:'22px 22px 18px', borderBottom:'1px solid var(--rule)',
+                display:'flex', alignItems:'flex-start', gap:14,
               }}>
-                <div>
-                  <div className="bc-meta" style={{fontSize:8}}>— {t('bet_card.invitees_title')}</div>
+                <div style={{flex:1, minWidth:0}}>
                   <div style={{
-                    fontFamily:"'Cormorant Garamond',serif", fontStyle:'italic',
-                    fontSize:20, fontWeight:700, color:'var(--blu)', marginTop:2,
-                  }}>"{bet.title}"</div>
-                  <div className="bc-meta" style={{fontSize:9, marginTop:6}}>
-                    {rows.length} {rows.length === 1 ? t('bet_card.invitee_one') : t('bet_card.invitee_many')}
+                    fontFamily:"'Manrope',sans-serif",
+                    fontSize:10, color:'var(--blu)', letterSpacing:'.22em',
+                    textTransform:'uppercase', fontWeight:700,
+                  }}>👥 {t('bet_card.invitees_title')}</div>
+                  <div style={{
+                    fontFamily:"'Playfair Display',serif",
+                    fontSize:22, fontWeight:700, color:'var(--txt)',
+                    marginTop:8, lineHeight:1.2, letterSpacing:'-0.01em',
+                    overflow:'hidden', textOverflow:'ellipsis',
+                    display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical',
+                  }}>{bet.title}</div>
+                  <div style={{
+                    display:'flex', flexWrap:'wrap', gap:6, marginTop:10,
+                  }}>
+                    <span style={{
+                      fontSize:11, fontWeight:600, padding:'3px 10px', borderRadius:999,
+                      background:'var(--blu)22', color:'var(--blu)',
+                      border:'1px solid var(--blu)44',
+                      fontFamily:"'Manrope',sans-serif",
+                    }}>
+                      {rows.length} {rows.length === 1 ? t('bet_card.invitee_one') : t('bet_card.invitee_many')}
+                    </span>
+                    {votedCount > 0 && (
+                      <span style={{
+                        fontSize:11, fontWeight:600, padding:'3px 10px', borderRadius:999,
+                        background:'var(--grn)22', color:'var(--grn)',
+                        border:'1px solid var(--grn)44',
+                        fontFamily:"'Manrope',sans-serif",
+                      }}>
+                        ✓ {votedCount}
+                      </span>
+                    )}
+                    {pendingCount > 0 && (
+                      <span style={{
+                        fontSize:11, fontWeight:600, padding:'3px 10px', borderRadius:999,
+                        background:'var(--gold)22', color:'var(--gold)',
+                        border:'1px solid var(--gold)44',
+                        fontFamily:"'Manrope',sans-serif",
+                      }}>
+                        ⏳ {pendingCount}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <button onClick={() => setInviteesPeekOpen(false)} aria-label="Chiudi" style={{
-                  background:'transparent', border:'none', cursor:'pointer',
-                  color:'var(--dim)', fontSize:22, padding:'4px 8px',
+                  background:'transparent', border:'1px solid var(--rule)',
+                  cursor:'pointer', borderRadius:'50%',
+                  color:'var(--dim)', fontSize:14, width:32, height:32,
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  flexShrink:0, lineHeight:1,
                 }}>✕</button>
               </div>
               <div style={{
@@ -596,35 +637,47 @@ export default function BetCard({bet,user,profiles,cats,onResolve,onReveal,onCou
               }}>
                 {rows.map(r => (
                   <div key={r.id} style={{
-                    display:'flex', alignItems:'center', gap:12,
-                    padding:'12px 20px', borderBottom:'1px solid var(--rule)',
+                    display:'flex', alignItems:'center', gap:14,
+                    padding:'14px 22px', borderBottom:'1px solid var(--rule)',
                   }}>
                     <div style={{
-                      width:36, height:36, borderRadius:'50%',
+                      width:40, height:40, borderRadius:'50%',
                       background:`${r.color}33`, border:`2px solid ${r.color}88`,
                       display:'flex', alignItems:'center', justifyContent:'center',
-                      overflow:'hidden', fontSize:18, lineHeight:1, flexShrink:0,
+                      overflow:'hidden', fontSize:20, lineHeight:1, flexShrink:0,
                     }}>
                       {r.avatarUrl
                         ? <img src={r.avatarUrl} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
                         : r.avatar}
                     </div>
                     <div style={{flex:1, minWidth:0}}>
-                      <div style={{fontSize:14, fontWeight:700, color:'var(--txt)'}}>{r.name}</div>
-                      <div style={{fontSize:11, color:'var(--dim)', marginTop:2}}>
+                      <div style={{
+                        fontSize:14, fontWeight:700, color:'var(--txt)',
+                        overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
+                      }}>{r.name}</div>
+                      <div style={{
+                        fontSize:12, marginTop:3,
+                        color: r.voted ? 'var(--dim)' : 'var(--gold)',
+                        fontFamily:"'Manrope',sans-serif",
+                      }}>
                         {r.voted
-                          ? `${r.side === 'yes' ? '✅ ' + t('bet_card.yes') : '❌ ' + t('bet_card.no')} · ${r.stake} ₡`
+                          ? `${r.stake} ₡`
                           : t('bet_card.invitee_pending')}
                       </div>
                     </div>
-                    {r.voted && (
+                    {r.voted ? (
                       <span style={{
-                        fontSize:10, fontWeight:800, letterSpacing:'.08em', textTransform:'uppercase',
-                        padding:'4px 10px', borderRadius:999,
+                        fontSize:11, fontWeight:800, letterSpacing:'.08em', textTransform:'uppercase',
+                        padding:'5px 12px', borderRadius:999,
                         background: r.side === 'yes' ? 'var(--grn)22' : 'var(--red)22',
                         color: r.side === 'yes' ? 'var(--grn)' : 'var(--red)',
                         border: `1px solid ${r.side === 'yes' ? 'var(--grn)55' : 'var(--red)55'}`,
-                      }}>{r.side === 'yes' ? 'SÌ' : 'NO'}</span>
+                        fontFamily:"'Manrope',sans-serif",
+                      }}>{r.side === 'yes' ? t('bet_card.yes') : t('bet_card.no')}</span>
+                    ) : (
+                      <span style={{
+                        fontSize:16, opacity:.55, flexShrink:0,
+                      }} aria-hidden>⏳</span>
                     )}
                   </div>
                 ))}

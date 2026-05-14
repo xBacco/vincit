@@ -359,11 +359,12 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
         if (!localStorage.getItem('bc_egg_jackpot_popped_v2')) popThisJackpot = true;
       } catch {}
       api.unlockSecretAchievement('egg_jackpot')
-        .then(() => {
+        .then(r => {
           if (popThisJackpot) {
             onEggUnlock?.('egg_jackpot');
             try { localStorage.setItem('bc_egg_jackpot_popped_v2', '1'); } catch {}
           }
+          if (r?.metaUnlocked) onEggUnlock?.('egg_master');
         })
         .catch(e => console.error('[egg_jackpot] unlock failed', e));
       // Phase transition timers — kept in a ref so user-skip can clear them.

@@ -73,10 +73,34 @@ const CATALOG = [
   { id: 'egg_jackpot',    icon: '🎰', category: 'secret',    levels: [1], secret: true }, // create a bet titled "777" / "JACKPOT" / "💎💎💎"
   { id: 'egg_ice',        icon: '❄️', category: 'secret',    levels: [1], secret: true }, // triple-tap the ❄️ on the loss-streak pill
   { id: 'egg_phoenix',    icon: '🔥', category: 'secret',    levels: [1], secret: true }, // triple-tap the 🔥 on the win-streak pill (kept ID for DB compat; displayed name "Inferno")
+  // Meta — completion trophy. Unlocks automatically when ALL the other
+  // egg_* secrets are owned (server enforces; client never calls the
+  // unlock endpoint for this id). `hiddenUntilEarned` keeps it invisible
+  // in the trophy grid until awarded, so the player doesn't even know
+  // it exists. Must stay LAST in the catalog so it renders at the end.
+  { id: 'egg_master',     icon: '👑', category: 'secret',    levels: [1], secret: true, hiddenUntilEarned: true },
 ];
 
 // Whitelist of secret achievement IDs that the easter-egg endpoint accepts.
-const SECRET_IDS = new Set(CATALOG.filter(e => e.secret).map(e => e.id));
+// Excludes egg_master — that one is server-awarded only when the user
+// already has all the other egg_* secrets, never client-triggered.
+const SECRET_IDS = new Set(
+  CATALOG.filter(e => e.secret && e.id !== 'egg_master').map(e => e.id)
+);
+const EGG_TROPHY_IDS = Array.from(SECRET_IDS); // the 5 "real" eggs
+
+// Returns true if the user already holds every egg_* trophy except
+// egg_master itself. Used by unlockSecret to award the meta trophy
+// automatically right after the fifth unlock.
+async function hasAllEggsUnlocked(userId) {
+  const { rows } = await db.query(
+    `SELECT achievement_id FROM achievements
+      WHERE user_id=$1 AND achievement_id = ANY($2)`,
+    [userId, EGG_TROPHY_IDS]
+  );
+  const have = new Set(rows.map(r => r.achievement_id));
+  return EGG_TROPHY_IDS.every(id => have.has(id));
+}
 
 async function unlockSecret(userId, achievementId) {
   if (!SECRET_IDS.has(achievementId)) {
@@ -108,7 +132,31 @@ async function unlockSecret(userId, achievementId) {
     });
   } catch (e) { console.error('[secret-unlock notify]', e); }
 
-  return { ok: true, alreadyUnlocked: false };
+  // Meta-trophy check: was that the fifth (and final) egg? If yes,
+  // award egg_master automatically. Return value includes a
+  // `metaUnlocked` flag so the client can pop a second celebration.
+  let metaUnlocked = false;
+  try {
+    if (await hasAllEggsUnlocked(userId)) {
+      const { rowCount } = await db.query(
+        `INSERT INTO achievements(user_id, achievement_id, level, unlocked_at)
+         VALUES($1,'egg_master',1,$2) ON CONFLICT DO NOTHING`,
+        [userId, Date.now()]
+      );
+      if (rowCount > 0) {
+        metaUnlocked = true;
+        try {
+          sendPushToUser(userId, {
+            title: '👑 Tutti gli easter egg sbloccati!',
+            body:  'Hai trovato la collezione completa — un ultimo trofeo è apparso',
+            url:   '/',
+          });
+        } catch (e) { console.error('[egg_master notify]', e); }
+      }
+    }
+  } catch (e) { console.error('[egg_master check]', e); }
+
+  return { ok: true, alreadyUnlocked: false, metaUnlocked };
 }
 
 // Returns map { id → { current, level, max_level, target_next, max_target } }

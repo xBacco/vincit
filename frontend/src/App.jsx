@@ -252,11 +252,12 @@ function DieRollOverlay({ open, onClose, onEggUnlock }) {
         localStorage.setItem(DIE_LS_KEY, '1');
       } catch {}
       api.unlockSecretAchievement('egg_dice')
-        .then(() => {
+        .then(r => {
           if (popThisRoll) {
             onEggUnlockRef.current?.('egg_dice');
             try { localStorage.setItem('bc_egg_dice_popped_v2', '1'); } catch {}
           }
+          if (r?.metaUnlocked) onEggUnlockRef.current?.('egg_master');
         })
         .catch(e => console.error('[egg_dice] unlock failed', e));
     }, 1300);
@@ -334,11 +335,12 @@ function CoinFlipOverlay({ open, onClose, onEggUnlock }) {
       localStorage.setItem(COIN_LS_KEY, '1');
     } catch {}
     api.unlockSecretAchievement('egg_coin')
-      .then(() => {
+      .then(r => {
         if (popThisFlip) {
           onEggUnlockRef.current?.('egg_coin');
           try { localStorage.setItem('bc_egg_coin_popped_v2', '1'); } catch {}
         }
+        if (r?.metaUnlocked) onEggUnlockRef.current?.('egg_master');
       })
       .catch(e => console.error('[egg_coin] unlock failed', e));
     const t2 = setTimeout(() => onCloseRef.current?.(), 5000);
@@ -387,6 +389,7 @@ const EGG_TROPHY_META = {
   egg_jackpot: { icon: '🎰' },
   egg_ice:     { icon: '❄️' },
   egg_phoenix: { icon: '🔥' },
+  egg_master:  { icon: '👑' },
 };
 
 const lsGet  = (k, fallback) => { try { const v = localStorage.getItem(k); return v !== null ? JSON.parse(v) : fallback; } catch { return fallback; } };
@@ -1587,14 +1590,22 @@ export default function App() {
       <IceEggOverlay open={iceEggOpen} onClose={() => {
         setIceEggOpen(false);
         api.unlockSecretAchievement('egg_ice')
-          .then(r => { if (!r?.alreadyUnlocked) onEggFired('egg_ice'); })
+          .then(r => {
+            if (!r?.alreadyUnlocked) onEggFired('egg_ice');
+            // metaUnlocked = the meta egg_master fired *now* on the
+            // server because this was the fifth and final egg.
+            if (r?.metaUnlocked) onEggFired('egg_master');
+          })
           .catch(e => console.error('[egg_ice] unlock failed', e));
       }} />
 
       <PhoenixEggOverlay open={phoenixEggOpen} onClose={() => {
         setPhoenixEggOpen(false);
         api.unlockSecretAchievement('egg_phoenix')
-          .then(r => { if (!r?.alreadyUnlocked) onEggFired('egg_phoenix'); })
+          .then(r => {
+            if (!r?.alreadyUnlocked) onEggFired('egg_phoenix');
+            if (r?.metaUnlocked) onEggFired('egg_master');
+          })
           .catch(e => console.error('[egg_phoenix] unlock failed', e));
       }} />
 

@@ -48,11 +48,18 @@ export default function TrophiesSection({ embedded = false, betsTick = 0 }) {
     };
   });
 
-  // Secret-trophy visibility: completely hidden until the user unlocks at
-  // least one of them. After the first unlock, the remaining secrets appear
-  // as anonymous "???" placeholders so the player knows there's more.
-  const secretsUnlocked = list.some(a => a.secret && a.unlocked);
-  const visibleList = list.filter(a => !a.secret || secretsUnlocked);
+  // Secret-trophy visibility:
+  //  - Regular secrets are completely hidden until at least one is unlocked.
+  //    After the first unlock, the rest become anonymous "???" placeholders.
+  //  - `hiddenUntilEarned` items (the meta egg_master) stay invisible even
+  //    after other secrets unlock, all the way until they're earned. This
+  //    way the player doesn't even know they exist before completion.
+  const secretsUnlocked = list.some(a => a.secret && !a.hiddenUntilEarned && a.unlocked);
+  const visibleList = list.filter(a => {
+    if (a.hiddenUntilEarned) return a.unlocked;
+    if (a.secret) return secretsUnlocked;
+    return true;
+  });
 
   const filtered = filter === 'unlocked' ? visibleList.filter(a => a.unlocked)
                 : filter === 'locked'    ? visibleList.filter(a => !a.unlocked)

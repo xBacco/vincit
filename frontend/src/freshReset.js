@@ -4,7 +4,7 @@
 // eggs replay from scratch on the target's next /me load.
 
 export const FRESH_ACCOUNT_LS_KEYS = [
-  'bc_egg_dice_popped_v2', 'bc_egg_dice_rolled',
+  'bc_egg_dice_popped_v2', 'bc_egg_dice_rolled', 'bc_egg_dice_faces', 'bc_egg_dice_l2_fired',
   'bc_egg_coin_popped_v2', 'bc_egg_coin_flipped',
   'bc_egg_ice_popped_v2',
   'bc_egg_phoenix_popped_v2',

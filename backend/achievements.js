@@ -68,7 +68,7 @@ const CATALOG = [
   // Hidden from the trophy list until the user unlocks AT LEAST one of
   // them; after the first unlock the remaining two appear as "???"
   // placeholders so the player knows there's more to find.
-  { id: 'egg_dice',       icon: '🎲', category: 'secret',    levels: [1], secret: true }, // all 6 faces rolled on the empty-state die
+  { id: 'egg_dice',       icon: '🎲', category: 'secret',    levels: [1, 6], secret: true }, // L1 = first roll, L2 = all 6 faces seen
   { id: 'egg_coin',       icon: '🪙', category: 'secret',    levels: [1], secret: true }, // first toss of the header credit-symbol coin
   { id: 'egg_jackpot',    icon: '🎰', category: 'secret',    levels: [1], secret: true }, // create a bet titled "777" / "JACKPOT" / "💎💎💎"
   { id: 'egg_ice',        icon: '❄️', category: 'secret',    levels: [1], secret: true }, // triple-tap the ❄️ on the loss-streak pill
@@ -102,21 +102,26 @@ async function hasAllEggsUnlocked(userId) {
   return EGG_TROPHY_IDS.every(id => have.has(id));
 }
 
-async function unlockSecret(userId, achievementId) {
+async function unlockSecret(userId, achievementId, level = 1) {
   if (!SECRET_IDS.has(achievementId)) {
     throw new Error('unknown_secret');
   }
-  // Was it already unlocked? If so, this call is a no-op.
+  const catalogEntry = CATALOG.find(e => e.id === achievementId);
+  const maxLevel = catalogEntry?.levels?.length || 1;
+  if (level < 1 || level > maxLevel) {
+    throw new Error('invalid_level');
+  }
+  // Was THAT level already inserted? If so, no-op.
   const { rows: existing } = await db.query(
-    'SELECT 1 FROM achievements WHERE user_id=$1 AND achievement_id=$2 AND level=1',
-    [userId, achievementId]
+    'SELECT 1 FROM achievements WHERE user_id=$1 AND achievement_id=$2 AND level=$3',
+    [userId, achievementId, level]
   );
   if (existing.length) return { ok: true, alreadyUnlocked: true };
 
   await db.query(
     `INSERT INTO achievements(user_id, achievement_id, level, unlocked_at)
-     VALUES($1,$2,1,$3) ON CONFLICT DO NOTHING`,
-    [userId, achievementId, Date.now()]
+     VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING`,
+    [userId, achievementId, level, Date.now()]
   );
 
   // Friendly push notification — secret trophies are explicit user

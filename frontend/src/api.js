@@ -128,7 +128,7 @@ export const adminDeleteBet      = (id)                     => req('DELETE', `/a
 export const adminWipeBets       = (roomId)                 => req('DELETE', roomId ? `/admin/bets?room=${encodeURIComponent(roomId)}` : '/admin/bets');
 
 export const getAchievements = ()           => req('GET',  '/achievements');
-export const unlockSecretAchievement = (id) => req('POST', `/achievements/secret/${id}/unlock`);
+export const unlockSecretAchievement = (id, level = 1) => req('POST', `/achievements/secret/${id}/unlock`, { level });
 export const resetMyAchievements = ()       => req('DELETE', '/achievements/mine');
 
 // Comment thread under a bet — everyone in the room can read & post.

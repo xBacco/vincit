@@ -25,10 +25,15 @@ router.get('/', async (req, res) => {
 // achievement is the reward; cheating costs nothing.
 router.post('/secret/:id/unlock', async (req, res) => {
   try {
-    const result = await unlockSecret(req.userId, req.params.id);
+    // Optional `level` in body — defaults to 1 for backward-compat with
+    // single-level secrets. egg_dice uses level=2 when the user has
+    // rolled all 6 distinct faces.
+    const level = Number.isFinite(req.body?.level) ? Math.floor(req.body.level) : 1;
+    const result = await unlockSecret(req.userId, req.params.id, level);
     res.json(result);
   } catch (e) {
     if (e.message === 'unknown_secret') return res.status(400).json({ error: 'unknown_secret' });
+    if (e.message === 'invalid_level') return res.status(400).json({ error: 'invalid_level' });
     console.error('[secret-unlock]', e);
     res.status(500).json({ error: 'server_error' });
   }

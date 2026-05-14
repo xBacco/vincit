@@ -34,11 +34,11 @@ export function CoinDisk({ size, children }) {
   );
 }
 
-// CROCE — the "tails" / design side. The italic Cormorant ampersand
-// matches the face stamped on the splash-screen coin, so the easter
-// egg reads as the same currency the brand opens with. Framed by 12
-// rim dots like a clock face + a sweeping laurel curve at the bottom.
-export function CoinFaceCroce({ size }) {
+// TESTA — the "heads" / official face. The italic Cormorant ampersand
+// matches the coin stamped on the splash screen, so the brand-defining
+// face is what shows up as "testa" on a coin flip. Framed by 12 rim
+// dots like a clock face + a sweeping laurel curve at the bottom.
+export function CoinFaceTesta({ size }) {
   return (
     <CoinDisk size={size}>
       <svg viewBox="-50 -50 100 100" style={{position:'absolute', inset:0, width:'100%', height:'100%'}} aria-hidden>
@@ -67,42 +67,49 @@ export function CoinFaceCroce({ size }) {
   );
 }
 
-// TESTA — the "heads" / value side. Big "777" in the same Playfair
-// Display Black numerals used by the credit balance hero, with a tiny ₡
-// suffix to underline the link to the app's currency.
-export function CoinFaceTesta({ size }) {
+// CROCE — the "tails" / value side. Redesigned: gone the cluttered
+// "★ BETCOUPLE ★ / FORTUNA · UN CREDITO" double-arc text. The 777 now
+// breathes inside a cleaner field: three stars on top, three on bottom,
+// the numerals enlarged in italic Playfair, and the ₡ glyph promoted
+// to a single dramatic line below them — reads as "777 = credito" at
+// a glance instead of competing with two arcs of microscopic text.
+export function CoinFaceCroce({ size }) {
   return (
     <CoinDisk size={size}>
       <svg viewBox="-50 -50 100 100" style={{position:'absolute', inset:0, width:'100%', height:'100%'}} aria-hidden>
-        <defs>
-          <path id="coinTopArc" d="M -38,2 A 38,38 0 0 1 38,2" fill="none"/>
-          <path id="coinBotArc" d="M -34,2 A 34,34 0 0 0 34,2" fill="none"/>
-        </defs>
-        <text fontSize="6" fontWeight="700" letterSpacing="3" fill="#3d2412"
-              fontFamily="Manrope,sans-serif" opacity=".7">
-          <textPath href="#coinTopArc" startOffset="50%" textAnchor="middle">★ BETCOUPLE ★</textPath>
-        </text>
-        <text fontSize="4" fontWeight="600" letterSpacing="2.5" fill="#3d2412"
-              fontFamily="Manrope,sans-serif" opacity=".55">
-          <textPath href="#coinBotArc" startOffset="50%" textAnchor="middle">FORTUNA · UN CREDITO</textPath>
-        </text>
+        {/* Top crown of three ornaments */}
+        {[-20, 0, 20].map(x => (
+          <text key={`top-${x}`} x={x} y={-32} fontSize="9" textAnchor="middle"
+            fill="#3d2412" opacity=".55" fontFamily="serif">✦</text>
+        ))}
+        {/* Bottom laurel sweep */}
+        <path d="M -34,18 Q 0,40 34,18" stroke="#3d2412" strokeWidth="1.2" opacity=".4" fill="none"/>
+        {[-22,-12,12,22].map(x => (
+          <ellipse key={`leaf-${x}`} cx={x} cy={26} rx="2.2" ry="4"
+            transform={`rotate(${x*2} ${x} 26)`} fill="#3d2412" opacity=".45"/>
+        ))}
       </svg>
-      {/* "777 ₡" — same Playfair Display Black typography as the credit
-          balance hero (`bc-num`). Engraved dark color since the coin is
-          already gold. */}
+
+      {/* 777 — italic Playfair, big and breathing. Same family as the
+          credit-balance hero so the numeral feels "of the app". */}
       <div style={{
-        display:'flex', alignItems:'baseline', gap: size*0.025,
-        fontFamily:"'Playfair Display',serif", fontWeight: 900,
-        fontFeatureSettings: "'lnum' 1, 'tnum' 1",
-        fontSize: size * 0.38, lineHeight: 1, letterSpacing: '-0.05em',
-        color: '#3d2412',
-        textShadow: '0 1px 0 rgba(255,255,255,.55), 0 -1px 0 rgba(0,0,0,.35)',
-        position: 'relative', zIndex: 1,
+        position:'relative', zIndex: 1,
+        display:'flex', flexDirection:'column', alignItems:'center', gap: size * 0.01,
+        transform: `translateY(${-size * 0.02}px)`,
       }}>
-        <span>777</span>
         <span style={{
-          fontSize: size * 0.16, fontWeight: 700, opacity: .7,
-          marginLeft: size * 0.01,
+          fontFamily:"'Playfair Display',serif", fontStyle:'italic', fontWeight: 900,
+          fontFeatureSettings: "'lnum' 1, 'tnum' 1",
+          fontSize: size * 0.46, lineHeight: .9, letterSpacing: '-0.04em',
+          color: '#3d2412',
+          textShadow: '0 1px 0 rgba(255,255,255,.55), 0 -1px 0 rgba(0,0,0,.35)',
+        }}>777</span>
+        <span style={{
+          fontFamily:"'Playfair Display',serif", fontWeight: 700,
+          fontSize: size * 0.16, lineHeight: 1,
+          color: '#3d2412', opacity: .75,
+          textShadow: '0 1px 0 rgba(255,255,255,.45)',
+          letterSpacing: '.04em',
         }}>₡</span>
       </div>
     </CoinDisk>

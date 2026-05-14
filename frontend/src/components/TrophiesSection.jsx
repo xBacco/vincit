@@ -33,12 +33,15 @@ export default function TrophiesSection({ embedded = false, betsTick = 0 }) {
   }
 
   // Secret achievements are computed via DB unlock (not via computeProgressFor),
-  // so we read their level straight off the unlocked rows.
+  // so we read their level straight off the unlocked rows. max_level
+  // comes from the catalog so multi-tier secrets (egg_dice: L1 = first
+  // roll, L2 = all 6 faces) display the right "X/Y" badge.
   const list = data.catalog.map(a => {
     const dbRow = unlockedByAch[a.id];
     const computed = data.progress[a.id];
+    const secretMax = a.levels?.length || 1;
     const p = a.secret
-      ? { current: dbRow ? 1 : 0, level: dbRow?.level || 0, max_level: 1, target_next: 1 }
+      ? { current: dbRow ? dbRow.level : 0, level: dbRow?.level || 0, max_level: secretMax, target_next: secretMax > (dbRow?.level || 0) ? (dbRow?.level || 0) + 1 : null }
       : (computed || { current: 0, level: 0, max_level: a.levels?.length || 5, target_next: a.levels?.[0] || 0 });
     return {
       ...a,
@@ -235,6 +238,75 @@ export default function TrophiesSection({ embedded = false, betsTick = 0 }) {
 function SecretTrophyTile({ a, t, fmtDate }) {
   const unlocked = a.unlocked;
   const masked = !unlocked;
+  // The completion-meta trophy (egg_master) gets a totally distinct
+  // visual treatment so it doesn't blend with the five eggs that fed
+  // into it: iridescent gradient, sparkle aura, full-width row, larger
+  // crown emoji, bold serif headline.
+  const isMeta = a.id === 'egg_master';
+  const { level, max_level } = a.progress;
+  const showLevel = unlocked && max_level > 1;
+
+  if (isMeta) {
+    return (
+      <div className="card-hover" style={{
+        position:'relative', overflow:'hidden',
+        padding:'24px 22px',
+        borderRadius: 18,
+        // Iridescent gradient — gold → purple → magenta with the gold
+        // shimmer keyframe so the background gently animates.
+        background: 'linear-gradient(120deg, var(--gold) 0%, color-mix(in srgb, var(--pur) 80%, var(--gold)) 35%, var(--gold) 65%, color-mix(in srgb, var(--pur) 70%, var(--gold)) 100%)',
+        backgroundSize: '300% 100%',
+        animation: 'shimmer 6s linear infinite',
+        border: '2px solid color-mix(in srgb, var(--gold) 70%, #fff)',
+        boxShadow: '0 12px 40px -8px var(--glow), 0 0 0 4px rgba(255,255,255,.06) inset',
+        gridColumn: '1 / -1',
+        display:'flex', alignItems:'center', gap: 18,
+      }}>
+        {/* Sparkle decorations */}
+        <div aria-hidden style={{
+          position:'absolute', top: 8, right: 14, fontSize: 14,
+          opacity: .7, animation: 'bcStreakTap 2.4s ease-in-out infinite',
+        }}>✨</div>
+        <div aria-hidden style={{
+          position:'absolute', bottom: 10, left: 18, fontSize: 12,
+          opacity: .5,
+        }}>✦</div>
+        {/* Crown emoji — bigger than the secret tiles around it */}
+        <div style={{
+          fontSize: 88, lineHeight: 1, flexShrink: 0,
+          filter: 'drop-shadow(0 6px 28px rgba(0,0,0,.45))',
+        }}>{a.icon}</div>
+        <div style={{ flex:1, minWidth: 0 }}>
+          <div style={{
+            fontSize: 9, letterSpacing: 2.5, color: 'rgba(255,255,255,.85)',
+            textTransform: 'uppercase', fontWeight: 800,
+            fontFamily: "'Manrope',sans-serif",
+          }}>{t('trophies.meta_kicker')}</div>
+          <div style={{
+            fontFamily: "'Cormorant Garamond',serif", fontStyle: 'italic',
+            fontSize: 28, fontWeight: 700, color: '#1a1530',
+            lineHeight: 1.05, marginTop: 2, letterSpacing: '-0.01em',
+            textShadow: '0 1px 0 rgba(255,255,255,.45)',
+          }}>{t('trophies.'+a.id)}</div>
+          <div style={{
+            fontSize: 12, color: '#1a1530', opacity: .85,
+            marginTop: 6, lineHeight: 1.4, fontWeight: 500,
+            textShadow: '0 1px 0 rgba(255,255,255,.35)',
+          }}>{t('trophies.'+a.id+'_desc')}</div>
+          {a.unlockedAt && (
+            <div style={{
+              marginTop: 10, fontSize: 9, letterSpacing: 1.5, fontWeight: 800,
+              color: '#1a1530',
+              textShadow: '0 1px 0 rgba(255,255,255,.4)',
+              textTransform: 'uppercase',
+              fontFamily:"'Manrope',sans-serif",
+            }}>👑 {fmtDate(a.unlockedAt)}</div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={unlocked ? 'card-hover pGold' : ''} style={{
       position:'relative', overflow:'hidden',
@@ -249,6 +321,19 @@ function SecretTrophyTile({ a, t, fmtDate }) {
       boxShadow: unlocked ? '0 6px 24px -10px var(--glow)' : 'none',
       minHeight: 150,
     }}>
+      {/* Multi-level tier badge in the corner for secrets with >1 level
+          (currently just egg_dice's 1/6 ↔ 6/6). MAX badge when full. */}
+      {showLevel && (
+        <div style={{
+          position:'absolute', top: 10, right: 10,
+          padding:'3px 8px', borderRadius: 999,
+          background: level >= max_level ? 'var(--gold)' : 'var(--gold)22',
+          color: level >= max_level ? '#1a1530' : 'var(--gold)',
+          border: '1px solid var(--gold)55',
+          fontSize: 9, fontWeight: 800, letterSpacing: '.08em',
+          fontFamily: "'Manrope',sans-serif", textTransform: 'uppercase',
+        }}>{level >= max_level ? 'MAX' : `${level}/${max_level}`}</div>
+      )}
       {/* Big emoji centerpiece — masked shows italic "?" in Playfair so it
           reads as a piece of editorial typography, not a placeholder. */}
       <div style={{

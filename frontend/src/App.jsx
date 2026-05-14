@@ -217,7 +217,13 @@ const COIN_LS_KEY = 'bc_egg_coin_flipped';
 // while the die tumbles, then lands on a random value. First roll ever
 // unlocks the secret trophy `egg_dice` (idempotent server-side, so
 // rolling repeatedly is safe).
+// Now stores a JSON array of distinct face numbers seen — used to
+// award level 2 once all 6 faces have been rolled. Legacy values of
+// '1' (the old "rolled at least once" marker) are honored as
+// "level 1 done".
 const DIE_LS_KEY = 'bc_egg_dice_rolled';
+const DIE_FACES_KEY = 'bc_egg_dice_faces';
+const DIE_L2_FIRED  = 'bc_egg_dice_l2_fired';
 
 function DieRollOverlay({ open, onClose, onEggUnlock }) {
   const [face, setFace] = React.useState(1);
@@ -247,17 +253,43 @@ function DieRollOverlay({ open, onClose, onEggUnlock }) {
       // failure burnt the popup permanently. v2 sets it only AFTER the
       // synthetic queue push actually runs.
       let popThisRoll = false;
+      let l2JustEarned = false;
       try {
         if (!localStorage.getItem('bc_egg_dice_popped_v2')) popThisRoll = true;
         localStorage.setItem(DIE_LS_KEY, '1');
+        // Track distinct faces seen across all rolls ever on this device.
+        // When the set hits 6 AND we haven't already fired the L2 trophy,
+        // flag for the second unlock below.
+        let seen = [];
+        try { seen = JSON.parse(localStorage.getItem(DIE_FACES_KEY) || '[]'); }
+        catch { seen = []; }
+        if (!Array.isArray(seen)) seen = [];
+        if (!seen.includes(finalValue)) seen.push(finalValue);
+        localStorage.setItem(DIE_FACES_KEY, JSON.stringify(seen));
+        if (seen.length >= 6 && !localStorage.getItem(DIE_L2_FIRED)) {
+          l2JustEarned = true;
+        }
       } catch {}
-      api.unlockSecretAchievement('egg_dice')
+      api.unlockSecretAchievement('egg_dice', 1)
         .then(r => {
           if (popThisRoll) {
             onEggUnlockRef.current?.('egg_dice');
             try { localStorage.setItem('bc_egg_dice_popped_v2', '1'); } catch {}
           }
           if (r?.metaUnlocked) onEggUnlockRef.current?.('egg_master');
+          // Level-2: rolled all 6 distinct faces. Fired AFTER L1 settles
+          // so the trophy banners don't stack on the same animation.
+          if (l2JustEarned) {
+            api.unlockSecretAchievement('egg_dice', 2)
+              .then(r2 => {
+                if (!r2?.alreadyUnlocked) {
+                  onEggUnlockRef.current?.('egg_dice');
+                  try { localStorage.setItem(DIE_L2_FIRED, '1'); } catch {}
+                }
+                if (r2?.metaUnlocked) onEggUnlockRef.current?.('egg_master');
+              })
+              .catch(e => console.error('[egg_dice L2] unlock failed', e));
+          }
         })
         .catch(e => console.error('[egg_dice] unlock failed', e));
     }, 1300);

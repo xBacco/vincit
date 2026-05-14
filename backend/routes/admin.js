@@ -42,6 +42,7 @@ router.get('/users', async (req, res) => {
     const { rows } = await db.query(`
       SELECT
         u.id, u.email, u.name, u.avatar, u.color_key,
+        u.is_admin,
         u.room_id AS legacy_room_id,
         u.created_at,
         (SELECT COUNT(*)::int FROM user_groups       WHERE user_id = u.id) AS group_count,
@@ -117,23 +118,64 @@ router.delete('/users/:id', async (req, res) => {
   try {
     const uid = req.params.id;
     await db.transaction(async (client) => {
-      // Manual cleanup for TEXT-only refs without FK constraints.
-      await client.query('DELETE FROM reactions          WHERE bettor = $1', [uid]);
+      // Reactions on bets involving the user (no FK from reactions→bets, so
+      // we have to clean them ourselves before nuking the bets themselves).
+      await client.query(`
+        DELETE FROM reactions
+        WHERE bettor = $1
+           OR bet_id IN (SELECT id FROM bets WHERE creator=$1 OR opponent=$1 OR target_user=$1)
+      `, [uid]);
       await client.query('DELETE FROM counter_bets       WHERE bettor = $1', [uid]);
+      // bets → counter_bets, bet_messages cascade via FK on bet_id.
       await client.query('DELETE FROM bets               WHERE creator = $1 OR opponent = $1 OR target_user = $1', [uid]);
       await client.query('DELETE FROM credits            WHERE "user" = $1',  [uid]);
       await client.query('DELETE FROM achievements       WHERE user_id = $1', [uid]);
       await client.query('DELETE FROM notification_prefs WHERE "user" = $1',  [uid]);
       await client.query('DELETE FROM push_subscriptions WHERE "user" = $1',  [uid]);
-      await client.query('DELETE FROM templates          WHERE creator = $1', [uid]).catch(() => {});
-      await client.query('DELETE FROM profiles           WHERE "user" = $1',  [uid]).catch(() => {});
-      // user_groups + friendships + friend_requests + password_resets cascade.
+      await client.query('DELETE FROM bet_templates      WHERE user_id = $1', [uid]);
+      await client.query('DELETE FROM profiles           WHERE "user" = $1',  [uid]);
+      // user_groups + friendships + friend_requests + password_resets + bet_messages cascade.
       await client.query('DELETE FROM users WHERE id = $1', [uid]);
     });
     res.json({ ok: true });
   } catch (e) {
     console.error('[admin:delete-user]', e);
-    res.status(500).json({ error: 'server_error' });
+    res.status(500).json({ error: e.message || 'server_error' });
+  }
+});
+
+// POST /api/admin/users/:id/reset-trophies — wipe every achievement row for
+// the target user. The client should also recompute progress on next state
+// fetch. Same effect as the "reset miei trofei" button but for any user.
+router.post('/users/:id/reset-trophies', async (req, res) => {
+  try {
+    const { rowCount } = await db.query(
+      'DELETE FROM achievements WHERE user_id=$1', [req.params.id]
+    );
+    res.json({ ok: true, deleted: rowCount });
+  } catch (e) {
+    console.error('[admin:reset-trophies]', e);
+    res.status(500).json({ error: e.message || 'server_error' });
+  }
+});
+
+// POST /api/admin/users/:id/toggle-admin — flip the is_admin flag. Guard
+// against an admin demoting themselves into a lockout. Returns the new state.
+router.post('/users/:id/toggle-admin', async (req, res) => {
+  try {
+    const targetId = req.params.id;
+    if (req.adminUserId && targetId === req.adminUserId) {
+      return res.status(400).json({ error: 'cannot_demote_self' });
+    }
+    const { rows: [u] } = await db.query(
+      'UPDATE users SET is_admin = NOT is_admin WHERE id=$1 RETURNING id, is_admin',
+      [targetId]
+    );
+    if (!u) return res.status(404).json({ error: 'not_found' });
+    res.json({ ok: true, is_admin: u.is_admin });
+  } catch (e) {
+    console.error('[admin:toggle-admin]', e);
+    res.status(500).json({ error: e.message || 'server_error' });
   }
 });
 

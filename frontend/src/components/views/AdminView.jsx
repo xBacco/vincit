@@ -118,6 +118,19 @@ export default function AdminView({ isDesktop }) {
     await api.adminSetPassword(uid, pw);
     setPwNew('');
   }, 'Password aggiornata ✓');
+  const resetTrophies = wrap(async (uid, who) => {
+    if (!window.confirm(`Cancellare TUTTI i trofei di ${who}?\n\nIncluso i 5 segreti. Verranno ricalcolati alla prossima azione (vincita, bet, etc.).`)) {
+      throw new Error('cancelled');
+    }
+    const r = await api.adminResetTrophies(uid);
+    toast.success(`Trofei azzerati (${r.deleted})`);
+  });
+  const toggleAdmin = wrap(async (uid, currentlyAdmin, who) => {
+    const action = currentlyAdmin ? 'rimuovere i privilegi admin a' : 'promuovere ad admin';
+    if (!window.confirm(`Sicuro di voler ${action} ${who}?`)) throw new Error('cancelled');
+    const r = await api.adminToggleAdmin(uid);
+    toast.success(r.is_admin ? '★ ora è admin' : 'admin rimosso');
+  });
 
   // ── Render ──────────────────────────────────────────────────────────
   const TabBtn = ({ id, label }) => {
@@ -327,6 +340,30 @@ export default function AdminView({ isDesktop }) {
                 </div>
               );
             })()}
+
+            <div style={S.card}>
+              <div style={S.label}>🏆 Reset trofei</div>
+              <div style={{ fontSize: 11, color: 'var(--mut)', marginTop: 4, marginBottom: 10 }}>
+                Cancella tutti i trofei di {u.name} (compresi i 5 segreti). Si ricalcolano alla prossima azione.
+              </div>
+              <button onClick={() => resetTrophies(u.id, u.name)} disabled={busy} style={S.btn()}>
+                Azzera trofei
+              </button>
+            </div>
+
+            <div style={S.card}>
+              <div style={S.label}>★ Ruolo admin</div>
+              <div style={{ fontSize: 11, color: 'var(--mut)', marginTop: 4, marginBottom: 10 }}>
+                {u.is_admin
+                  ? `${u.name} è admin e ha accesso a questo pannello.`
+                  : `${u.name} è un utente normale. Promuovendolo gli dai accesso al pannello admin.`}
+              </div>
+              <button onClick={() => toggleAdmin(u.id, u.is_admin, u.name)}
+                disabled={busy}
+                style={u.is_admin ? S.btn('danger') : S.btn()}>
+                {u.is_admin ? 'Rimuovi admin' : 'Promuovi ad admin'}
+              </button>
+            </div>
 
             <div style={{ ...S.raised, borderColor: 'var(--red)44' }}>
               <div style={{ ...S.label, color: 'var(--red)' }}>Danger zone</div>

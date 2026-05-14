@@ -1115,26 +1115,80 @@ export default function CreateModal({user,profiles,groupMembers,maxC,cats,settin
     </>);
   }
 
-  // ─── Mobile layout (bottom sheet, unchanged behavior) ─────────────────
-  const swipeStartY = useRef(null);
-  const handleSheetTouchStart = e => { swipeStartY.current = e.touches[0].clientY; };
-  const handleSheetTouchMove  = e => {
-    if (swipeStartY.current === null) return;
-    if (e.touches[0].clientY - swipeStartY.current > 72) { swipeStartY.current = null; onClose(); }
+  // ─── Mobile layout — realistic swipe-to-dismiss ────────────────────────
+  // The sheet follows the finger in real time (direct DOM mutation, no React
+  // re-renders during drag = no jank). On release: if dragged past the
+  // threshold it slides off screen then calls onClose; otherwise it springs
+  // back to its resting position.
+  const sheetRef   = useRef(null);
+  const backdropRef = useRef(null);
+  const swipeState = useRef({ startY: null, dragging: false });
+
+  const handleSheetTouchStart = e => {
+    // Only start drag from the handle area or when the sheet itself isn't scrolled
+    const sheet = sheetRef.current;
+    if (!sheet) return;
+    // Ignore if the sheet content is scrolled (user is reading, not dismissing)
+    if (sheet.scrollTop > 4) return;
+    swipeState.current = { startY: e.touches[0].clientY, dragging: true };
+    sheet.style.transition = 'none';
+    if (backdropRef.current) backdropRef.current.style.transition = 'none';
   };
-  const handleSheetTouchEnd   = () => { swipeStartY.current = null; };
+
+  const handleSheetTouchMove = e => {
+    const { startY, dragging } = swipeState.current;
+    if (!dragging || startY === null) return;
+    const dy = Math.max(0, e.touches[0].clientY - startY); // clamp: no upward drag
+    const sheet = sheetRef.current;
+    if (!sheet) return;
+    sheet.style.transform = `translateY(${dy}px)`;
+    // Fade backdrop as sheet moves down
+    if (backdropRef.current) {
+      const opacity = Math.max(0, 0.78 - (dy / 300) * 0.78);
+      backdropRef.current.style.background = `rgba(15,11,35,${opacity.toFixed(2)})`;
+    }
+  };
+
+  const handleSheetTouchEnd = e => {
+    const { startY, dragging } = swipeState.current;
+    if (!dragging || startY === null) return;
+    swipeState.current = { startY: null, dragging: false };
+    const sheet = sheetRef.current;
+    if (!sheet) return;
+    const dy = Math.max(0, (e.changedTouches[0]?.clientY ?? startY) - startY);
+    const DISMISS_THRESHOLD = 120;
+    if (dy > DISMISS_THRESHOLD) {
+      // Animate off screen then close
+      sheet.style.transition = 'transform 0.28s cubic-bezier(0.4,0,1,1)';
+      sheet.style.transform  = `translateY(110%)`;
+      if (backdropRef.current) {
+        backdropRef.current.style.transition = 'background 0.28s ease';
+        backdropRef.current.style.background = 'rgba(15,11,35,0)';
+      }
+      setTimeout(() => onClose(), 280);
+    } else {
+      // Spring back
+      sheet.style.transition = 'transform 0.35s cubic-bezier(0.34,1.56,0.64,1)';
+      sheet.style.transform  = 'translateY(0)';
+      if (backdropRef.current) {
+        backdropRef.current.style.transition = 'background 0.35s ease';
+        backdropRef.current.style.background = 'rgba(15,11,35,0.78)';
+      }
+    }
+  };
 
   return (<>
     {SlotMachine}
-    <div style={{position:"fixed",inset:0,background:"rgba(15,11,35,.78)",backdropFilter:"blur(6px)",WebkitBackdropFilter:"blur(6px)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:100}}>
+    <div ref={backdropRef} style={{position:"fixed",inset:0,background:"rgba(15,11,35,.78)",backdropFilter:"blur(6px)",WebkitBackdropFilter:"blur(6px)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:100}}>
       <div
+        ref={sheetRef}
         className="sUp"
         onTouchStart={handleSheetTouchStart}
         onTouchMove={handleSheetTouchMove}
         onTouchEnd={handleSheetTouchEnd}
         style={{position:'relative',background:"var(--surf)",borderRadius:"12px 12px 0 0",width:"100%",maxWidth:480,padding:"30px 26px 40px",maxHeight:"92vh",overflowY:"auto",borderTop:"1px solid var(--rule)",boxShadow:"0 -20px 60px rgba(0,0,0,.4)"}}
       >
-        {/* Drag handle — visual affordance for swipe-to-dismiss */}
+        {/* Drag handle */}
         <div style={{position:'absolute',top:10,left:'50%',transform:'translateX(-50%)',width:36,height:4,borderRadius:2,background:'var(--mut)',opacity:.6}}/>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:28}}>
           <div>

@@ -9,36 +9,36 @@ const CATALOG = [
   // ─── Positive ──────────────────────────────────────────────────────
   { id: 'first_bet',      icon: '🌱', category: 'positive',  levels: [1, 10, 50, 100, 250] },     // 5 — total bets created
   { id: 'wins',           icon: '🏆', category: 'positive',  levels: [1, 5, 25, 100, 250] },       // 5
-  { id: 'win_streak',     icon: '🔥', category: 'positive',  levels: [3, 5, 10, 15, 25] },        // 5
+  { id: 'win_streak',     icon: '🔥', category: 'positive',  levels: [3, 5, 10, 20] },             // 4 — capped at 20 in a row (was 25); >20 is statistically near-impossible
   { id: 'volume',         icon: '🎲', category: 'positive',  levels: [10, 50, 150, 400, 1000] },  // 5 — total resolved bets
   { id: 'earnings',       icon: '💎', category: 'positive',  levels: [100, 500, 2000, 5000, 15000] }, // 5
 
   // ─── Challenge ─────────────────────────────────────────────────────
-  { id: 'high_odds',      icon: '🌠', category: 'challenge', levels: [2, 3, 5, 10, 20] },         // 5
+  { id: 'high_odds',      icon: '🌠', category: 'challenge', levels: [3, 5, 10] },                 // 3 — "biggest odds won": dropped trivial L1=2, 10× already outsider-tier
   { id: 'daredevil',      icon: '🪂', category: 'challenge', levels: [3, 10, 25, 60, 150] },      // 5 — wins on odds ≥ 5
   { id: 'safe_bet',       icon: '🛡', category: 'challenge', levels: [10, 30, 75, 150, 300] },    // 5 — wins on odds ≤ 1.30
   { id: 'single_win',     icon: '💰', category: 'challenge', levels: [25, 100, 300, 800, 2500] }, // 5
   { id: 'high_roller',    icon: '🪙', category: 'challenge', levels: [100, 500, 2000, 5000, 12000] }, // 5
 
   // ─── Mission ───────────────────────────────────────────────────────
-  { id: 'surprise',       icon: '🎭', category: 'mission',   levels: [1, 5, 15, 40, 100] },        // 5
-  { id: 'pegno',          icon: '🎁', category: 'mission',   levels: [1, 5, 15, 40, 100] },        // 5
-  { id: 'night_owl',      icon: '🦉', category: 'mission',   levels: [3, 15, 40, 100, 250] },     // 5
-  { id: 'early_bird',     icon: '🌅', category: 'mission',   levels: [3, 15, 40, 100, 250] },     // 5
-  { id: 'marathon',       icon: '🏃', category: 'mission',   levels: [10, 20, 35, 60, 100] },     // 5
+  { id: 'surprise',       icon: '🎭', category: 'mission',   levels: [1, 10, 30] },                // 3 — bet-type niche, 30 surprise-bets is plenty
+  { id: 'pegno',          icon: '🎁', category: 'mission',   levels: [1, 10, 30] },                // 3 — feature niche, same logic as surprise
+  { id: 'night_owl',      icon: '🦉', category: 'mission',   levels: [3, 15, 60] },                // 3 — time-of-day niche, >60 night-bets is obsessive
+  { id: 'early_bird',     icon: '🌅', category: 'mission',   levels: [3, 15, 60] },                // 3 — same as night_owl mirrored
+  { id: 'marathon',       icon: '🏃', category: 'mission',   levels: [5, 15, 30] },                // 3 — bets in a single day; 30 = "mega session", more = fantasy
   { id: 'commentator',    icon: '💬', category: 'mission',   levels: [5, 20, 50, 150, 400] },     // 5 — counts comments in the bet message thread
-  { id: 'quick_resolve',  icon: '⏱️', category: 'mission',   levels: [3, 10, 25, 60, 150] },      // 5
-  { id: 'comeback',       icon: '💪', category: 'mission',   levels: [3, 5, 8, 12, 20] },         // 5
-  { id: 'equilibrium',    icon: '☯',  category: 'mission',   levels: [10, 30, 80, 200, 500] },    // 5
+  { id: 'quick_resolve',  icon: '⏱️', category: 'mission',   levels: [3, 15, 50, 120] },           // 4 — resolved <1h; 4 tiers cover the realistic range
+  { id: 'comeback',       icon: '💪', category: 'mission',   levels: [3, 5, 10] },                 // 3 — rare-moment trophy by nature
+  { id: 'equilibrium',    icon: '☯',  category: 'mission',   levels: [10, 40, 120] },              // 3 — min(W,L); 120/120 already exceptional, 500 was unreachable
   // Activity streak — longest run of consecutive days the user has done
   // something (created or resolved a bet). Rewards daily engagement.
   { id: 'activity_streak',icon: '📅', category: 'mission',   levels: [3, 7, 14, 30, 60] },        // 5
 
   // ─── Shadow ────────────────────────────────────────────────────────
   { id: 'losses',         icon: '🥀', category: 'shadow',    levels: [1, 10, 30, 75, 200] },      // 5
-  { id: 'loss_streak',    icon: '❄️', category: 'shadow',    levels: [3, 7, 15, 25, 40] },        // 5
+  { id: 'loss_streak',    icon: '❄️', category: 'shadow',    levels: [3, 7, 15, 30] },             // 4 — symmetric with win_streak, 30 is brutal-enough
   { id: 'worst_loss',     icon: '💸', category: 'shadow',    levels: [50, 150, 500, 1500, 5000] },// 5
-  { id: 'outsider_lost',  icon: '💔', category: 'shadow',    levels: [1, 3, 8, 20, 50] },         // 5
+  { id: 'outsider_lost',  icon: '💔', category: 'shadow',    levels: [1, 3, 10] },                 // 3 — anti-trophy, 10 outsider-losses is enough
 
   // ─── Social ────────────────────────────────────────────────────────
   { id: 'flamed',         icon: '⭐', category: 'social',    levels: [3, 15, 40, 100, 250] },     // 5

@@ -135,74 +135,136 @@ export default function DashboardView({user,profiles,groupMembers,credits,bets,c
   const netProfit=myPrevWins.reduce((s,b)=>s+(b.potentialWin-b.stake),0)-myPrevLoss.reduce((s,b)=>s+b.stake,0);
   const months=TRANSLATIONS[lang]?.dashboard?.months??TRANSLATIONS.it.dashboard.months;
 
-  const scoreCard=(
-    <div className={`card ${otherIds.length>0 ? 'pGold' : ''}`} style={{...S.card,marginBottom:14,background:"linear-gradient(135deg,var(--card),var(--surf))"}}>
-      <SecLabel>{t('dashboard.ranking')}</SecLabel>
-      <div style={{display:"flex",alignItems:"flex-start",gap:8,overflowX:"auto",paddingBottom:rankRows.length>3?6:0}}>
-        {rankRows.map((s,i)=>(
-          <div key={s.id} style={{flex:"1 0 22%", minWidth:78, textAlign:"center"}}>
-            {(() => {
-              const isLeader = i === 0 && rankRows.length > 1 && s.w > 0;
-              return (
-                <div className={isLeader ? 'pGold' : ''} style={{
-                  position:"relative", width:48, height:48, borderRadius:"50%",
+  const scoreCard = (() => {
+    const rest = rankRows.slice(3);
+    // Podium: left=2nd(idx1), center=1st(idx0), right=3rd(idx2)
+    const podiumSlots = [
+      { rankIdx:1, medal:'🥈', platformH:38, avatarSize:44, numSize:24 },
+      { rankIdx:0, medal:'🥇', platformH:58, avatarSize:54, numSize:32 },
+      { rankIdx:2, medal:'🥉', platformH:26, avatarSize:40, numSize:20 },
+    ];
+    return (
+      <div className={`card ${otherIds.length>0?'pGold':''}`}
+        style={{...S.card,marginBottom:14,background:'linear-gradient(135deg,var(--card),var(--surf))'}}>
+        <SecLabel>{t('dashboard.ranking')}</SecLabel>
+
+        {/* ── Podium ── */}
+        <div style={{display:'flex',alignItems:'flex-end',justifyContent:'center',gap:4}}>
+          {podiumSlots.map(({rankIdx,medal,platformH,avatarSize,numSize})=>{
+            const s = rankRows[rankIdx];
+            const isFirst = rankIdx===0;
+            // Empty slot (group < 3 people)
+            if(!s) return (
+              <div key={rankIdx} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center'}}>
+                <div style={{width:'100%',height:platformH,background:'var(--soft)',border:'1px dashed var(--brd)',borderBottom:'none',borderRadius:'6px 6px 0 0',opacity:.2}}/>
+              </div>
+            );
+            const platBg = isFirst
+              ? 'linear-gradient(180deg,var(--gold)26 0%,var(--gold)12 100%)'
+              : rankIdx===1
+                ? 'linear-gradient(180deg,rgba(180,185,210,.16) 0%,rgba(180,185,210,.07) 100%)'
+                : 'linear-gradient(180deg,rgba(160,120,70,.14) 0%,rgba(160,120,70,.06) 100%)';
+            const platBorder = isFirst ? 'var(--gold)55' : `${s.c}33`;
+            const nameColor  = isFirst ? 'var(--gold)' : 'var(--txt)';
+            const numColor   = isFirst ? 'var(--gold)' : s.c;
+            return (
+              <div key={s.id} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',minWidth:0}}>
+                {/* Medal */}
+                <div style={{fontSize:isFirst?16:13,lineHeight:1,marginBottom:5}}>{medal}</div>
+                {/* Avatar */}
+                <div style={{
+                  width:avatarSize,height:avatarSize,borderRadius:'50%',
                   background:`${s.c}33`,
-                  border: isLeader ? '2px solid var(--gold)' : `2px solid ${s.c}66`,
-                  padding: isLeader ? 1 : 0,
-                  display:"flex", alignItems:"center", justifyContent:"center",
-                  fontSize:26, margin:"0 auto", overflow:"hidden",
+                  border:`2px solid ${isFirst?'var(--gold)':`${s.c}77`}`,
+                  display:'flex',alignItems:'center',justifyContent:'center',
+                  fontSize:Math.round(avatarSize*.46),overflow:'hidden',position:'relative',flexShrink:0,
+                  boxShadow:isFirst?'0 0 18px var(--gold)44,0 4px 14px rgba(0,0,0,.35)':'0 2px 8px rgba(0,0,0,.2)',
+                  marginBottom:6,
                 }}>
                   {s.p?.avatarUrl
-                    ? <img src={s.p.avatarUrl} alt="" style={{width:"100%",height:"100%",objectFit:"cover",borderRadius:'50%'}}/>
-                    : (s.p?.avatar ?? '')}
-                  {(s.streaks.winStreak >= 3 || s.streaks.lossStreak >= 3) && (
-                    <div style={{position:'absolute', bottom:-4, right:-6,
-                      background:'var(--surf)', borderRadius:10, padding:'1px 4px',
-                      border:'1px solid var(--brd)', display:'flex', alignItems:'center'}}>
-                      <StreakInline winStreak={s.streaks.winStreak} lossStreak={s.streaks.lossStreak} size={13}/>
+                    ?<img src={s.p.avatarUrl} alt="" style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'50%'}}/>
+                    :(s.p?.avatar??'👤')}
+                  {(s.streaks.winStreak>=3||s.streaks.lossStreak>=3)&&(
+                    <div style={{position:'absolute',bottom:-4,right:-5,background:'var(--surf)',borderRadius:10,padding:'1px 3px',border:'1px solid var(--brd)',display:'flex',alignItems:'center'}}>
+                      <StreakInline winStreak={s.streaks.winStreak} lossStreak={s.streaks.lossStreak} size={10}/>
                     </div>
                   )}
                 </div>
-              );
-            })()}
-            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:13,fontWeight:700,marginTop:6,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
-              {s.p?.name}{s.isMe && <span style={{color:"var(--gold)",marginLeft:3}}>·</span>}
-            </div>
-            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:24,fontWeight:900,color:i===0?"var(--gold)":s.c,lineHeight:1.1}}>{s.w}</div>
-            <div style={{fontSize:10,color:"var(--dim)"}}>{t('dashboard.wins')}</div>
-          </div>
-        ))}
-      </div>
-      <div style={{display:"flex",justifyContent:"center",gap:20,marginTop:12,paddingTop:12,borderTop:"1px solid var(--brd)"}}>
-        {[{l:t('dashboard.win_rate'),v:`${wr}%`,c:wr>=50?"var(--grn)":"var(--red)"},{l:t('dashboard.credits'),v:`${Math.round(credits[user] ?? 0)} ₡`,c:"var(--gold)"},{l:t('dashboard.total_bets'),v:myWon.length+myLost.length+myAct.length+mySec.length,c:"var(--txt)"}].map(s=>(
-          <div key={s.l} style={{textAlign:"center"}}>
-            <div style={{fontSize:16,fontWeight:700,color:s.c}}>{s.v}</div>
-            <div style={{fontSize:10,color:"var(--dim)"}}>{s.l}</div>
-          </div>
-        ))}
-      </div>
-      {(()=>{
-        const myStreak=computeStreak(bets,user);
-        const thStreak=computeStreak(bets,other);
-        return myStreak>0||thStreak>0?(
-          <div style={{display:'flex',justifyContent:'space-around',marginTop:10,paddingTop:10,borderTop:'1px solid var(--brd)'}}>
-            {[{u:user,s:myStreak},{u:other,s:thStreak}].map(({u,s})=>(
-              <div key={u} style={{textAlign:'center'}}>
-                <div style={{fontSize:18}}>🔥</div>
-                <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:700,color:s>=7?'var(--red)':s>=3?'var(--gold)':'var(--txt)'}}>{s}</div>
-                <div style={{fontSize:10,color:'var(--dim)',letterSpacing:1}}>{t('dashboard.streak')}</div>
+                {/* Platform step */}
+                <div style={{
+                  width:'100%',height:platformH,
+                  background:platBg,
+                  border:`1px solid ${platBorder}`,
+                  borderBottom:'none',
+                  borderRadius:'6px 6px 0 0',
+                  display:'flex',flexDirection:'column',
+                  alignItems:'center',justifyContent:'center',
+                  padding:'4px 4px 2px',gap:1,overflow:'hidden',
+                }}>
+                  <div style={{
+                    fontFamily:"'Cormorant Garamond',serif",fontStyle:'italic',
+                    fontSize:isFirst?13:11,fontWeight:700,color:nameColor,
+                    whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%',lineHeight:1,
+                  }}>
+                    {s.p?.name}{s.isMe&&<span style={{color:'var(--gold)',marginLeft:2}}>·</span>}
+                  </div>
+                  <div style={{fontFamily:"'Playfair Display',serif",fontWeight:900,fontSize:numSize,lineHeight:1,color:numColor}}>
+                    {s.w}
+                  </div>
+                  <div style={{fontSize:7,color:isFirst?'var(--gold)':'var(--mut)',letterSpacing:'.18em',lineHeight:1}}>
+                    {t('dashboard.wins').toUpperCase()}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Floor */}
+        <div style={{height:1,background:'var(--brd)',marginBottom:rest.length>0?10:14}}/>
+
+        {/* 4th+ chip row */}
+        {rest.length>0&&(
+          <div style={{display:'flex',flexWrap:'wrap',gap:5,marginBottom:14}}>
+            {rest.map(s=>(
+              <div key={s.id} style={{
+                display:'inline-flex',alignItems:'center',gap:5,
+                padding:'3px 8px 3px 5px',borderRadius:20,
+                background:'var(--soft)',border:'1px solid var(--brd)',
+              }}>
+                <span style={{fontSize:13,lineHeight:1}}>{s.p?.avatar??'👤'}</span>
+                <span style={{fontFamily:"'Manrope',sans-serif",fontSize:11,color:'var(--dim)',fontWeight:600,maxWidth:60,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                  {s.p?.name?.split(' ')[0]??''}
+                </span>
+                <span style={{fontFamily:"'Playfair Display',serif",fontSize:13,fontWeight:900,color:s.c,lineHeight:1}}>{s.w}</span>
+                <span style={{fontSize:7,color:'var(--dim)',letterSpacing:'.1em'}}>V</span>
               </div>
             ))}
           </div>
-        ):null;
-      })()}
-      {!other && (
-        <div style={{textAlign:'center',marginTop:14,paddingTop:14,borderTop:'1px solid var(--brd)'}}>
-          <div style={{fontSize:12,color:'var(--dim)'}}>{t('dashboard.solo_hint')}</div>
+        )}
+
+        {/* My stats strip */}
+        <div style={{display:'flex',justifyContent:'center',gap:20,paddingTop:12,borderTop:'1px solid var(--brd)'}}>
+          {[
+            {l:t('dashboard.win_rate'),v:`${wr}%`,c:wr>=50?'var(--grn)':'var(--red)'},
+            {l:t('dashboard.credits'),v:`${Math.round(credits[user]??0)} ₡`,c:'var(--gold)'},
+            {l:t('dashboard.total_bets'),v:myWon.length+myLost.length+myAct.length+mySec.length,c:'var(--txt)'},
+          ].map(s=>(
+            <div key={s.l} style={{textAlign:'center'}}>
+              <div style={{fontSize:16,fontWeight:700,color:s.c}}>{s.v}</div>
+              <div style={{fontSize:10,color:'var(--dim)'}}>{s.l}</div>
+            </div>
+          ))}
         </div>
-      )}
-    </div>
-  );
+
+        {!other&&(
+          <div style={{textAlign:'center',marginTop:14,paddingTop:14,borderTop:'1px solid var(--brd)'}}>
+            <div style={{fontSize:12,color:'var(--dim)'}}>{t('dashboard.solo_hint')}</div>
+          </div>
+        )}
+      </div>
+    );
+  })();
 
   const vaultTeaser=mySec.length>0&&(
     <div

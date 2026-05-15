@@ -1015,7 +1015,7 @@ export default function App() {
   const [trophyQueue, setTrophyQueue] = useState([]);
   const [navHover, setNavHover] = useState(-1); // desktop nav dock-zoom hover index
   const [navSwipeIdx, setNavSwipeIdx] = useState(-1); // mobile swipe-nav: index under finger
-  const navBarRef = useRef(null);
+  const [navBarEl, setNavBarEl] = useState(null);    // callback-ref so effect re-runs on mount
   const navSwipeStateRef = useRef({ startX: null, swipeMode: false, idx: -1 });
   const navRef = useRef([]); // kept fresh each render so the touch handler can navigate
   const [trophyBaseline, setTrophyBaseline] = useState(null); // Set<"id:level"> | null
@@ -1349,11 +1349,11 @@ export default function App() {
   };
 
   // Mobile nav swipe — must be before any early returns so hook count is stable.
+  // navBarEl is a callback-ref state: re-runs this effect the moment the nav mounts.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (isDesktop) return;
-    const el = navBarRef.current;
-    if (!el) return;
+    if (isDesktop || !navBarEl) return;
+    const el = navBarEl;
     const s = navSwipeStateRef.current;
     const getIdx = touch => {
       const found = document.elementFromPoint(touch.clientX, touch.clientY);
@@ -1386,7 +1386,7 @@ export default function App() {
       el.removeEventListener('touchmove',  onMove);
       el.removeEventListener('touchend',   onEnd);
     };
-  }, [isDesktop]);
+  }, [isDesktop, navBarEl]);
 
   // Splash screen (runs in parallel with auth check; stays until both done)
   if (!splashDone) return <SplashScreen onDone={() => setSplashDone(true)} />;
@@ -1711,7 +1711,7 @@ export default function App() {
           different vertical offset so the row reads like a sawtooth instead
           of a rigid grid. Active item floats highest. */}
       {!isDesktop && (
-        <div ref={navBarRef} style={{
+        <div ref={setNavBarEl} style={{
           position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
           width: '100%', maxWidth: 480,
           background: C.surf, borderTop: `1px solid ${C.brd}`,

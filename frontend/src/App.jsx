@@ -284,10 +284,10 @@ function DieRollOverlay({ open, onClose, onEggUnlock }) {
           if (l2JustEarned) {
             api.unlockSecretAchievement('egg_dice', 2)
               .then(r2 => {
-                if (!r2?.alreadyUnlocked) {
-                  onEggUnlockRef.current?.('egg_dice');
-                  try { localStorage.setItem(DIE_L2_FIRED, '1'); } catch {}
-                }
+                if (!r2?.alreadyUnlocked) onEggUnlockRef.current?.('egg_dice');
+                // Always set the local flag — even if alreadyUnlocked — so
+                // we don't re-call the API on every subsequent roll.
+                try { localStorage.setItem(DIE_L2_FIRED, '1'); } catch {}
                 if (r2?.metaUnlocked) onEggUnlockRef.current?.('egg_master');
               })
               .catch(e => console.error('[egg_dice L2] unlock failed', e));
@@ -327,16 +327,41 @@ function DieRollOverlay({ open, onClose, onEggUnlock }) {
       }}>
         <DieFace value={face} size={cssSize}/>
       </div>
-      {phase === 'settled' && (
-        <div className="bIn" style={{textAlign:'center'}}>
-          <div className="bc-meta" style={{marginBottom:10, color:'var(--gold)'}}>— Esito</div>
-          <div style={{
-            fontFamily:"'Cormorant Garamond',serif", fontStyle:'italic',
-            fontSize:'clamp(48px, 12vw, 92px)', fontWeight:600,
-            color:'var(--gold)', letterSpacing:'-0.02em', lineHeight: 1,
-          }}>{face}</div>
-        </div>
-      )}
+      {phase === 'settled' && (() => {
+        let seen = [];
+        try { seen = JSON.parse(localStorage.getItem(DIE_FACES_KEY) || '[]'); } catch {}
+        if (!Array.isArray(seen)) seen = [];
+        const faceCount = Math.min(seen.length, 6);
+        const hasAll = faceCount >= 6;
+        return (
+          <div className="bIn" style={{textAlign:'center'}}>
+            <div className="bc-meta" style={{marginBottom:10, color:'var(--gold)'}}>— Esito</div>
+            <div style={{
+              fontFamily:"'Cormorant Garamond',serif", fontStyle:'italic',
+              fontSize:'clamp(48px, 12vw, 92px)', fontWeight:600,
+              color:'var(--gold)', letterSpacing:'-0.02em', lineHeight: 1,
+            }}>{face}</div>
+            <div style={{
+              marginTop:16, display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+            }}>
+              {[1,2,3,4,5,6].map(f => (
+                <span key={f} style={{
+                  fontSize:18, opacity: seen.includes(f) ? 1 : 0.2,
+                  filter: seen.includes(f) ? 'drop-shadow(0 0 6px var(--gold)88)' : 'none',
+                  transition:'opacity .3s, filter .3s',
+                }}>⚄</span>
+              ))}
+            </div>
+            <div style={{
+              marginTop:8, fontFamily:"'Manrope',sans-serif",
+              fontSize:9, letterSpacing:'.22em', textTransform:'uppercase',
+              color: hasAll ? 'var(--gold)' : 'var(--dim)',
+            }}>
+              {hasAll ? '✦ Tutte le facce trovate' : `${faceCount} / 6 facce`}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

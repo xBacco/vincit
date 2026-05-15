@@ -452,7 +452,7 @@ const TRANSLATIONS = {
       half_marathon:'Mezza maratona',   half_marathon_desc:'Vinto una bet con stake ≥ 200 ₡',
       // Secret easter-egg trophies — placeholder label shown when other
       // secrets are still locked; full label revealed only on unlock.
-      egg_dice:'Tira il dado',          egg_dice_desc:'Hai lanciato il dado per la prima volta',
+      egg_dice:'Tira il dado',          egg_dice_desc:'Hai lanciato il dado per la prima volta',  egg_dice_desc_l2:'Hai ottenuto tutte e 6 le facce del dado. Il dado non ha più segreti.',
       egg_coin:'Testa o croce',         egg_coin_desc:'Hai lanciato la moneta per la prima volta',
       egg_jackpot:'Jackpot',            egg_jackpot_desc:'Hai creato una bet col titolo magico',
       egg_master:'Maestro degli Easter Egg', egg_master_desc:'Hai trovato tutti i 5 easter egg nascosti. Sei un vero esploratore.',
@@ -1151,7 +1151,7 @@ const TRANSLATIONS = {
       social_butterfly:'Butterfly',      social_butterfly_desc:'5 different people counter-bet your bets',
       loaded:'Vault stuffed',            loaded_desc:'Balance ≥ 1000 ₡ at a single moment',
       half_marathon:'Half marathon',     half_marathon_desc:'Won a bet with stake ≥ 200 ₡',
-      egg_dice:'Roll the die',           egg_dice_desc:'You rolled the die for the first time',
+      egg_dice:'Roll the die',           egg_dice_desc:'You rolled the die for the first time',  egg_dice_desc_l2:'You have rolled all 6 faces of the die. The die holds no more secrets.',
       egg_coin:'Heads or tails',         egg_coin_desc:'You flipped the coin for the first time',
       egg_jackpot:'Jackpot',             egg_jackpot_desc:'You created a bet with the magic title',
       egg_master:'Easter-Egg Master',    egg_master_desc:"You found all 5 hidden easter eggs. A true explorer.",

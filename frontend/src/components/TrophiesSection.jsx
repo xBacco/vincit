@@ -312,10 +312,12 @@ function TrophyDetailPopover({ a, anchorRect, t, fmtDate, onClose }) {
   // immediately fires onClose before the user even sees the popover.
   const masked = !!a.secret && !a.unlocked;
   const labelName = masked ? t('trophies.secret_locked')      : t('trophies.'+a.id);
-  const labelDesc = masked ? t('trophies.secret_locked_desc') : t('trophies.'+a.id+'_desc');
-  const displayIcon = masked ? '?' : a.icon;
   const { level, max_level } = a.progress;
   const isMax = a.unlocked && level >= max_level;
+  const labelDesc = masked ? t('trophies.secret_locked_desc')
+    : a.id === 'egg_dice' && level >= 2 ? t('trophies.egg_dice_desc_l2')
+    : t('trophies.'+a.id+'_desc');
+  const displayIcon = masked ? '?' : a.icon;
   const tierC = tierFor(level);
   const accent = a.unlocked ? tierC : 'var(--mut)';
 
@@ -633,7 +635,9 @@ function SecretTrophyTile({ a, t, fmtDate, onOpen }) {
         fontSize: 10, color:'var(--mut)', textAlign:'center',
         marginTop: 4, lineHeight: 1.4,
         fontStyle: masked ? 'italic' : 'normal',
-      }}>{masked ? t('trophies.secret_locked_desc') : t('trophies.'+a.id+'_desc')}</div>
+      }}>{masked ? t('trophies.secret_locked_desc')
+      : a.id === 'egg_dice' && a.progress.level >= 2 ? t('trophies.egg_dice_desc_l2')
+      : t('trophies.'+a.id+'_desc')}</div>
       {unlocked && a.unlockedAt && (
         <div style={{
           marginTop: 10, paddingTop: 8,
@@ -658,7 +662,9 @@ function TrophyTile({ a, t, fmtDate, onOpen }) {
   // secret, the remaining secrets show up here but with no name/icon hint.
   const masked = a.secret && !unlocked;
   const labelName = masked ? t('trophies.secret_locked')      : t('trophies.'+a.id);
-  const labelDesc = masked ? t('trophies.secret_locked_desc') : t('trophies.'+a.id+'_desc');
+  const labelDesc = masked ? t('trophies.secret_locked_desc')
+    : a.id === 'egg_dice' && level >= 2 ? t('trophies.egg_dice_desc_l2')
+    : t('trophies.'+a.id+'_desc');
   const displayIcon = masked ? '?' : a.icon;
 
   // Build progress text & fill ratio for the current-level segment

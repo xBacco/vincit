@@ -1,4 +1,4 @@
-const BASE = '/api';
+const BASE = import.meta.env.VITE_API_BASE ?? '/api';
 
 const getToken = () => localStorage.getItem('bc_token');
 export const getActiveGroupId = () => {

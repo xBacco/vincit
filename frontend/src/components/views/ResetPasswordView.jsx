@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Inp } from '../Atoms.jsx';
+import { Inp, VincitWordmark } from '../Atoms.jsx';
 import { useLang } from '../../i18n.js';
 import * as api from '../../api.js';
 import { validatePassword } from '../../passwordPolicy.js';
@@ -43,8 +43,8 @@ export default function ResetPasswordView({ token, onDone }) {
     <div style={S.wrap}>
       <div style={S.card}>
         <div style={{ textAlign: 'center', marginBottom: 22 }}>
-          <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 28, fontWeight: 900, marginBottom: 6 }}>
-            <span className="shim">Vincit</span>
+          <div style={{ marginBottom: 6 }}>
+            <VincitWordmark size={28} />
           </div>
           <div style={{ fontSize: 13, color: 'var(--dim)' }}>{t('reset.subtitle')}</div>
         </div>

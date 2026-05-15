@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Btn, Inp } from '../Atoms.jsx';
+import { Btn, Inp, VincitWordmark } from '../Atoms.jsx';
 import { useLang } from '../../i18n.js';
 import * as api from '../../api.js';
 
@@ -46,8 +46,8 @@ export default function PairingView({ user, onGroupCreated }) {
     <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', padding:24, background:'var(--bg)' }}>
       <div style={{ width:'100%', maxWidth:400 }}>
         <div style={{ textAlign:'center', marginBottom:36 }}>
-          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:34, fontWeight:900, marginBottom:6 }}>
-            <span className="shim">Vincit</span>
+          <div style={{ marginBottom:6 }}>
+            <VincitWordmark size={34} />
           </div>
           <div style={{ fontSize:22, marginTop:4 }}>👋 {user.name}</div>
           <div style={{ fontSize:13, color:'var(--dim)', marginTop:6 }}>{t('group.pairing_subtitle')}</div>

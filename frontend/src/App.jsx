@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect, useRef, lazy, Suspense } from 
 import { useSync } from './useSync.js';
 import * as api from './api.js';
 
-import { DARK, LIGHT, AMBER, SELVA, SAKURA, PECE, rootVars, DEF_CATS, COLORS } from './components/Atoms.jsx';
+import { DARK, LIGHT, AMBER, SELVA, SAKURA, PECE, rootVars, DEF_CATS, COLORS, VincitWordmark } from './components/Atoms.jsx';
 import { useLang } from './i18n.js';
 import SplashScreen from './components/SplashScreen.jsx';
 import { SkeletonDashboard, SkeletonList } from './components/Skeleton.jsx';
@@ -1729,12 +1729,11 @@ export default function App() {
         }}>
           <div style={{ padding: '0 20px 22px', borderBottom: '1px solid var(--rule)', marginBottom: 8 }}>
             <div style={{
-              fontFamily:"'Cormorant Garamond',serif", fontStyle:'italic',
-              fontSize:28, fontWeight:600, letterSpacing:-0.5, marginBottom:22,
+              marginBottom:22,
               transform: 'rotate(-2deg)', transformOrigin: 'left center',
               display: 'inline-block',
             }}>
-              <span className="shim">Vincit</span>
+              <VincitWordmark size={28} />
             </div>
             <div
               onClick={() => setProfileMenuOpen(true)}
@@ -1873,8 +1872,8 @@ export default function App() {
           paddingTop: 'env(safe-area-inset-top)',
         }}>
           <div style={{ padding: '14px 20px 6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap:10 }}>
-            <div style={{ fontFamily:"'Cormorant Garamond',serif", fontStyle:'italic', fontSize: 22, fontWeight: 600, letterSpacing: -0.5 }}>
-              <span className="shim">Vincit</span>
+            <div>
+              <VincitWordmark size={22} />
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{ textAlign:'right', lineHeight:1.1 }}>

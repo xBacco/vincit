@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Btn, Inp, AVATARS, COLORS } from '../Atoms.jsx';
+import { Btn, Inp, AVATARS, COLORS, VincitWordmark } from '../Atoms.jsx';
 import { useLang } from '../../i18n.js';
 import * as api from '../../api.js';
 import { fileToSquareDataUrl } from '../../imageUtils.js';
@@ -104,12 +104,8 @@ export default function AuthView({ onAuth }) {
           <div className="bc-meta" style={{ marginBottom:14 }}>
             {tab === 'register' ? '— Iscriviti' : '— Bentornato'}
           </div>
-          <div style={{
-            fontFamily:"'Cormorant Garamond',serif", fontStyle:'italic',
-            fontSize:64, fontWeight:600, lineHeight:0.95, letterSpacing:'-0.03em',
-            marginBottom:10,
-          }}>
-            <span className="shim">Vincit</span>
+          <div style={{ marginBottom:10 }}>
+            <VincitWordmark size={64} />
           </div>
           <div style={{ fontSize:13, color:'var(--dim)', lineHeight:1.6 }}>{t('welcome.subtitle')}</div>
         </div>

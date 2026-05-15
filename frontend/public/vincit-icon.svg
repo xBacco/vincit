@@ -1,15 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- Background -->
   <rect width="512" height="512" rx="112" fill="#1a1530"/>
-  <!-- V — thick rounded stroke, the two round endpoints read as crown dots -->
-  <polyline
-    points="148,108 256,378 364,108"
-    fill="none"
-    stroke="#c8973f"
-    stroke-width="64"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-  />
-  <!-- Centre crown jewel above the V opening -->
-  <circle cx="256" cy="62" r="26" fill="#c8973f"/>
+  <!-- V stroke -->
+  <polyline points="108,88 256,388 404,88" fill="none" stroke="#c4a878"
+    stroke-width="64" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- ₡ serigraphy on left arm -->
+  <text x="182" y="238" dominant-baseline="central" text-anchor="middle"
+    font-family="Georgia, serif" font-size="72" font-weight="700"
+    fill="#1a1530" opacity="0.65" transform="rotate(27, 182, 238)">₡</text>
+  <!-- ₡ serigraphy on right arm -->
+  <text x="330" y="238" dominant-baseline="central" text-anchor="middle"
+    font-family="Georgia, serif" font-size="72" font-weight="700"
+    fill="#1a1530" opacity="0.65" transform="rotate(-27, 330, 238)">₡</text>
+  <!-- Die at vertex (3 face) -->
+  <rect x="218" y="350" width="76" height="76" rx="14"
+    fill="#1a1530" stroke="#c4a878" stroke-width="5"/>
+  <circle cx="268" cy="369" r="7" fill="#c4a878"/>
+  <circle cx="256" cy="388" r="7" fill="#c4a878"/>
+  <circle cx="244" cy="407" r="7" fill="#c4a878"/>
 </svg>

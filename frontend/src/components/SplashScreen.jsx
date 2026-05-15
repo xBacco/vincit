@@ -178,7 +178,7 @@ export default function SplashScreen({ onDone, brand = 'Vincit' }) {
             willChange: 'transform, opacity',
             transformStyle: 'preserve-3d',
           }}>
-            &amp;
+            ₡
           </div>
         )}
 

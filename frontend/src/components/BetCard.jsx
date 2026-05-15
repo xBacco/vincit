@@ -170,17 +170,35 @@ export default function BetCard({bet,user,profiles,cats,onResolve,onReveal,onCou
     </div>
   );
 
+  const isResolved = done && bet.status !== 'rejected';
+  const resolveColor = bet.status === 'won' ? 'var(--grn)' : 'var(--red)';
+
   return(
     <div ref={cardRef} className="sUp" style={{
       position:"relative", overflow:"hidden",
       padding:"22px 0 24px 22px", marginBottom:0,
+      borderTop: isResolved ? `3px solid ${resolveColor}` : 'none',
       borderBottom:`1px solid ${deltaX > 40 ? 'var(--grn)55' : deltaX < -40 ? 'var(--red)55' : 'var(--rule)'}`,
-      opacity:done?0.55:1,
+      background: isResolved ? (bet.status==='won' ? 'var(--grn)0f' : 'var(--red)0f') : 'transparent',
+      opacity: done ? 0.82 : 1,
       transform: deltaX !== 0 ? `translateX(${Math.max(-60, Math.min(60, deltaX))}px)` : 'none',
       transition: deltaX === 0 ? 'transform .3s ease, border-color .2s, opacity .2s' : 'border-color .1s',
     }}>
       {/* Vertical accent rule — gold for vault, category color otherwise. */}
       <div style={{position:"absolute",left:0,top:22,bottom:24,width:2,background:bet.isSecret?'var(--gold)':sideColor}}/>
+      {/* Won/lost stamp watermark */}
+      {isResolved && (
+        <div style={{
+          position:'absolute', right:14, top:20,
+          fontFamily:"'Playfair Display',serif", fontWeight:900,
+          fontSize:34, lineHeight:1, letterSpacing:'0.04em',
+          color: resolveColor,
+          opacity: 0.11, pointerEvents:'none', userSelect:'none',
+          transform:'rotate(-18deg)',
+        }}>
+          {bet.status==='won' ? 'VINTO' : 'PERSO'}
+        </div>
+      )}
       <div style={{...(isDesktop?{display:"flex",alignItems:"flex-start",gap:24}:{})}}>
         {/* Main content */}
         <div style={{flex:isDesktop?1:undefined,minWidth:0}}>

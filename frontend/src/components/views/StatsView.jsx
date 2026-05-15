@@ -604,6 +604,7 @@ export default function StatsView({user,profiles,groupMembers,credits,bets,cats,
   );
 
   // ── Heatmap ───────────────────────────────────────────────────────
+  const [hmDay, setHmDay] = useState(null);
   const heatmapCard = (() => {
     const WEEKS = 16;
     const CELL = 13;
@@ -632,7 +633,7 @@ export default function StatsView({user,profiles,groupMembers,credits,bets,cats,
       for (let d = 0; d < 7; d++) {
         const key = `${cur.getFullYear()}-${cur.getMonth()}-${cur.getDate()}`;
         const count = dayMap[key] || 0;
-        week.push({ date: new Date(cur), count, isFuture: cur > today });
+        week.push({ date: new Date(cur), count, isFuture: cur > today, key });
         cur.setDate(cur.getDate() + 1);
       }
       cols.push(week);
@@ -658,6 +659,26 @@ export default function StatsView({user,profiles,groupMembers,credits,bets,cats,
     });
 
     const colW = CELL + GAP;
+
+    // Day detail panel data
+    let dayPanelBets = [];
+    let dayPanelLabel = '';
+    if (hmDay) {
+      const [yr, mo, da] = hmDay.split('-').map(Number);
+      dayPanelLabel = new Date(yr, mo, da).toLocaleDateString('it-IT', { weekday:'long', day:'numeric', month:'long' });
+      dayPanelBets = bets.filter(b => {
+        if (b.creator !== user) return false;
+        const d = new Date(Number(b.createdAt));
+        return d.getFullYear() === yr && d.getMonth() === mo && d.getDate() === da;
+      });
+    }
+
+    const STATUS = {
+      won:     { label: 'Vinto',     color: 'var(--grn)' },
+      lost:    { label: 'Perso',     color: 'var(--red)' },
+      pending: { label: 'In attesa', color: 'var(--dim)' },
+      active:  { label: 'Aperto',    color: 'var(--gold)' },
+    };
 
     return (
       <div style={{...S.card}}>
@@ -708,14 +729,16 @@ export default function StatsView({user,profiles,groupMembers,credits,bets,cats,
                     const cell = week[di];
                     if (!cell) return <div key={wi} style={{width:CELL, height:CELL, marginRight:GAP}}/>;
                     const lvl = cell.isFuture ? LEVELS[0] : cellLvl(cell.count);
+                    const isSelected = hmDay === cell.key;
                     return (
                       <div key={wi}
-                        title={`${cell.date.toLocaleDateString('it-IT')}: ${cell.count} bet`}
+                        onClick={() => cell.count > 0 && setHmDay(prev => prev === cell.key ? null : cell.key)}
                         style={{
                           width:CELL, height:CELL, borderRadius:3, marginRight:GAP, flexShrink:0,
                           background: lvl.bg,
-                          border: lvl.border,
-                          boxShadow: lvl.shadow,
+                          border: isSelected ? '2px solid var(--txt)' : lvl.border,
+                          boxShadow: isSelected ? '0 0 0 1px var(--txt)' : lvl.shadow,
+                          cursor: cell.count > 0 ? 'pointer' : 'default',
                         }}
                       />
                     );
@@ -738,6 +761,51 @@ export default function StatsView({user,profiles,groupMembers,credits,bets,cats,
           ))}
           <span style={{fontSize:10, color:'var(--dim)', fontFamily:"'Manrope',sans-serif"}}>Di più</span>
         </div>
+        {/* Day detail panel */}
+        {hmDay && (
+          <div style={{marginTop:16, paddingTop:14, borderTop:'1px solid var(--rule)'}}>
+            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10}}>
+              <span style={{fontSize:11, color:'var(--dim)', fontFamily:"'Manrope',sans-serif", textTransform:'capitalize'}}>
+                {dayPanelLabel}
+              </span>
+              <span style={{fontSize:11, color:'var(--dim)', fontFamily:"'Manrope',sans-serif"}}>
+                {dayPanelBets.length} bet
+              </span>
+            </div>
+            {dayPanelBets.map(b => {
+              const cat = cats.find(c => c.id === b.category);
+              const st = STATUS[b.status] || { label: b.status, color: 'var(--dim)' };
+              return (
+                <div key={b.id} style={{
+                  display:'flex', alignItems:'center', gap:10,
+                  padding:'9px 0', borderBottom:'1px solid var(--rule)',
+                }}>
+                  <div style={{flex:1, minWidth:0}}>
+                    <div style={{
+                      fontSize:15, fontFamily:"'Cormorant Garamond',serif", color:'var(--txt)',
+                      overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
+                    }}>
+                      {b.title}
+                    </div>
+                    {cat && (
+                      <div style={{fontSize:10, color:'var(--dim)', fontFamily:"'Manrope',sans-serif", marginTop:2}}>
+                        {catLabel(cat)}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{display:'flex', flexDirection:'column', alignItems:'flex-end', gap:2, flexShrink:0}}>
+                    <span style={{fontSize:11, color:st.color, fontWeight:700, fontFamily:"'Manrope',sans-serif"}}>
+                      {st.label}
+                    </span>
+                    <span style={{fontSize:10, color:'var(--dim)', fontFamily:"'Manrope',sans-serif"}}>
+                      {b.stake} ₡
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     );
   })();

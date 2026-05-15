@@ -1014,6 +1014,10 @@ export default function App() {
   // animated overlay for each freshly-earned level.
   const [trophyQueue, setTrophyQueue] = useState([]);
   const [navHover, setNavHover] = useState(-1); // desktop nav dock-zoom hover index
+  const [navSwipeIdx, setNavSwipeIdx] = useState(-1); // mobile swipe-nav: index under finger
+  const navBarRef = useRef(null);
+  const navSwipeStateRef = useRef({ startX: null, swipeMode: false, idx: -1 });
+  const navRef = useRef([]); // kept fresh each render so the touch handler can navigate
   const [trophyBaseline, setTrophyBaseline] = useState(null); // Set<"id:level"> | null
   useEffect(() => {
     if (!user || !profiles[user]) return;
@@ -1414,6 +1418,52 @@ export default function App() {
     ...(authUser?.is_admin ? [{ id: 'admin', e: '🛠️', l: 'Admin' }] : []),
     { id: 'settings', e: '⚙️', l: t('nav.settings') },
   ];
+  navRef.current = NAV; // sync ref every render so touch handler reads current ids
+
+  // Mobile nav swipe — slide finger across the bottom bar to magnify icons;
+  // lifting on an item navigates there. Non-passive touchmove so we can
+  // prevent scroll while the user is sweeping horizontally.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (isDesktop) return;
+    const el = navBarRef.current;
+    if (!el) return;
+    const s = navSwipeStateRef.current;
+
+    const getIdx = touch => {
+      const found = document.elementFromPoint(touch.clientX, touch.clientY);
+      const item = found?.closest('[data-navswipe]');
+      return item ? parseInt(item.dataset.navswipe, 10) : -1;
+    };
+
+    const onStart = e => {
+      s.startX = e.touches[0]?.clientX ?? null;
+      s.swipeMode = false;
+      s.idx = -1;
+    };
+    const onMove = e => {
+      if (s.startX === null || !e.touches[0]) return;
+      if (Math.abs(e.touches[0].clientX - s.startX) > 10) s.swipeMode = true;
+      if (!s.swipeMode) return;
+      e.preventDefault();
+      const idx = getIdx(e.touches[0]);
+      if (idx >= 0 && idx !== s.idx) { s.idx = idx; setNavSwipeIdx(idx); }
+    };
+    const onEnd = () => {
+      if (s.swipeMode && s.idx >= 0) setView(navRef.current[s.idx]?.id ?? null);
+      s.startX = null; s.swipeMode = false; s.idx = -1;
+      setNavSwipeIdx(-1);
+    };
+
+    el.addEventListener('touchstart', onStart, { passive: true });
+    el.addEventListener('touchmove',  onMove,  { passive: false });
+    el.addEventListener('touchend',   onEnd,   { passive: true });
+    return () => {
+      el.removeEventListener('touchstart', onStart);
+      el.removeEventListener('touchmove',  onMove);
+      el.removeEventListener('touchend',   onEnd);
+    };
+  }, [isDesktop]); // setView is a stable useState setter — safe to omit
 
   const myProfile = profiles[user] ?? { name: authUser.name, avatar: authUser.avatar, avatarUrl: authUser.avatar_url, colorKey: authUser.color_key };
   const activeGroup = groups.find(g => g.id === activeGroupId);
@@ -1666,7 +1716,7 @@ export default function App() {
           different vertical offset so the row reads like a sawtooth instead
           of a rigid grid. Active item floats highest. */}
       {!isDesktop && (
-        <div style={{
+        <div ref={navBarRef} style={{
           position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
           width: '100%', maxWidth: 480,
           background: C.surf, borderTop: `1px solid ${C.brd}`,
@@ -1680,17 +1730,35 @@ export default function App() {
             const isActive = view === n.id;
             // Sawtooth vertical offsets — every other item lifted differently.
             const baseLift = [0, 6, 2, 8, 4, 6, 0];
-            const lift = isActive ? -8 : baseLift[idx % baseLift.length];
+            const baseLiftVal = isActive ? -8 : baseLift[idx % baseLift.length];
+            // Swipe magnification: center item grows biggest, neighbors less so.
+            const swipeDist = navSwipeIdx < 0 ? 99 : Math.abs(idx - navSwipeIdx);
+            const swipeScale = navSwipeIdx < 0 ? 1
+              : swipeDist === 0 ? 1.72
+              : swipeDist === 1 ? 1.28
+              : swipeDist === 2 ? 1.08
+              : 1;
+            const swipeLift = navSwipeIdx < 0 ? baseLiftVal
+              : swipeDist === 0 ? -18
+              : swipeDist === 1 ? baseLiftVal - 4
+              : baseLiftVal;
+            const isSwipeFocus = navSwipeIdx === idx;
+            const transitionStr = navSwipeIdx >= 0
+              ? 'transform .13s cubic-bezier(.34,1.56,.64,1), color .1s'
+              : 'transform .28s cubic-bezier(.34,1.56,.64,1), color .18s';
             return (
-              <div key={n.id} data-tour={`nav-${n.id}`} onClick={() => view === n.id ? window.scrollTo({ top: 0, behavior: 'smooth' }) : setView(n.id)} style={{
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
-                padding: '4px 8px', cursor: 'pointer',
-                transform: `translateY(${lift}px)`,
-                transition: 'transform .25s ease, color .18s',
-                color: isActive ? 'var(--gold)' : 'var(--mut)',
-                position: 'relative', userSelect: 'none',
-              }}>
-                <span style={{ fontSize: isActive ? 22 : 18, transition:'font-size .18s' }}>{n.e}</span>
+              <div key={n.id} data-tour={`nav-${n.id}`} data-navswipe={idx}
+                onClick={() => view === n.id ? window.scrollTo({ top: 0, behavior: 'smooth' }) : setView(n.id)}
+                style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+                  padding: '4px 8px', cursor: 'pointer',
+                  transform: `translateY(${swipeLift}px) scale(${swipeScale})`,
+                  transformOrigin: 'center bottom',
+                  transition: transitionStr,
+                  color: isSwipeFocus ? 'var(--gold)' : isActive ? 'var(--gold)' : 'var(--mut)',
+                  position: 'relative', userSelect: 'none',
+                }}>
+                <span style={{ fontSize: isActive && navSwipeIdx < 0 ? 22 : 18, transition:'font-size .18s' }}>{n.e}</span>
                 {n.id === 'friends' && pendingFriendCount > 0 && (
                   <div style={{ position: 'absolute', top: 0, right: 4, width: 6, height: 6, borderRadius: 999, background: 'var(--red)' }}/>
                 )}

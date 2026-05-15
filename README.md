@@ -207,7 +207,7 @@ In `backend/.env` (locale) e dashboard Render (produzione):
 
 ## 6. Deploy
 
-- **Render Web Service** a `https://vincit.onrender.com` — un solo servizio serve API + frontend buildato (`frontend/dist`)
+- **Render Web Service** a `https://betcouple-1.onrender.com` — un solo servizio serve API + frontend buildato (`frontend/dist`)
 - **Branch `main`** → push auto → redeploy in 30-60s
 - **Neon Postgres** Frankfurt, SSL required
 - **Cold start**: Render free dorme dopo 15min, Neon pausa dopo 5min → primo caricamento ~20-30s

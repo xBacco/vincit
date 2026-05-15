@@ -1348,6 +1348,46 @@ export default function App() {
     setPinVersion(v => v + 1);
   };
 
+  // Mobile nav swipe — must be before any early returns so hook count is stable.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (isDesktop) return;
+    const el = navBarRef.current;
+    if (!el) return;
+    const s = navSwipeStateRef.current;
+    const getIdx = touch => {
+      const found = document.elementFromPoint(touch.clientX, touch.clientY);
+      const item = found?.closest('[data-navswipe]');
+      return item ? parseInt(item.dataset.navswipe, 10) : -1;
+    };
+    const onStart = e => {
+      s.startX = e.touches[0]?.clientX ?? null;
+      s.swipeMode = false;
+      s.idx = -1;
+    };
+    const onMove = e => {
+      if (s.startX === null || !e.touches[0]) return;
+      if (Math.abs(e.touches[0].clientX - s.startX) > 10) s.swipeMode = true;
+      if (!s.swipeMode) return;
+      e.preventDefault();
+      const idx = getIdx(e.touches[0]);
+      if (idx >= 0 && idx !== s.idx) { s.idx = idx; setNavSwipeIdx(idx); }
+    };
+    const onEnd = () => {
+      if (s.swipeMode && s.idx >= 0) setView(navRef.current[s.idx]?.id ?? null);
+      s.startX = null; s.swipeMode = false; s.idx = -1;
+      setNavSwipeIdx(-1);
+    };
+    el.addEventListener('touchstart', onStart, { passive: true });
+    el.addEventListener('touchmove',  onMove,  { passive: false });
+    el.addEventListener('touchend',   onEnd,   { passive: true });
+    return () => {
+      el.removeEventListener('touchstart', onStart);
+      el.removeEventListener('touchmove',  onMove);
+      el.removeEventListener('touchend',   onEnd);
+    };
+  }, [isDesktop]);
+
   // Splash screen (runs in parallel with auth check; stays until both done)
   if (!splashDone) return <SplashScreen onDone={() => setSplashDone(true)} />;
 
@@ -1418,52 +1458,7 @@ export default function App() {
     ...(authUser?.is_admin ? [{ id: 'admin', e: '🛠️', l: 'Admin' }] : []),
     { id: 'settings', e: '⚙️', l: t('nav.settings') },
   ];
-  navRef.current = NAV; // sync ref every render so touch handler reads current ids
-
-  // Mobile nav swipe — slide finger across the bottom bar to magnify icons;
-  // lifting on an item navigates there. Non-passive touchmove so we can
-  // prevent scroll while the user is sweeping horizontally.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    if (isDesktop) return;
-    const el = navBarRef.current;
-    if (!el) return;
-    const s = navSwipeStateRef.current;
-
-    const getIdx = touch => {
-      const found = document.elementFromPoint(touch.clientX, touch.clientY);
-      const item = found?.closest('[data-navswipe]');
-      return item ? parseInt(item.dataset.navswipe, 10) : -1;
-    };
-
-    const onStart = e => {
-      s.startX = e.touches[0]?.clientX ?? null;
-      s.swipeMode = false;
-      s.idx = -1;
-    };
-    const onMove = e => {
-      if (s.startX === null || !e.touches[0]) return;
-      if (Math.abs(e.touches[0].clientX - s.startX) > 10) s.swipeMode = true;
-      if (!s.swipeMode) return;
-      e.preventDefault();
-      const idx = getIdx(e.touches[0]);
-      if (idx >= 0 && idx !== s.idx) { s.idx = idx; setNavSwipeIdx(idx); }
-    };
-    const onEnd = () => {
-      if (s.swipeMode && s.idx >= 0) setView(navRef.current[s.idx]?.id ?? null);
-      s.startX = null; s.swipeMode = false; s.idx = -1;
-      setNavSwipeIdx(-1);
-    };
-
-    el.addEventListener('touchstart', onStart, { passive: true });
-    el.addEventListener('touchmove',  onMove,  { passive: false });
-    el.addEventListener('touchend',   onEnd,   { passive: true });
-    return () => {
-      el.removeEventListener('touchstart', onStart);
-      el.removeEventListener('touchmove',  onMove);
-      el.removeEventListener('touchend',   onEnd);
-    };
-  }, [isDesktop]); // setView is a stable useState setter — safe to omit
+  navRef.current = NAV; // sync ref every render so onEnd can navigate by index
 
   const myProfile = profiles[user] ?? { name: authUser.name, avatar: authUser.avatar, avatarUrl: authUser.avatar_url, colorKey: authUser.color_key };
   const activeGroup = groups.find(g => g.id === activeGroupId);

@@ -503,6 +503,24 @@ const pool = new Pool({
     ON CONFLICT ("user") DO NOTHING
   `);
 
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS events (
+      id             TEXT PRIMARY KEY,
+      room_id        TEXT REFERENCES rooms(id) ON DELETE CASCADE,
+      event_type     TEXT NOT NULL,
+      created_at     BIGINT NOT NULL,
+      feed_visible   BOOLEAN DEFAULT false,
+      feed_actor_id  TEXT REFERENCES users(id) ON DELETE SET NULL,
+      feed_target_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+      feed_amount    INTEGER,
+      feed_category  TEXT,
+      feed_label     TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_events_room_feed
+      ON events(room_id, created_at DESC)
+      WHERE feed_visible = true;
+  `);
+
   console.log('DB schema ready');
 })().catch(err => {
   console.error('DB init failed:', err);

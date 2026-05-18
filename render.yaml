@@ -3,7 +3,7 @@ services:
     name: vincit
     runtime: node
     # Build: install frontend deps + build Vite bundle, then install backend deps
-    buildCommand: npm install && npm install --prefix frontend --include=dev --include=optional && npm run build --prefix frontend && npm install --prefix backend
+    buildCommand: cd frontend && npm install --include=dev --include=optional && npm run build && cd .. && npm install --prefix backend
     # Start: backend serves both /api and the built frontend static files
     startCommand: node backend/server.js
     envVars:

@@ -670,6 +670,38 @@ export default function DashboardView({
     );
   })();
 
+  // ── Recent resolved bets ──────────────────────────────────────────
+  const recentResolved = (() => {
+    const all = bets.filter(b => b.creator === user && ['won','lost'].includes(b.status));
+    if (all.length === 0) return false;
+    const newest3 = [...all]
+      .sort((a, b) => (b.resolvedAt || b.createdAt || 0) - (a.resolvedAt || a.createdAt || 0))
+      .slice(0, 3);
+    const hasMore = all.length > 3;
+    return (
+      <>
+        <SecLabel mt={16}>{t('dashboard.recent')}</SecLabel>
+        {newest3.map(b => (
+          <BetCard key={b.id} {...betCardProps(b)} />
+        ))}
+        {hasMore && onGoToBets && (
+          <button onClick={onGoToBets}
+            style={{
+              marginTop: 10, padding: '10px 14px', width: '100%',
+              background: 'transparent', border: '1px dashed var(--brd)',
+              borderRadius: 12, cursor: 'pointer',
+              color: 'var(--gold)', fontFamily: "'Manrope',sans-serif",
+              fontSize: 11, fontWeight: 700, letterSpacing: '.14em',
+              textTransform: 'uppercase',
+              WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation',
+            }}>
+            {t('dashboard.see_all_bets')} →
+          </button>
+        )}
+      </>
+    );
+  })();
+
   // ── Tab content: empty state with die ─────────────────────────────
   const emptyBetsState = myAct.length + thAct.length + mySec.length === 0 && (
     <div style={{
@@ -803,6 +835,7 @@ export default function DashboardView({
                 </div>
               </div>
             )}
+            {recentResolved}
           </div>
         )}
 

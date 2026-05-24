@@ -1,0 +1,57 @@
+services:
+  - type: web
+    name: vincit
+    runtime: node
+    # Build: install frontend deps + build Vite bundle, then install backend deps
+    buildCommand: cd frontend && npm install --include=dev --include=optional && npm run build && cd .. && npm install --prefix backend
+    # Start: backend serves both /api and the built frontend static files
+    startCommand: node backend/server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+      # ── Required ───────────────────────────────────────────────────────
+      # Copy from your local backend/.env
+      - key: DATABASE_URL
+        sync: false
+
+      # JWT signing secret — generate a strong random string (32+ chars)
+      - key: JWT_SECRET
+        generateValue: true
+
+      # ── Cloudinary (image uploads) ─────────────────────────────────────
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+
+      # ── Web Push notifications ─────────────────────────────────────────
+      # Generate VAPID keys once with: npx web-push generate-vapid-keys
+      - key: VAPID_SUBJECT
+        sync: false
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+
+      # ── Email (password reset, invites) ───────────────────────────────
+      # Optional — app works without it, just no emails
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        sync: false
+
+      # ── App URL (used in email links) ─────────────────────────────────
+      # Set to your Render URL, e.g. https://vincit.onrender.com
+      - key: APP_BASE_URL
+        sync: false
+
+      # ── Admin key (optional) ──────────────────────────────────────────
+      - key: ADMIN_KEY
+        sync: false

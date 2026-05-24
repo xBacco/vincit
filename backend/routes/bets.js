@@ -93,6 +93,24 @@ module.exports = function(broadcastUpdate) {
 
       broadcastUpdate(roomId);
 
+      // Feed events
+      if (!isSecret) {
+        try {
+          await db.query(
+            `INSERT INTO events (id, room_id, event_type, created_at, feed_visible, feed_actor_id, feed_category, feed_label)
+             VALUES ($1,$2,'bet_created',$3,true,$4,$5,$6)`,
+            [`e_${crypto.randomUUID()}`, roomId, createdAt, creator, category, title]
+          );
+          if (status === 'pending' && opponent && !surprise) {
+            await db.query(
+              `INSERT INTO events (id, room_id, event_type, created_at, feed_visible, feed_actor_id, feed_target_id, feed_amount, feed_label)
+               VALUES ($1,$2,'challenge_received',$3,true,$4,$5,$6,$7)`,
+              [`e_${crypto.randomUUID()}`, roomId, createdAt, creator, opponent, stake, title]
+            );
+          }
+        } catch (e) { console.error('[feed] create events failed', e.message); }
+      }
+
       // Granular notifications:
       // - Vault: nobody
       // - Surprise: only the opponent (uses on_challenged)
@@ -264,6 +282,45 @@ module.exports = function(broadcastUpdate) {
               if (bet.opponent) checkIds.add(bet.opponent);
               if (bet.target_user) checkIds.add(bet.target_user);
               for (const u of checkIds) refreshAchievements(u);
+
+              // Feed events
+              try {
+                const now = Date.now();
+                const winner = outcome === 'won' ? bet.creator : bet.opponent;
+                const loser  = outcome === 'won' ? bet.opponent : bet.creator;
+                const winAmt = bet.opponent_stake != null
+                  ? bet.stake + bet.opponent_stake
+                  : bet.potential_win;
+
+                // Personal event for the creator (the one who called resolve)
+                await db.query(
+                  `INSERT INTO events (id, room_id, event_type, created_at, feed_visible, feed_actor_id, feed_amount, feed_category, feed_label)
+                   VALUES ($1,$2,$3,$4,true,$5,$6,$7,$8)`,
+                  [`e_${crypto.randomUUID()}`, bet.room_id,
+                   outcome === 'won' ? 'bet_won' : 'bet_lost',
+                   now, bet.creator,
+                   outcome === 'won' ? winAmt : bet.stake,
+                   bet.category, bet.title]
+                );
+                // Personal event for the opponent (if any)
+                if (loser && loser !== bet.creator) {
+                  await db.query(
+                    `INSERT INTO events (id, room_id, event_type, created_at, feed_visible, feed_actor_id, feed_amount, feed_category, feed_label)
+                     VALUES ($1,$2,$3,$4,true,$5,$6,$7,$8)`,
+                    [`e_${crypto.randomUUID()}`, bet.room_id,
+                     outcome === 'won' ? 'bet_lost' : 'bet_won',
+                     now, loser,
+                     outcome === 'won' ? (bet.opponent_stake ?? bet.stake) : winAmt,
+                     bet.category, bet.title]
+                  );
+                }
+                // Group-visible event (everyone can see resolution)
+                await db.query(
+                  `INSERT INTO events (id, room_id, event_type, created_at, feed_visible, feed_actor_id, feed_category, feed_label)
+                   VALUES ($1,$2,'bet_resolved_group',$3,true,$4,$5,$6)`,
+                  [`e_${crypto.randomUUID()}`, bet.room_id, now, req.userId, bet.category, bet.title]
+                );
+              } catch (e) { console.error('[feed] resolve events failed', e.message); }
 
               const notifyIds = new Set();
               if (bet.opponent && bet.opponent !== req.userId) notifyIds.add(bet.opponent);
@@ -521,6 +578,15 @@ module.exports = function(broadcastUpdate) {
       });
 
       broadcastUpdate(req.activeRoomId);
+
+      // Feed event
+      try {
+        await db.query(
+          `INSERT INTO events (id, room_id, event_type, created_at, feed_visible, feed_actor_id, feed_target_id, feed_label)
+           VALUES ($1,$2,'bet_accepted',$3,true,$4,$5,$6)`,
+          [`e_${crypto.randomUUID()}`, bet.room_id, Date.now(), req.userId, bet.creator, bet.title]
+        );
+      } catch (e) { console.error('[feed] bet_accepted event failed', e.message); }
 
       // Ping the creator: their challenge has been accepted. Pot mode includes
       // the total pot in the body so they see the stakes are now locked in.

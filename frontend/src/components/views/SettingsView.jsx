@@ -28,7 +28,7 @@ const S = {
   raised: {background:"var(--card)",border:"1px solid var(--rule)",borderRadius:14,padding:16},
 };
 
-export default function SettingsView({user,profiles,groupMembers,isDark,setIsDark,theme,setTheme,customCats,credits,bets,onUpdateProfile,onCreateCategory,onDeleteCategory,vaultPin,onSetVaultPin,isDesktop,onReset,onTestReset,onLogout,onOpenProfileEdit,isAdmin=false,can,onNavigate,pendingFriendCount=0}){
+export default function SettingsView({user,profiles,groupMembers,isDark,setIsDark,theme,setTheme,customCats,credits,bets,onUpdateProfile,onCreateCategory,onDeleteCategory,vaultPin,onSetVaultPin,isDesktop,onReset,onTestReset,onLogout,onOpenProfileEdit,isAdmin=false,can,onNavigate,pendingFriendCount=0,canAccessAdmin=false}){
   const { t, lang, setLang } = useLang();
   // Two-step logout: first tap arms the button ("Conferma uscita" in red),
   // second tap actually fires onLogout. Auto-resets after 4s so a forgotten
@@ -237,7 +237,7 @@ export default function SettingsView({user,profiles,groupMembers,isDark,setIsDar
             )}
             <span style={{color:'var(--dim)',fontSize:16}} aria-hidden>›</span>
           </div>
-          {isAdmin && (
+          {canAccessAdmin && (
             <div
               onClick={() => onNavigate('admin')}
               role="button" tabIndex={0}

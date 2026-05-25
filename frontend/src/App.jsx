@@ -1620,6 +1620,7 @@ export default function App() {
     };
     const onMove = e => {
       if (s.startX === null) return;
+      if (closeTopModalRef.current) { s.startX = null; s.locked = false; return; }
       const dx = e.touches[0].clientX - s.startX;
       const dy = Math.abs(e.touches[0].clientY - s.startY);
       if (dy > VERT) { s.startX = null; return; }

@@ -235,6 +235,8 @@ export default function BetCard({bet,user,profiles,cats,onResolve,onReveal,onCou
               : <div style={{fontFamily:"'Cormorant Garamond',serif",fontWeight:600,fontSize:16,lineHeight:1.3,color:"var(--txt)"}}>{bet.title}</div>
             }
           </div>
+          {/* Active bets show the quota here; resolved outcome is shown by
+              the result badge in the badges section below. */}
           {!bet.isSecret && !done && (
             <div style={{flexShrink:0,textAlign:'right',lineHeight:1}}>
               <div style={{
@@ -302,8 +304,8 @@ export default function BetCard({bet,user,profiles,cats,onResolve,onReveal,onCou
             </div>
           </div>
 
-          {/* Badges — stake on the left, win on the right. No more
-              quota multiplier badge (users don't think in 1.5×). */}
+          {/* Secondary badges (pegno, surprise, targeted, subset, pot,
+              resolved result). Stake/win moved to the B3 header meta row. */}
           <div style={{display:"flex",flexWrap:"wrap",gap:5,marginBottom:8}}>
             {bet.pegno&&<Bdg bg="var(--gold)22" c="var(--gold)">🎁 {bet.pegno}</Bdg>}
             {bet.isSurprise && (isOwner || user === bet.opponent) && !done && <Bdg bg="var(--pur)22" c="var(--pur)">{t('bet_card.surprise_label')}</Bdg>}

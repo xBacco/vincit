@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vincit v3 — Brass & Velvet (D + calore A)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Poppins:wght@400;500;600;700&family=Playfair+Display:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* Brass & Velvet + calore A — palette CALDA */
+    --bg:        #1C1210;   /* bruno-rosso scuro, base velluto caldo */
+    --bg-warm:   #241512;   /* tinta calda */
+    --surface:   #2A1A16;   /* superfici brune calde */
+    --surface-2: #35211B;   /* superfici alte, rame scuro */
+    --line:      #45302A;   /* bordi caldi */
+    --gold:      #DABC7A;   /* oro pallido deco */
+    --gold-soft: #EFD9A8;
+    --copper:    #C5772F;   /* rame caldo acceso */
+    --win:       #5FB390;
+    --loss:      #D85A47;
+    --text:      #F3EADB;   /* avorio caldo */
+    --text-dim:  #B59E90;
+    --text-faint:#766256;
+    --radius:    18px;
+    --radius-sm: 12px;
+    /* font switch default */
+    --font-display: 'Playfair Display', serif;
+    --font-body: 'Inter', sans-serif;
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:var(--font-body);
+    background:
+      radial-gradient(130% 85% at 50% -12%, #4A2418 0%, #2E1712 38%, var(--bg) 70%),
+      var(--bg);
+    color:var(--text);
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+    display:flex; flex-direction:column; align-items:center;
+    padding:24px 0 0;
+  }
+
+  /* ===== Font switcher ===== */
+  .switcher{
+    position:fixed; top:14px; left:50%; transform:translateX(-50%);
+    display:flex; gap:6px; z-index:50;
+    background:rgba(20,14,18,.85); backdrop-filter:blur(12px);
+    border:1px solid var(--line); border-radius:999px; padding:5px;
+  }
+  .switcher button{
+    font-family:var(--font-body); font-size:12px; font-weight:600;
+    letter-spacing:.04em; color:var(--text-dim);
+    background:transparent; border:none; padding:7px 13px; border-radius:999px;
+    cursor:pointer; transition:.2s;
+  }
+  .switcher button.active{ background:var(--gold); color:#1A1418; }
+
+  /* ===== Phone frame ===== */
+  .phone{
+    width:390px; max-width:100%;
+    margin-top:54px;
+    padding:0 18px 110px;
+    position:relative;
+  }
+
+  /* ===== Header ===== */
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 2px 18px;
+  }
+  .brand{
+    font-family:var(--font-display);
+    font-size:30px; font-weight:700; letter-spacing:.02em;
+    color:var(--text);
+    display:flex; align-items:center; gap:8px;
+  }
+  .brand .coin{
+    width:30px; height:30px; border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, var(--gold-soft), var(--copper));
+    display:grid; place-items:center;
+    font-family:var(--font-body); font-weight:800; font-size:15px; color:#1A1418;
+    box-shadow:0 2px 10px rgba(184,115,51,.45), inset 0 0 0 2px rgba(255,255,255,.15);
+  }
+  .avatar{
+    width:38px; height:38px; border-radius:50%;
+    background:linear-gradient(135deg,var(--copper),var(--surface-2));
+    border:1.5px solid var(--gold);
+  }
+
+  /* ===== Balance card ===== */
+  .balance{
+    background:linear-gradient(150deg, var(--surface-2), var(--surface));
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:22px 22px 20px;
+    position:relative; overflow:hidden;
+    box-shadow:0 10px 30px rgba(0,0,0,.35);
+  }
+  .balance::after{ /* deco corner line */
+    content:''; position:absolute; top:14px; right:14px;
+    width:46px; height:46px; border-top:1.5px solid var(--gold);
+    border-right:1.5px solid var(--gold); opacity:.5; border-radius:0 6px 0 0;
+  }
+  .balance .label{
+    font-size:11px; letter-spacing:.18em; text-transform:uppercase;
+    color:var(--text-dim); margin-bottom:8px;
+  }
+  .balance .amount{
+    font-family:var(--font-display);
+    font-size:46px; font-weight:700; line-height:1;
+    color:var(--gold-soft);
+  }
+  .balance .amount small{ font-size:24px; color:var(--text-dim); font-weight:600; }
+  .balance .delta{
+    margin-top:10px; font-size:13px; font-weight:600; color:var(--win);
+    display:inline-flex; align-items:center; gap:5px;
+  }
+
+  /* ===== Section title ===== */
+  .section-h{
+    display:flex; align-items:center; justify-content:space-between;
+    margin:26px 2px 12px;
+  }
+  .section-h h2{
+    font-family:var(--font-display);
+    font-size:19px; font-weight:700; letter-spacing:.01em;
+  }
+  .section-h a{ font-size:12px; color:var(--gold); text-decoration:none; font-weight:600;}
+
+  /* ===== Bet cards ===== */
+  .bet{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:16px 16px 14px;
+    margin-bottom:12px;
+    position:relative;
+  }
+  .bet .head{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;}
+  .bet .title{ font-family:var(--font-display); font-size:17px; font-weight:600; line-height:1.25; max-width:72%;}
+  .bet .chip{
+    font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+    padding:5px 10px; border-radius:999px;
+  }
+  .chip.open{ background:rgba(212,185,120,.15); color:var(--gold); border:1px solid rgba(212,185,120,.3);}
+  .chip.live{ background:rgba(74,174,140,.15); color:var(--win); border:1px solid rgba(74,174,140,.3);}
+  .bet .players{ display:flex; align-items:center; gap:8px; margin-bottom:14px;}
+  .bet .pl{ display:flex; align-items:center; gap:6px; font-size:13px; color:var(--text-dim);}
+  .bet .dot{ width:22px; height:22px; border-radius:50%; background:linear-gradient(135deg,var(--copper),var(--surface-2)); border:1px solid var(--line);}
+  .bet .vs{ font-family:var(--font-display); font-style:italic; color:var(--text-faint); font-size:13px;}
+  .bet .foot{ display:flex; justify-content:space-between; align-items:center; padding-top:12px; border-top:1px solid var(--line);}
+  .stake{ font-size:12px; color:var(--text-dim);}
+  .stake b{ font-family:var(--font-body); color:var(--gold-soft); font-size:16px; font-weight:700;}
+  .btn{
+    font-family:var(--font-body); font-size:13px; font-weight:700; letter-spacing:.03em;
+    padding:9px 18px; border-radius:999px; border:none; cursor:pointer;
+    background:linear-gradient(135deg,var(--gold),var(--copper)); color:#1A1418;
+    box-shadow:0 4px 14px rgba(184,115,51,.35);
+  }
+
+  /* ===== Stats row ===== */
+  .stats{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px;}
+  .stat{
+    background:var(--surface); border:1px solid var(--line);
+    border-radius:var(--radius-sm); padding:14px 12px; text-align:center;
+  }
+  .stat .n{ font-family:var(--font-display); font-size:24px; font-weight:700; color:var(--text);}
+  .stat .n.win{color:var(--win);} .stat .n.loss{color:var(--loss);}
+  .stat .l{ font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--text-dim); margin-top:4px;}
+
+  /* ===== Bottom nav ===== */
+  .nav{
+    position:fixed; bottom:18px; left:50%; transform:translateX(-50%);
+    width:356px; max-width:calc(100% - 36px);
+    display:flex; justify-content:space-around; align-items:center;
+    background:rgba(36,26,32,.78); backdrop-filter:blur(16px);
+    border:1px solid var(--line); border-radius:999px;
+    padding:12px 8px; box-shadow:0 12px 36px rgba(0,0,0,.5);
+  }
+  .nav i{
+    width:24px; height:24px; display:block; opacity:.55;
+    background:var(--text-dim); -webkit-mask-size:contain; mask-size:contain;
+    -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
+  }
+  .nav .item{ display:grid; place-items:center; cursor:pointer;}
+  .nav .item.active i{ opacity:1; background:var(--gold);}
+  .nav .item span{ font-size:9px; margin-top:4px; color:var(--text-faint); letter-spacing:.06em;}
+  .nav .item.active span{ color:var(--gold);}
+  /* simple svg-mask icons via emoji fallback */
+  .nav .lbl{ font-size:20px; line-height:1; }
+  .nav .item.active .lbl{ filter:drop-shadow(0 0 6px rgba(212,185,120,.6)); }
+</style>
+</head>
+<body>
+
+<div class="switcher">
+  <button data-f="'Playfair Display', serif" class="active">Playfair</button>
+  <button data-f="'Cinzel', serif">Cinzel</button>
+  <button data-f="'Poppins', sans-serif">Poppins</button>
+</div>
+
+<div class="phone">
+  <div class="topbar">
+    <div class="brand"><span class="coin">₡</span> Vincit</div>
+    <div class="avatar"></div>
+  </div>
+
+  <div class="balance">
+    <div class="label">Il tuo banco</div>
+    <div class="amount">₡ 12.480<small></small></div>
+    <div class="delta">▲ ₡ 1.250 questa settimana</div>
+  </div>
+
+  <div class="section-h">
+    <h2>Scommesse aperte</h2>
+    <a href="#">Tutte →</a>
+  </div>
+
+  <div class="bet">
+    <div class="head">
+      <div class="title">Chi cucina venerdì sera</div>
+      <span class="chip live">Live</span>
+    </div>
+    <div class="players">
+      <div class="pl"><span class="dot"></span> Tu</div>
+      <span class="vs">vs</span>
+      <div class="pl"><span class="dot"></span> Giulia</div>
+    </div>
+    <div class="foot">
+      <div class="stake">Posta <b>₡ 500</b></div>
+      <button class="btn">Rilancia</button>
+    </div>
+  </div>
+
+  <div class="bet">
+    <div class="head">
+      <div class="title">Maratona serie TV entro domenica</div>
+      <span class="chip open">Aperta</span>
+    </div>
+    <div class="players">
+      <div class="pl"><span class="dot"></span> Tu</div>
+      <span class="vs">vs</span>
+      <div class="pl"><span class="dot"></span> Marco</div>
+    </div>
+    <div class="foot">
+      <div class="stake">Posta <b>₡ 250</b></div>
+      <button class="btn">Accetta</button>
+    </div>
+  </div>
+
+  <div class="section-h">
+    <h2>Il tuo tavolo</h2>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="n win">18</div><div class="l">Vinte</div></div>
+    <div class="stat"><div class="n loss">7</div><div class="l">Perse</div></div>
+    <div class="stat"><div class="n">72%</div><div class="l">Win rate</div></div>
+  </div>
+</div>
+
+<div class="nav">
+  <div class="item active"><span class="lbl">🎲</span><span>Banco</span></div>
+  <div class="item"><span class="lbl">🃏</span><span>Bets</span></div>
+  <div class="item"><span class="lbl">🔒</span><span>Vault</span></div>
+  <div class="item"><span class="lbl">📊</span><span>Stats</span></div>
+  <div class="item"><span class="lbl">🏆</span><span>Trofei</span></div>
+</div>
+
+<script>
+  const btns=document.querySelectorAll('.switcher button');
+  btns.forEach(b=>b.addEventListener('click',()=>{
+    btns.forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    document.documentElement.style.setProperty('--font-display', b.dataset.f);
+  }));
+</script>
+</body>
+</html>

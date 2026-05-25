@@ -2,6 +2,15 @@ node_modules/
 frontend/node_modules/
 backend/node_modules/
 frontend/dist/
+vincit-v3/frontend/node_modules/
+vincit-v3/frontend/dist/
+
+# repo separato, non includere nel repo principale
+vincit-v2/
+
+# scratch tooling / screenshot esplorativi
+.playwright-mcp/
+v3-*.png
 .DS_Store
 *.log
 .env

@@ -1747,9 +1747,23 @@ export default function App() {
   // Owner has everything; co-admin has the flagged ones; member has nothing admin
   const can = perm => isAdmin || (myRole === 'co-admin' && myPermissions[perm] === true);
 
+  // The group chip shows each group's active-bet count from the groups list
+  // (server `pending_count`), which only refreshes on group switch / reload.
+  // For the *active* group we already hold the live synced `bets`, so override
+  // its count from there — matching the server's definition (active+pending) —
+  // so the chip updates right after create/resolve. Other groups keep their
+  // server value. Gated on a loaded state so we never flash a stale/zero count
+  // on load or group switch (stateLoadedRef resets to false until the new
+  // group's state syncs in).
+  const groupsForPicker = stateLoadedRef.current
+    ? groups.map(g => g.id === activeGroupId
+        ? { ...g, pending_count: bets.filter(b => b.status === 'active' || b.status === 'pending').length }
+        : g)
+    : groups;
+
   const groupPickerEl = groups.length > 0 && (
     <GroupPicker
-      groups={groups}
+      groups={groupsForPicker}
       activeGroupId={activeGroupId}
       onSwitch={switchGroup}
       onCreate={() => setShowGroupModal(true)}

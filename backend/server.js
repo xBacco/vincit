@@ -143,6 +143,9 @@ app.use('/api/bets',       authMiddleware, resolveActiveRoom, betsRouter);
 app.use('/api/credits',    authMiddleware, resolveActiveRoom, creditsRouter);
 app.use('/api/categories', authMiddleware, resolveActiveRoom, catsRouter);
 app.use('/api/bets',       authMiddleware, resolveActiveRoom, reactionsRouter);
+// The VAPID public key is not sensitive and the client fetches it on load,
+// before any auth context is guaranteed — expose it publicly so it doesn't 401.
+app.get('/api/push/vapid-key', (_, res) => res.json({ publicKey: process.env.VAPID_PUBLIC_KEY || null }));
 app.use('/api/push',       authMiddleware, pushRouter);
 app.use('/api/achievements', authMiddleware, achievementsRouter);
 app.use('/api/templates',  authMiddleware, templatesRouter);

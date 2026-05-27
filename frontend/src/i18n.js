@@ -92,6 +92,7 @@ const TRANSLATIONS = {
       title:'📊 Statistiche', balance:'Saldo Attuale', net_pos:'▲ {n} ₡ netti', net_neg:'▼ {n} ₡ netti',
       won:'Vinte', lost:'Perse', win_rate:'Win Rate', streak:'Streak max', best:'🏆 Migliore Vittoria',
       by_cat:'Per Categoria', hof:'🔥 Hall of Fame', no_bets:'Nessuna bet risolta — inizia a giocare!',
+      heatmap:'Attività',
     },
     settings: {
       title:'⚙️ Impostazioni', profiles:'Profili', my_profile:'Il tuo profilo', partner:'Membri del gruppo',
@@ -170,7 +171,7 @@ const TRANSLATIONS = {
       test_reset_desc:'Cancella TUTTO incluse le bet, le reazioni, i crediti tornano a 100 E i trofei sbloccati nel gruppo. Pensato per i test: riparti da zero senza intasare le statistiche.',
       test_reset_btn:'🧪 Reset completo (test)',
       test_reset_confirm_title:'Reset di prova: confermi?',
-      test_reset_confirm_desc:'Verranno cancellati TUTTE le bet, TUTTE le reazioni, TUTTI i trofei sblockati dai membri del gruppo. Crediti a 100.',
+      test_reset_confirm_desc:'Verranno cancellati TUTTE le bet, TUTTE le reazioni, TUTTI i trofei sbloccati dai membri del gruppo. Crediti a 100.',
       test_reset_confirm_btn:'🧪 Sì, cancella tutto',
       logout:'Esci',
       profile_menu_edit:'Modifica profilo',
@@ -814,6 +815,7 @@ const TRANSLATIONS = {
       title:'📊 Statistics', balance:'Current Balance', net_pos:'▲ {n} ₡ net', net_neg:'▼ {n} ₡ net',
       won:'Won', lost:'Lost', win_rate:'Win Rate', streak:'Best streak', best:'🏆 Best Win',
       by_cat:'By Category', hof:'🔥 Hall of Fame', no_bets:'No resolved bets yet — start playing!',
+      heatmap:'Activity',
     },
     settings: {
       title:'⚙️ Settings', profiles:'Profiles', my_profile:'Your profile', partner:'Group members',
